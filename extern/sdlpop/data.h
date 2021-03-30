@@ -32,6 +32,8 @@ The authors of this program may be contacted at https://forum.princed.org
 #undef extern
 #endif
 
+extern short useGUI;
+
 // data:5F8A
 extern word text_time_remaining;
 // data:4C56

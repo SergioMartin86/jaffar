@@ -1,4 +1,4 @@
-#include "sdlpop-instance.h"
+#include "SDLPopInstance.h"
 #include <dlfcn.h>
 #include "types.h"
 
@@ -6,6 +6,7 @@ char* __prince_argv[] = { (char*)"prince" };
 
 void SDLPopInstance::initialize()
 {
+ *useGUI = 1;
  *g_argc = 1;
  *g_argv = __prince_argv;
 
@@ -221,6 +222,7 @@ SDLPopInstance::SDLPopInstance()
  play_level = (play_level_t) dlsym(dllHandle_, "play_level");
 
  // State variables
+ useGUI = (short*) dlsym(dllHandle_, "useGUI");
  Kid = (char_type*) dlsym(dllHandle_, "Kid");
  Guard = (char_type*) dlsym(dllHandle_, "Guard");
  Char = (char_type*) dlsym(dllHandle_, "Char");

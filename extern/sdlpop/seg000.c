@@ -22,6 +22,8 @@ The authors of this program may be contacted at https://forum.princed.org
 #include <setjmp.h>
 #include <math.h>
 
+short useGUI = 1;
+
 // data:461E
 dat_type* dathandle;
 

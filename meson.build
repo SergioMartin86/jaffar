@@ -29,7 +29,7 @@ sdlPopFiles = [
 ]
 
 jaffarFiles = [
-  'source/sdlpop-instance.cc',
+  'source/SDLPopInstance.cc',
 ]
 
 deps = [

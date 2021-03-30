@@ -71,6 +71,29 @@ typedef byte curr_row_coll_flags_t[10];
 typedef byte below_row_coll_flags_t[10];
 typedef byte above_row_coll_flags_t[10];
 
+enum class Move {
+  Nothing = 0,
+  R = 0x01,
+  L = 0x03,
+  D = 0x04,
+  RD = R | D,
+  LD = L | D,
+  U = 0x0c,
+  RU = R | U,
+  LU = L | U,
+  Shift = 0x10,
+  SR = Shift | R,
+  SL = Shift | L,
+  SD = Shift | D,
+  SRD = Shift | RD,
+  SLD = Shift | LD,
+  SU = Shift | U,
+  SRU = Shift | RU,
+  SLU = Shift | LU,
+  Restart = 0x20,
+  SoundOff = 0x40,
+};
+
 class SDLPopInstance {
  public:
   SDLPopInstance();
@@ -138,6 +161,7 @@ class SDLPopInstance {
  play_level_t play_level;
 
  // State variables
+ short* useGUI; //
  char_type* Kid; //
  char_type* Guard; //
  char_type* Char; //

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "sdlpop-instance.h"
+#include "SDLPopInstance.h"
 
 int main(int argc, char* argv[])
 {
