@@ -76,6 +76,9 @@ class SDLPopInstance {
   SDLPopInstance();
   ~SDLPopInstance();
 
+ // Initializes the sdlPop instance
+ void initialize();
+
  // Functions
  restore_room_after_quick_load_t restore_room_after_quick_load;
  load_global_options_t load_global_options;

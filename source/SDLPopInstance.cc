@@ -2,6 +2,162 @@
 #include <dlfcn.h>
 #include "types.h"
 
+char* __prince_argv[] = { (char*)"prince" };
+
+void SDLPopInstance::initialize()
+{
+ *g_argc = 1;
+ *g_argv = __prince_argv;
+
+ *random_seed = 1;
+ *seed_was_init = 1;
+
+ // debug only: check that the sequence table deobfuscation did not mess things
+ // up
+
+ load_global_options();
+ check_mod_param();
+ load_ingame_settings();
+ turn_sound_on_off(1);
+ load_mod_options();
+
+ // CusPop option
+ *is_blind_mode = 0;
+
+ // Fix bug: with start_in_blind_mode enabled, moving objects are not displayed
+ // until blind mode is toggled off+on??
+ *need_drects = 1;
+
+ apply_seqtbl_patches();
+ *dathandle = open_dat("PRINCE.DAT", 0);
+
+ /*video_mode =*/
+ parse_grmode();
+
+ init_timer(BASE_FPS);
+ parse_cmdline_sound();
+
+ set_hc_pal();
+
+ *current_target_surface = rect_sthg(*onscreen_surface_, screen_rect);
+
+ show_loading();
+ set_joy_mode();
+
+ *cheats_enabled = 0;
+ *draw_mode = 0;
+ *demo_mode = 0;
+
+ init_copyprot_dialog();
+ init_record_replay();
+
+ *play_demo_level = 0;
+
+ init_menu();
+
+ //////////////////////////////////////////////
+ // init_game_main
+
+ *doorlink1_ad = /*&*/ level->doorlinks1;
+ *doorlink2_ad = /*&*/ level->doorlinks2;
+
+ prandom(1);
+ *guard_palettes = (byte*) load_from_opendats_alloc(10, "bin", NULL, NULL);
+
+ // (blood, hurt flash) #E00030 = red
+ set_pal(12, 0x38, 0x00, 0x0C, 1);
+
+ // (palace wall pattern) #C09850 = light brown
+ set_pal(6, 0x30, 0x26, 0x14, 0);
+
+ // Level color variations (1.3)
+ *level_var_palettes = reinterpret_cast<byte*>(load_from_opendats_alloc(20, "bin", NULL, NULL));
+
+ // PRINCE.DAT: sword
+ (*chtab_addrs)[id_chtab_0_sword] = load_sprites_from_file(700, 1 << 2, 1);
+
+ // PRINCE.DAT: flame, sword on floor, potion
+ (*chtab_addrs)[id_chtab_1_flameswordpotion] = load_sprites_from_file(150, 1 << 3, 1);
+
+ close_dat(*dathandle);
+ init_lighting();
+ load_all_sounds();
+
+ hof_read();
+
+ ///////////////////////////////////////////////////
+ // start_game
+
+ release_title_images();  // added
+ free_optsnd_chtab();     // added
+
+ *start_level = 1;
+
+ ///////////////////////////////////////////////////////////////
+ // init_game
+
+ *offscreen_surface = make_offscreen_buffer(rect_top);
+
+ load_kid_sprite();
+
+ *text_time_remaining = 0;
+ *text_time_total = 0;
+ *is_show_time = 1;
+ *checkpoint = 0;
+ *upside_down = 0;  // N.B. upside_down is also reset in set_start_pos()
+ *resurrect_time = 0;
+ *rem_min = (*custom)->start_minutes_left;  // 60
+ *rem_tick = (*custom)->start_ticks_left;   // 719
+ *hitp_beg_lev = (*custom)->start_hitp;     // 3
+
+ *need_level1_music = false;
+
+ // play_level(1);
+
+ ///////////////////////////////////////////////////////////////
+ // play_level
+ int level_number = 1;
+ if (level_number != *current_level) load_lev_spr(level_number);
+
+ load_level();
+ pos_guards();
+ clear_coll_rooms();
+ clear_saved_ctrl();
+
+ *drawn_room = 0;
+ *mobs_count = 0;
+ *trobs_count = 0;
+ *next_sound = -1;
+ *holding_sword = 0;
+ *grab_timer = 0;
+ *can_guard_see_kid = 0;
+ *united_with_shadow = 0;
+ *flash_time = 0;
+ *leveldoor_open = 0;
+ *demo_index = 0;
+ *demo_time = 0;
+ *guardhp_curr = 0;
+ *hitp_delta = 0;
+ Guard->charid = charid_2_guard;
+ Guard->direction = dir_56_none;
+
+ do_startpos();
+
+ // (level_number != 1)
+ *have_sword = (level_number == 0 || level_number >= (*custom)->have_sword_from_level);
+
+ find_start_level_door();
+
+ // busy waiting?
+ while (check_sound_playing() && !do_paused()) idle();
+
+ stop_sounds();
+
+ draw_level_first();
+ show_copyprot(0);
+ reset_timer(timer_1);
+}
+
 SDLPopInstance::SDLPopInstance()
 {
  dllHandle_ = dlopen("./libsdlPopLib.so", RTLD_LAZY);
