@@ -35,6 +35,8 @@ jaffarFiles = [
 deps = [
   dependency('sdl2'),
   dependency('SDL2_image'),
+  dependency('mpich', required : false),
+  dependency('mpi', required : false),
   cc.find_library('m', required : false),
 ]
 

@@ -161,7 +161,6 @@ class SDLPopInstance {
  play_level_t play_level;
 
  // State variables
- short* useGUI; //
  char_type* Kid; //
  char_type* Guard; //
  char_type* Char; //
@@ -264,6 +263,7 @@ class SDLPopInstance {
  word* next_room; //
  word* is_guard_notice; //
  word* need_full_redraw;
+ byte* is_validate_mode;
 
  private:
 

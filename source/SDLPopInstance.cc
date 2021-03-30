@@ -6,7 +6,7 @@ char* __prince_argv[] = { (char*)"prince" };
 
 void SDLPopInstance::initialize()
 {
- *useGUI = 1;
+ *is_validate_mode = 1;
  *g_argc = 1;
  *g_argv = __prince_argv;
 
@@ -222,7 +222,6 @@ SDLPopInstance::SDLPopInstance()
  play_level = (play_level_t) dlsym(dllHandle_, "play_level");
 
  // State variables
- useGUI = (short*) dlsym(dllHandle_, "useGUI");
  Kid = (char_type*) dlsym(dllHandle_, "Kid");
  Guard = (char_type*) dlsym(dllHandle_, "Guard");
  Char = (char_type*) dlsym(dllHandle_, "Char");
@@ -326,6 +325,7 @@ SDLPopInstance::SDLPopInstance()
  next_room = (word*) dlsym(dllHandle_, "next_room");
  is_guard_notice = (word*) dlsym(dllHandle_, "is_guard_notice");
  need_full_redraw = (word*) dlsym(dllHandle_, "need_full_redraw");
+ is_validate_mode = (byte*) dlsym(dllHandle_, "is_validate_mode");
 }
 
 SDLPopInstance::~SDLPopInstance()
