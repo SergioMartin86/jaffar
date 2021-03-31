@@ -3,29 +3,29 @@ project('libsdlpop', 'c', 'cpp',
 )
 
 cc = meson.get_compiler('c')
-inc = include_directories('extern/sdlpop')
+inc = include_directories('extern/SDLPoP/src')
 
 sdlPopFiles = [
-  'extern/sdlpop/data.c',
-  'extern/sdlpop/lighting.c',
-  'extern/sdlpop/menu.c',
-  'extern/sdlpop/midi.c',
-  'extern/sdlpop/opl3.c',
-  'extern/sdlpop/options.c',
-  'extern/sdlpop/replay.c',
-  'extern/sdlpop/screenshot.c',
-  'extern/sdlpop/seg000.c',
-  'extern/sdlpop/seg001.c',
-  'extern/sdlpop/seg002.c',
-  'extern/sdlpop/seg003.c',
-  'extern/sdlpop/seg004.c',
-  'extern/sdlpop/seg005.c',
-  'extern/sdlpop/seg006.c',
-  'extern/sdlpop/seg007.c',
-  'extern/sdlpop/seg008.c',
-  'extern/sdlpop/seg009.c',
-  'extern/sdlpop/seqtbl.c',
-  'extern/sdlpop/stb_vorbis.c'
+  'extern/SDLPoP/src/data.c',
+  'extern/SDLPoP/src/lighting.c',
+  'extern/SDLPoP/src/menu.c',
+  'extern/SDLPoP/src/midi.c',
+  'extern/SDLPoP/src/opl3.c',
+  'extern/SDLPoP/src/options.c',
+  'extern/SDLPoP/src/replay.c',
+  'extern/SDLPoP/src/screenshot.c',
+  'extern/SDLPoP/src/seg000.c',
+  'extern/SDLPoP/src/seg001.c',
+  'extern/SDLPoP/src/seg002.c',
+  'extern/SDLPoP/src/seg003.c',
+  'extern/SDLPoP/src/seg004.c',
+  'extern/SDLPoP/src/seg005.c',
+  'extern/SDLPoP/src/seg006.c',
+  'extern/SDLPoP/src/seg007.c',
+  'extern/SDLPoP/src/seg008.c',
+  'extern/SDLPoP/src/seg009.c',
+  'extern/SDLPoP/src/seqtbl.c',
+  'extern/SDLPoP/src/stb_vorbis.c'
 ]
 
 jaffarFiles = [
@@ -51,7 +51,7 @@ linkFlags = [
   
 cppFlags = [
   '-Wfatal-errors',
-  '-fopenmp'
+  '-fopenmp',
   ]
 
 executable('jaffar',

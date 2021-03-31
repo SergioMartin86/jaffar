@@ -1,0 +1,3 @@
+[submodule "extern/SDLPoP"]
+	path = extern/SDLPoP
+	url = https://github.com/NagyD/SDLPoP/
