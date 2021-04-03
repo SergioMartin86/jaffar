@@ -23,6 +23,7 @@ int main(int argc, char* argv[])
  //printf("Rank: %d/%d - Loading SDLPop...\n", commRank, commSize);
  SDLPopInstance s;
  State state(&s);
+ Search search(&s);
 
  s.initialize(true);
 
