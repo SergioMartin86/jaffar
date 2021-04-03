@@ -1,5 +1,7 @@
 #pragma once
 
+#include "json.hpp"
+
 enum op_t
 {
   op_equal = 0,
@@ -14,17 +16,21 @@ template <typename T>
 class Rule
 {
 
+public:
+
   Rule<T>(const op_t opType);
+  bool evaluate();
 
 private:
 
-  inline bool _opEqual() { return *_op1 == *_op2; }
-  inline bool _opNotEqual() { return *_op1 != *_op2; }
-  inline bool _opGreater() { return *_op1 > *_op2; }
-  inline bool _opGreaterOrEqual() { return *_op1 >= *_op2; }
-  inline bool _opLess() { return *_op1 < *_op2; }
-  inline bool _opLessOrEqual() { return *_op1 <= *_op2; }
-  bool evaluate();
+  static inline bool _opEqual(const T a, const T b) { return a == b; }
+  static inline bool _opNotEqual(const T a, const T b) { return a != b; }
+  static inline bool _opGreater(const T a, const T b) { return a > b; }
+  static inline bool _opGreaterOrEqual(const T a, const T b) { return a >= b; }
+  static inline bool _opLess(const T a, const T b) { return a < b; }
+  static inline bool _opLessOrEqual(const T a, const T b) { return a <= b; }
+
+  bool (*_opFcPtr)(const T, const T);
 
   op_t _opType;
   T _immediate;

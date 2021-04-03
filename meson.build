@@ -3,7 +3,7 @@ project('libsdlpop', 'c', 'cpp',
 )
 
 cc = meson.get_compiler('c')
-inc = include_directories([ 'extern/SDLPoP/src', 'extern/metrohash64' ])
+inc = include_directories([ 'extern/SDLPoP/src', 'extern/metrohash64', 'extern/json' ])
 
 sdlPopFiles = [
   'extern/SDLPoP/src/data.c',
