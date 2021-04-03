@@ -1,4 +1,5 @@
 #include "state.h"
+#include "utils.h"
 #include <fstream>
 #include "metrohash64.h"
 
@@ -197,7 +198,7 @@ uint64_t State::computeHash() const {
         hash.Update(sdlPop_->level->fg[idx]);
         break;
       default:
-        fprintf(stderr, "Unknown trob type: %d\n", int(type));
+       EXIT_WITH_ERROR("Unknown trob type: %d\n", int(type));
     }
   }
 
@@ -247,6 +248,6 @@ std::string State::saveFrame() const {
     }
   }
   if (res.size() != kExpectedSize)
-   fprintf(stderr, "Expected %lu, got: %lu\n", kExpectedSize, res.size());
+   EXIT_WITH_ERROR("Expected %lu, got: %lu\n", kExpectedSize, res.size());
   return res;
 }

@@ -35,6 +35,8 @@ metrohash64Files = [
 jaffarFiles = [
   'source/SDLPopInstance.cc',
   'source/state.cc',
+  'source/rule.cc',
+  'source/utils.cc'
 ]
 
 deps = [
@@ -67,7 +69,6 @@ executable('jaffar',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
-  link_with: sdlPopLib,
-  link_with: metroHash64Lib,
+  link_with: [ sdlPopLib, metroHash64Lib ],
   link_args: linkFlags,
   cpp_args: cppFlags)
