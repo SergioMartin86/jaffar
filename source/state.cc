@@ -13,7 +13,7 @@ void AddItem(std::vector<State::Item>* dest, T& val, State::ItemType type) {
 
 std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
   std::vector<State::Item> dest;
-  AddItem(&dest, quick_control, State::ONLY_QUICKSAVE);
+  AddItem(&dest, quick_control, State::ONLY_quickSave);
   AddItem(&dest, *sdlPop->level, State::HASHABLE_MANUAL);
   AddItem(&dest, *sdlPop->checkpoint, State::BASE_LAYER);
   AddItem(&dest, *sdlPop->upside_down, State::PER_FRAME_STATE);
@@ -109,7 +109,7 @@ State::State(SDLPopInstance *sdlPop)
  items_ = GenerateItemsMap(sdlPop);
 }
 
-void State::Quickload(const std::string& filename) {
+void State::quickLoad(const std::string& filename) {
   std::ifstream fi(filename.c_str());
   for (const auto& item : items_) {
     if (item.type != ONLY_STATE) {
@@ -120,7 +120,7 @@ void State::Quickload(const std::string& filename) {
   // update_screen();
 }
 
-void State::Quicksave(const std::string& filename) {
+void State::quickSave(const std::string& filename) {
   std::ofstream fo(filename.c_str());
   for (const auto& item : items_) {
     if (item.type != ONLY_STATE) {
@@ -129,14 +129,14 @@ void State::Quicksave(const std::string& filename) {
   }
 }
 
-uint64_t State::KidHash() const {
+uint64_t State::kidHash() const {
   uint64_t hash;
   MetroHash64::Hash(reinterpret_cast<uint8_t*>(sdlPop_->Kid), sizeof(*sdlPop_->Kid),
                     reinterpret_cast<uint8_t*>(&hash), 1);
   return hash;
 }
 
-uint64_t State::ComputeHash() const {
+uint64_t State::computeHash() const {
   MetroHash64 hash;
   for (const auto& item : items_) {
     if (item.type == HASHABLE) {
@@ -206,7 +206,7 @@ uint64_t State::ComputeHash() const {
   return result;
 }
 
-void State::LoadBase(const std::string& data) {
+void State::loadBase(const std::string& data) {
   const char* ptr = data.data();
   for (const auto& item : items_) {
     if (item.type == BASE_LAYER) {
@@ -216,7 +216,7 @@ void State::LoadBase(const std::string& data) {
   }
 }
 
-std::string State::SaveBase() const {
+std::string State::saveBase() const {
   std::string res;
   for (const auto& item : items_) {
     if (item.type == BASE_LAYER) {
@@ -226,7 +226,7 @@ std::string State::SaveBase() const {
   return res;
 }
 
-void State::LoadFrame(const std::string& data) {
+void State::loadFrame(const std::string& data) {
   const char* ptr = data.data();
   for (const auto& item : items_) {
     if (item.type > BASE_LAYER) {
@@ -237,7 +237,7 @@ void State::LoadFrame(const std::string& data) {
   // restore_room_after_quick_load();
 }
 
-std::string State::SaveFrame() const {
+std::string State::saveFrame() const {
   constexpr size_t kExpectedSize = 2689;
   std::string res;
   res.reserve(kExpectedSize);

@@ -9,7 +9,7 @@
 class State {
  public:
   enum ItemType {
-    ONLY_QUICKSAVE,
+    ONLY_quickSave,
     BASE_LAYER,
     PER_FRAME_STATE,
     ONLY_STATE,
@@ -25,16 +25,16 @@ class State {
 
   State(SDLPopInstance *sdlPop);
 
-  void Quickload(const std::string& filename);
-  void Quicksave(const std::string& filename);
-  uint64_t ComputeHash() const;
-  uint64_t KidHash() const;
+  void quickLoad(const std::string& filename);
+  void quickSave(const std::string& filename);
+  uint64_t computeHash() const;
+  uint64_t kidHash() const;
 
-  void LoadBase(const std::string& data);
-  std::string SaveBase() const;
+  void loadBase(const std::string& data);
+  std::string saveBase() const;
 
-  void LoadFrame(const std::string& data);
-  std::string SaveFrame() const;
+  void loadFrame(const std::string& data);
+  std::string saveFrame() const;
 
  private:
   SDLPopInstance* sdlPop_;

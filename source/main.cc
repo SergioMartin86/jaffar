@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
    s.advanceFrame();
    s.printFrameInfo();
    s.draw();
-   printf("Hash: 0x%016lX\n", state.ComputeHash());
+   printf("Hash: 0x%016lX\n", state.computeHash());
  }
 
  printf("Done.\n");
