@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "types.h"
+#include <string>
 
 // Function types
 typedef void (*restore_room_after_quick_load_t)(void);
@@ -70,29 +71,8 @@ typedef sbyte above_row_coll_room_t[10];
 typedef byte curr_row_coll_flags_t[10];
 typedef byte below_row_coll_flags_t[10];
 typedef byte above_row_coll_flags_t[10];
-
-enum class Move {
-  Nothing = 0,
-  R = 0x01,
-  L = 0x03,
-  D = 0x04,
-  RD = R | D,
-  LD = L | D,
-  U = 0x0c,
-  RU = R | U,
-  LU = L | U,
-  Shift = 0x10,
-  SR = Shift | R,
-  SL = Shift | L,
-  SD = Shift | D,
-  SRD = Shift | RD,
-  SLD = Shift | LD,
-  SU = Shift | U,
-  SRU = Shift | RU,
-  SLU = Shift | LU,
-  Restart = 0x20,
-  SoundOff = 0x40,
-};
+typedef char exe_dir_t[256];
+typedef byte key_states_t[SDL_NUM_SCANCODES];
 
 class SDLPopInstance {
  public:
@@ -101,6 +81,18 @@ class SDLPopInstance {
 
  // Initializes the sdlPop instance
  void initialize();
+
+ // Draw a single frame
+ void draw();
+
+ // Perform a single move
+ void performMove(const std::string& move);
+
+ // Advance a frame
+ void advanceFrame();
+
+ // Print information about the current frame
+ void printFrameInfo();
 
  // Functions
  restore_room_after_quick_load_t restore_room_after_quick_load;
@@ -230,7 +222,6 @@ class SDLPopInstance {
  dword* curr_tick;
  dat_type** dathandle;
  byte** level_var_palettes;
- int* automatic_control;
  word* is_blind_mode;
  word* seed_was_init;
  word* need_drects;
@@ -264,8 +255,14 @@ class SDLPopInstance {
  word* is_guard_notice; //
  word* need_full_redraw;
  byte* is_validate_mode;
+ exe_dir_t* exe_dir;
+ bool* found_exe_dir;
+ key_states_t* key_states;
 
  private:
 
-  void* dllHandle_;
+  void* _dllHandle;
+  size_t _currentFrame;
+  std::string _currentMove;
+  word _prevDrawnRoom;
 };
