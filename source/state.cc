@@ -106,24 +106,24 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
 
 State::State(SDLPopInstance *sdlPop)
 {
- sdlPop_ = sdlPop;
- items_ = GenerateItemsMap(sdlPop);
+ _sdlPop = sdlPop;
+ _items = GenerateItemsMap(sdlPop);
 }
 
 void State::quickLoad(const std::string& filename) {
   std::ifstream fi(filename.c_str());
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type != ONLY_STATE) {
       fi.read(reinterpret_cast<char*>(item.ptr), item.size);
     }
   }
-  sdlPop_->restore_room_after_quick_load();
+  _sdlPop->restore_room_after_quick_load();
   // update_screen();
 }
 
 void State::quickSave(const std::string& filename) {
   std::ofstream fo(filename.c_str());
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type != ONLY_STATE) {
       fo.write(reinterpret_cast<char*>(item.ptr), item.size);
     }
@@ -132,34 +132,34 @@ void State::quickSave(const std::string& filename) {
 
 uint64_t State::kidHash() const {
   uint64_t hash;
-  MetroHash64::Hash(reinterpret_cast<uint8_t*>(sdlPop_->Kid), sizeof(*sdlPop_->Kid),
+  MetroHash64::Hash(reinterpret_cast<uint8_t*>(_sdlPop->Kid), sizeof(*_sdlPop->Kid),
                     reinterpret_cast<uint8_t*>(&hash), 1);
   return hash;
 }
 
 uint64_t State::computeHash() const {
   MetroHash64 hash;
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type == HASHABLE) {
       hash.Update(item.ptr, item.size);
     }
   }
 
   // manual hashes
-  // hash.Update(sdlPop_->level->fg);
-  for (const uint8_t x : sdlPop_->level->fg) {
+  // hash.Update(_sdlPop->level->fg);
+  for (const uint8_t x : _sdlPop->level->fg) {
     hash.Update(uint8_t(x & 0x1f));
   }
 
-  hash.Update(sdlPop_->level->guards_x);
-  hash.Update(sdlPop_->level->guards_dir);
-  hash.Update(*sdlPop_->mobs, sizeof(mob_type) * (*sdlPop_->mobs_count));
-  if (sdlPop_->Guard->alive) hash.Update(*sdlPop_->Guard);
+  hash.Update(_sdlPop->level->guards_x);
+  hash.Update(_sdlPop->level->guards_dir);
+  hash.Update(*_sdlPop->mobs, sizeof(mob_type) * (*_sdlPop->mobs_count));
+  if (_sdlPop->Guard->alive) hash.Update(*_sdlPop->Guard);
 
-  for (int i = 0; i < *sdlPop_->trobs_count; ++i) {
-    const auto& trob = (*sdlPop_->trobs)[i];
+  for (int i = 0; i < *_sdlPop->trobs_count; ++i) {
+    const auto& trob = (*_sdlPop->trobs)[i];
     const auto idx = (trob.room - 1) * 30 + trob.tilepos;
-    const auto type = sdlPop_->level->fg[idx] & 0x1f;
+    const auto type = _sdlPop->level->fg[idx] & 0x1f;
     switch (type) {
       case tiles_0_empty:
       case tiles_1_floor:
@@ -194,8 +194,8 @@ uint64_t State::computeHash() const {
       case tiles_2_spike:
       case tiles_4_gate:
         hash.Update(trob);
-        hash.Update(sdlPop_->level->bg[idx]);
-        hash.Update(sdlPop_->level->fg[idx]);
+        hash.Update(_sdlPop->level->bg[idx]);
+        hash.Update(_sdlPop->level->fg[idx]);
         break;
       default:
        EXIT_WITH_ERROR("Unknown trob type: %d\n", int(type));
@@ -209,7 +209,7 @@ uint64_t State::computeHash() const {
 
 void State::loadBase(const std::string& data) {
   const char* ptr = data.data();
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type == BASE_LAYER) {
       memcpy(item.ptr, ptr, item.size);
       ptr += item.size;
@@ -219,7 +219,7 @@ void State::loadBase(const std::string& data) {
 
 std::string State::saveBase() const {
   std::string res;
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type == BASE_LAYER) {
       res.append(reinterpret_cast<const char*>(item.ptr), item.size);
     }
@@ -229,7 +229,7 @@ std::string State::saveBase() const {
 
 void State::loadFrame(const std::string& data) {
   const char* ptr = data.data();
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type > BASE_LAYER) {
       memcpy(item.ptr, ptr, item.size);
       ptr += item.size;
@@ -242,7 +242,7 @@ std::string State::saveFrame() const {
   constexpr size_t kExpectedSize = 2689;
   std::string res;
   res.reserve(kExpectedSize);
-  for (const auto& item : items_) {
+  for (const auto& item : _items) {
     if (item.type > BASE_LAYER) {
       res.append(reinterpret_cast<const char*>(item.ptr), item.size);
     }

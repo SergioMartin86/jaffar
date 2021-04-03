@@ -36,7 +36,8 @@ jaffarFiles = [
   'source/SDLPopInstance.cc',
   'source/state.cc',
   'source/rule.cc',
-  'source/utils.cc'
+  'source/utils.cc',
+  'source/search.cc'
 ]
 
 deps = [

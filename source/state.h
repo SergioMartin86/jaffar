@@ -37,6 +37,6 @@ class State {
   std::string saveFrame() const;
 
  private:
-  SDLPopInstance* sdlPop_;
-  std::vector<Item> items_;
+  SDLPopInstance* _sdlPop;
+  std::vector<Item> _items;
 };

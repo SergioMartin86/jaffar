@@ -12,13 +12,31 @@ enum op_t
   op_less_or_equal = 5
 };
 
-template <typename T>
 class Rule
 {
 
 public:
 
-  Rule<T>(const op_t opType);
+ Rule(const op_t opType);
+
+private:
+
+ op_t _opType;
+ bool _immediateAssigned;
+
+};
+
+template <typename T>
+class iRule : public Rule
+{
+
+public:
+
+  iRule(const op_t opType);
+  void setOp1(const T* op1);
+  void setOp2(const T* op2);
+  void setImmediate1(const T immediate);
+  void setImmediate2(const T immediate);
   bool evaluate();
 
 private:
@@ -32,9 +50,9 @@ private:
 
   bool (*_opFcPtr)(const T, const T);
 
-  op_t _opType;
-  T _immediate;
-  bool _immediateAssigned;
+  T _immediate1;
+  T _immediate2;
   T* _op1;
   T* _op2;
 };
+
