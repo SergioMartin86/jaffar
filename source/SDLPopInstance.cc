@@ -5,7 +5,7 @@
 
 char* __prince_argv[] = { (char*)"prince" };
 
-void SDLPopInstance::initialize()
+void SDLPopInstance::initialize(const bool useGUI)
 {
 
  // Resetting frame counter
@@ -16,7 +16,7 @@ void SDLPopInstance::initialize()
  *found_exe_dir = true;
  sprintf(*exe_dir, "../extern/SDLPoP/");
 
- *is_validate_mode = 0;
+ *is_validate_mode = byte(!useGUI);
  *g_argc = 1;
  *g_argv = __prince_argv;
 
@@ -193,13 +193,13 @@ void SDLPopInstance::performMove(const std::string& move)
  (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 0;
  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 0;
 
- if (move.find("R") != std::string::npos) { (*key_states)[SDL_SCANCODE_RIGHT] = 1; }
- if (move.find("L") != std::string::npos) { (*key_states)[SDL_SCANCODE_LEFT] = 1; }
- if (move.find("U") != std::string::npos) { (*key_states)[SDL_SCANCODE_UP] = 1; }
- if (move.find("D") != std::string::npos) { (*key_states)[SDL_SCANCODE_DOWN] = 1; }
- if (move.find("S") != std::string::npos) { (*key_states)[SDL_SCANCODE_RSHIFT] = 1; }
- if (move == "restart") { (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1; }
- if (move == "toggle_sound") { (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1; }
+ if (move.find("R") != std::string::npos) (*key_states)[SDL_SCANCODE_RIGHT] = 1;
+ if (move.find("L") != std::string::npos) (*key_states)[SDL_SCANCODE_LEFT] = 1;
+ if (move.find("U") != std::string::npos) (*key_states)[SDL_SCANCODE_UP] = 1;
+ if (move.find("D") != std::string::npos) (*key_states)[SDL_SCANCODE_DOWN] = 1;
+ if (move.find("S") != std::string::npos) (*key_states)[SDL_SCANCODE_RSHIFT] = 1;
+ if (move == "restart") (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1;
+ if (move == "toggle_sound") (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1;
 }
 
 void SDLPopInstance::advanceFrame()
@@ -209,21 +209,13 @@ void SDLPopInstance::advanceFrame()
   timers();
   play_frame();
   _currentFrame++;
+  _prevDrawnRoom = *drawn_room;
 }
 
 void SDLPopInstance::printFrameInfo()
 {
- std::cout << "Frame " << _currentFrame << " room=" << *drawn_room
-           << " sdlPop.Kid->x=" << int(Kid->x) << " sdlPop.Kid->y=" << int(Kid->y)
-           << " sdlPop.Guard->x=" << int(Guard->x) << " sdlPop.Guard->y=" << int(Guard->y)
-           << " Keypress=" << _currentMove << " seed=" << *random_seed
-           << std::endl;
-
- if (*drawn_room != _prevDrawnRoom)
- {
-   printf("Room change!\n");
-   _prevDrawnRoom = *drawn_room;
- }
+ printf("[Frame %4lu] Action: %3s, Room: %2d, Kid Pos: [%3d, %3d] Frame: %3d, Guard Pos: [%3d, %3d] Frame: %3d, Seed: 0x%08X\n",
+        _currentFrame, _currentMove.c_str(), *drawn_room, int(Kid->x), int(Kid->y), int(Kid->frame), int(Guard->x), int(Guard->y), int(Guard->frame), *random_seed);
 }
 
 SDLPopInstance::SDLPopInstance()

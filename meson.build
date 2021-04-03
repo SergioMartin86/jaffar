@@ -3,7 +3,7 @@ project('libsdlpop', 'c', 'cpp',
 )
 
 cc = meson.get_compiler('c')
-inc = include_directories('extern/SDLPoP/src')
+inc = include_directories([ 'extern/SDLPoP/src', 'extern/metrohash64' ])
 
 sdlPopFiles = [
   'extern/SDLPoP/src/data.c',
@@ -28,6 +28,10 @@ sdlPopFiles = [
   'extern/SDLPoP/src/stb_vorbis.c'
 ]
 
+metrohash64Files = [
+  'extern/metrohash64/metrohash64.cc',
+]
+
 jaffarFiles = [
   'source/SDLPopInstance.cc',
 ]
@@ -40,6 +44,9 @@ deps = [
   cc.find_library('m', required : false),
 ]
 
+metroHash64Lib = library('metroHash64Lib',
+  metrohash64Files)
+  
 sdlPopLib = library('sdlPopLib',
   sdlPopFiles,
   dependencies : deps)
@@ -60,5 +67,6 @@ executable('jaffar',
   dependencies: deps,
   include_directories: inc,
   link_with: sdlPopLib,
+  link_with: metroHash64Lib,
   link_args: linkFlags,
   cpp_args: cppFlags)

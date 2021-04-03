@@ -80,7 +80,7 @@ class SDLPopInstance {
   ~SDLPopInstance();
 
  // Initializes the sdlPop instance
- void initialize();
+ void initialize(const bool useGUI);
 
  // Draw a single frame
  void draw();
