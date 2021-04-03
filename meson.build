@@ -34,6 +34,7 @@ metrohash64Files = [
 
 jaffarFiles = [
   'source/SDLPopInstance.cc',
+  'source/state.cc',
 ]
 
 deps = [

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "SDLPopInstance.h"
 #include "utils.h"
+#include "state.h"
 #include <mpi.h>
 
 const std::string moveString = ". . . . . . . RD . . . . RD . . . . . . . . . . . . . . . RU . . . . . . . . . . . . . . . . . RD . . . . RD . . . . RD . . . . D RD . . . . . S . . . . . . . . . . . . . . . . . . . . R . . . . . . R . U . . . . . . . . . . . R . . . RU . . . . . . . . . . R . . . . . . R . . . R . . . . . . . . . L . . . . . U . . . . . . . . . . . . . . . . . . . . R . . . R . . . . . . R . . . R . . . R . . D . . . . . . . . . . . . . U";
@@ -20,6 +21,8 @@ int main(int argc, char* argv[])
 
  //printf("Rank: %d/%d - Loading SDLPop...\n", commRank, commSize);
  SDLPopInstance s;
+ State state(&s);
+
  s.initialize(true);
 
  const auto moveList = split(moveString, ' ');
@@ -29,6 +32,7 @@ int main(int argc, char* argv[])
    s.advanceFrame();
    s.printFrameInfo();
    s.draw();
+   printf("Hash: 0x%016lX\n", state.ComputeHash());
  }
 
  printf("Done.\n");
