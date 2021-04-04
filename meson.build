@@ -1,9 +1,15 @@
-project('libsdlpop', 'c', 'cpp',
+project('jaffar', 'c', 'cpp',
   default_options : ['cpp_std=c++1z', 'b_ndebug=if-release'],
 )
 
 cc = meson.get_compiler('c')
-inc = include_directories([ 'extern/SDLPoP/src', 'extern/metrohash64', 'extern/json' ])
+
+inc = include_directories([
+ 'extern/SDLPoP/src',
+ 'extern/metrohash64',
+ 'extern/json',
+ 'extern/argparse'
+  ])
 
 sdlPopFiles = [
   'extern/SDLPoP/src/data.c',
