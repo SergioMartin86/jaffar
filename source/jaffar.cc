@@ -7,10 +7,72 @@
 #include "argparse.hpp"
 #include <mpi.h>
 
-using namespace argparse;
-
 // Configuration singleton
 jaffarConfigStruct _jaffarConfig;
+
+int main(int argc, char* argv[])
+{
+ // Initialize the MPI environment
+ //MPI_Init(&argc, &argv);
+
+ // Get the number of processes
+ //int commSize;
+ //MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+
+ // Get the rank of the process
+ //int commRank;
+ //MPI_Comm_rank(MPI_COMM_WORLD, &commRank);
+
+ //printf("Rank: %d/%d - Loading SDLPop...\n", commRank, commSize);
+
+ parseArgs(argc, argv);
+
+ SDLPopInstance sdlpop;
+ State state(&sdlpop);
+ Scorer scorer(&sdlpop, &state, _jaffarConfig.configJs);
+
+ // Initializing SDLPop Instance
+ sdlpop.initialize(1, true);
+
+ // Loading save file
+ state.quickLoad(_jaffarConfig.inputSaveFile);
+
+ // Setting seed, if override was selected
+ if (_jaffarConfig.overrideSeedEnabled)
+  sdlpop.setSeed(_jaffarConfig.overrideSeedValue);
+
+ // If this is to play a sequence, simply play it
+ if (_jaffarConfig.opMode == m_play)
+ {
+  // Setting timer for a sane animation
+  sdlpop.set_timer_length(timer_1, 20);
+
+  // Printing initial frame info
+  sdlpop.printFrameInfo();
+  sdlpop.draw();
+  getchar();
+
+  const auto moveList = split(_jaffarConfig.moveSequence, ' ');
+  for (const auto move : moveList)
+  {
+   sdlpop.performMove(move);
+   sdlpop.advanceFrame();
+   sdlpop.printFrameInfo();
+   sdlpop.draw();
+  }
+ }
+
+ // If this is to train, instantiate the search module
+ if (_jaffarConfig.opMode == m_train)
+ {
+  Search search(&sdlpop, &state, &scorer, _jaffarConfig.configJs);
+  search.run();
+ }
+
+ printf("Done.\n");
+}
+
+using namespace argparse;
 
 void parseArgs(int argc, char* argv[])
 {
@@ -81,57 +143,3 @@ void parseArgs(int argc, char* argv[])
  // Making sure Rules entry exists
  if (isDefined(_jaffarConfig.configJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Rules' key.\n");
 }
-
-int main(int argc, char* argv[])
-{
- // Initialize the MPI environment
- //MPI_Init(&argc, &argv);
-
- // Get the number of processes
- //int commSize;
- //MPI_Comm_size(MPI_COMM_WORLD, &commSize);
-
- // Get the rank of the process
- //int commRank;
- //MPI_Comm_rank(MPI_COMM_WORLD, &commRank);
-
- //printf("Rank: %d/%d - Loading SDLPop...\n", commRank, commSize);
-
- parseArgs(argc, argv);
-
- SDLPopInstance s;
- State state(&s);
- Search search(&s);
-
- // Initializing SDLPop Instance
- s.initialize(1, true);
-
- // Loading save file
- state.quickLoad(_jaffarConfig.inputSaveFile);
-
- // Setting seed, if override was selected
- if (_jaffarConfig.overrideSeedEnabled)
-  s.setSeed(_jaffarConfig.overrideSeedValue);
-
- s.printFrameInfo();
- s.draw();
- getchar();
-
- // If this is to play a sequence, simply play it
- if (_jaffarConfig.opMode == m_play)
- {
-  // Setting timer for a sane animation
-  s.set_timer_length(timer_1, 20);
-
-  const auto moveList = split(_jaffarConfig.moveSequence, ' ');
-  for (const auto move : moveList)
-  {
-    s.performMove(move);
-    s.advanceFrame();
-    s.printFrameInfo();
-    s.draw();
-  }
- }
-
- printf("Done.\n");
-} 

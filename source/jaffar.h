@@ -34,6 +34,8 @@ struct jaffarConfigStruct
   dword overrideSeedValue;
 };
 
-// Configuration Singleton
+// Argument parser function
+void parseArgs(int argc, char* argv[]);
 
+// Configuration Singleton
 extern jaffarConfigStruct _jaffarConfig;
