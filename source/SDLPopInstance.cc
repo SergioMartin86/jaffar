@@ -5,9 +5,8 @@
 
 char* __prince_argv[] = { (char*)"prince" };
 
-void SDLPopInstance::initialize(const bool useGUI)
+void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
 {
-
  // Resetting frame counter
  _currentFrame = 0;
  _currentMove = ".";
@@ -19,9 +18,6 @@ void SDLPopInstance::initialize(const bool useGUI)
  *is_validate_mode = byte(!useGUI);
  *g_argc = 1;
  *g_argv = __prince_argv;
-
- *random_seed = 1;
- *seed_was_init = 1;
 
  // debug only: check that the sequence table deobfuscation did not mess things
  // up
@@ -127,7 +123,7 @@ void SDLPopInstance::initialize(const bool useGUI)
 
  ///////////////////////////////////////////////////////////////
  // play_level
- int level_number = 1;
+ int level_number = startLevel;
  if (level_number != *current_level) load_lev_spr(level_number);
 
  load_level();
@@ -171,6 +167,20 @@ void SDLPopInstance::initialize(const bool useGUI)
  _prevDrawnRoom = *drawn_room;
 
  set_timer_length(timer_1, 20);
+
+// // Skip cutscenes
+// while(*is_cutscene == 1)
+// {
+//  (*key_states)[SDL_SCANCODE_RETURN] = 1;
+//  timers();
+//  play_frame();
+// }
+}
+
+void SDLPopInstance::setSeed(const dword randomSeed)
+{
+ *random_seed = randomSeed;
+ *seed_was_init = 1;
 }
 
 void SDLPopInstance::draw()
@@ -208,6 +218,7 @@ void SDLPopInstance::advanceFrame()
   *hitp_delta = 0;
   timers();
   play_frame();
+
   _currentFrame++;
   _prevDrawnRoom = *drawn_room;
 }
@@ -387,6 +398,7 @@ SDLPopInstance::SDLPopInstance()
  exe_dir = (exe_dir_t*) dlsym(_dllHandle, "exe_dir");
  found_exe_dir = (bool*) dlsym(_dllHandle, "found_exe_dir");
  key_states = (key_states_t*) dlsym(_dllHandle, "key_states");
+ is_cutscene = (word*) dlsym(_dllHandle, "is_cutscene");
 }
 
 SDLPopInstance::~SDLPopInstance()

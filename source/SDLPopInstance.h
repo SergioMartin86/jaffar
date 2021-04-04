@@ -80,7 +80,10 @@ class SDLPopInstance {
   ~SDLPopInstance();
 
  // Initializes the sdlPop instance
- void initialize(const bool useGUI);
+ void initialize(const int startLevel, const bool useGUI);
+
+ // Set seed
+ void setSeed(const dword randomSeed);
 
  // Draw a single frame
  void draw();
@@ -258,6 +261,7 @@ class SDLPopInstance {
  exe_dir_t* exe_dir;
  bool* found_exe_dir;
  key_states_t* key_states;
+ word* is_cutscene;
 
  private:
 

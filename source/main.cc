@@ -12,14 +12,20 @@ const std::string moveString = ". . . . . . . RD . . . . RD . . . . . . . . . . 
 
 void parseArgs(int argc, char* argv[])
 {
- ArgumentParser program("Jaffar", "1.0.0");
+ ArgumentParser program("jaffar", "1.0.0");
 
- program.add_argument("configFile")
-   .help("Specifies the path to the .config file to run.")
+ program.add_argument("-f", "--config")
+   .help("path to the Jaffar configuration (.config) file to run.")
+   .default_value("jaffar.config")
    .required();
 
+ program.add_argument("-s", "--sav")
+    .help("path to the SDLPop savegame (.sav) file to run.")
+    .default_value("quicksave.sav")
+    .required();
+
  program.add_argument("-p", "--play")
-   .help("Plays a given sequence (.seq) file.");
+   .help("plays a given sequence (.seq) file.");
 
  try
  {
@@ -27,12 +33,9 @@ void parseArgs(int argc, char* argv[])
  }
  catch (const std::runtime_error& err)
  {
-    std::cout << err.what() << std::endl;
-    std::cout << program;
-    exit(-1);
+   fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
+   exit(-1);
  }
-
- exit(0);
 }
 
 int main(int argc, char* argv[])
@@ -56,7 +59,12 @@ int main(int argc, char* argv[])
  State state(&s);
  Search search(&s);
 
- s.initialize(true);
+ s.initialize(14, true);
+ s.setSeed(0xF0F0F0F0);
+ s.printFrameInfo();
+ s.draw();
+ state.quickSave("current.sav");
+ getchar();
 
  const auto moveList = split(moveString, ' ');
  for (const auto move : moveList)
@@ -65,7 +73,7 @@ int main(int argc, char* argv[])
    s.advanceFrame();
    s.printFrameInfo();
    s.draw();
-   printf("Hash: 0x%016lX\n", state.computeHash());
+   getchar();
  }
 
  printf("Done.\n");
