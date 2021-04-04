@@ -28,6 +28,10 @@ struct jaffarConfigStruct
 
   // Raw JSON of the config file
   nlohmann::json configJs;
+
+  // Seed override settings
+  bool overrideSeedEnabled;
+  dword overrideSeedValue;
 };
 
 // Configuration Singleton

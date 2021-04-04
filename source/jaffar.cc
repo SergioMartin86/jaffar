@@ -62,7 +62,24 @@ void parseArgs(int argc, char* argv[])
  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n", _jaffarConfig.inputConfigFile.c_str());
 
  // Parsing JSON from config file
- _jaffarConfig.configJs = nlohmann::json::parse(configString);
+ try
+ {
+  _jaffarConfig.configJs = nlohmann::json::parse(configString);
+ }
+ catch (const std::exception& err)
+ {
+   fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _jaffarConfig.inputConfigFile.c_str(), err.what());
+   exit(-1);
+ }
+
+ // Parsing random seed information
+ if (isDefined(_jaffarConfig.configJs, "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Random Seed', 'Override' key.\n");
+ if (isDefined(_jaffarConfig.configJs, "Random Seed", "Value") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Random Seed, 'Value' key.\n");
+ _jaffarConfig.overrideSeedEnabled = _jaffarConfig.configJs["Random Seed"]["Override"].get<bool>();
+ _jaffarConfig.overrideSeedValue = _jaffarConfig.configJs["Random Seed"]["Value"].get<dword>();
+
+ // Making sure Rules entry exists
+ if (isDefined(_jaffarConfig.configJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Rules' key.\n");
 }
 
 int main(int argc, char* argv[])
@@ -92,7 +109,10 @@ int main(int argc, char* argv[])
  // Loading save file
  state.quickLoad(_jaffarConfig.inputSaveFile);
 
- s.setSeed(0xF0F0F0F0);
+ // Setting seed, if override was selected
+ if (_jaffarConfig.overrideSeedEnabled)
+  s.setSeed(_jaffarConfig.overrideSeedValue);
+
  s.printFrameInfo();
  s.draw();
  getchar();

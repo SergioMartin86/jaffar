@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
+#include "json.hpp"
 
 // Function to split a string into a sub-strings delimited by a character
 // Taken from stack overflow answer to https://stackoverflow.com/questions/236129/how-do-i-iterate-over-the-words-of-a-string
@@ -26,8 +27,19 @@ void exitWithError [[noreturn]] (const char *fileName, const int lineNumber, con
 #define EXIT_WITH_ERROR(...) \
   exitWithError(__FILE__, __LINE__, __VA_ARGS__)
 
-//brief Checks if directory exists
+// Checks if directory exists
 bool dirExists(const std::string dirPath);
 
 // Loads a string from a given file
 bool loadStringFromFile(std::string &dst, const char *fileName);
+
+// Checks whether a given key is present in the JSON object.
+template <typename T, typename... Key>
+bool isDefined(T &js, const Key &... key)
+{
+  auto *tmp = &js;
+  bool result = true;
+  decltype(tmp->begin()) it;
+  ((result && ((it = tmp->find(key)) == tmp->end() ? (result = false) : (tmp = &*it, true))), ...);
+  return result;
+}
