@@ -72,7 +72,7 @@ cppFlags = [
   ]
 
 executable('jaffar',
-  'source/main.cc',
+  'source/jaffar.cc',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,

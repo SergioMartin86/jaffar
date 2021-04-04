@@ -25,3 +25,9 @@ void exitWithError [[noreturn]] (const char *fileName, const int lineNumber, con
 
 #define EXIT_WITH_ERROR(...) \
   exitWithError(__FILE__, __LINE__, __VA_ARGS__)
+
+//brief Checks if directory exists
+bool dirExists(const std::string dirPath);
+
+// Loads a string from a given file
+bool loadStringFromFile(std::string &dst, const char *fileName);

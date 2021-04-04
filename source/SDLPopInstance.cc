@@ -1,4 +1,5 @@
 #include "SDLPopInstance.h"
+#include "utils.h"
 #include <dlfcn.h>
 #include "types.h"
 #include <iostream>
@@ -11,16 +12,31 @@ void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
  _currentFrame = 0;
  _currentMove = ".";
 
- // Setting data directory
- *found_exe_dir = true;
- sprintf(*exe_dir, "../extern/SDLPoP/");
+ // Looking for sdlpop in default folders when running examples
+ if (dirExists("extern/SDLPoP/")) { sprintf(*exe_dir, "extern/SDLPoP/"); *found_exe_dir = true;}
+ if (dirExists("../extern/SDLPoP/")) { sprintf(*exe_dir, "../extern/SDLPoP/"); *found_exe_dir = true; }
+ if (dirExists("../../extern/SDLPoP/")) { *found_exe_dir = true; sprintf(*exe_dir, "../../extern/SDLPoP/"); }
+ if (dirExists("../../../extern/SDLPoP/")) { sprintf(*exe_dir, "../../../extern/SDLPoP/"); *found_exe_dir = true; }
+
+ // If not found, looking for the SDLPOP_ROOT env variable
+ if (*found_exe_dir == false)
+ {
+  const char* envRoot = std::getenv("SDLPOP_ROOT");
+
+  if (envRoot != NULL)
+   if (dirExists(envRoot)) { sprintf(*exe_dir, envRoot); *found_exe_dir = true;}
+ }
+
+ if (*found_exe_dir == false)
+  fprintf(stderr, "[Warning] Could not find the root folder for SDLPoP. Please set the SDLPOP_ROOT environment variable to the path where SDLPop is installed.\n");
+
+ // Setting argument config
 
  *is_validate_mode = byte(!useGUI);
  *g_argc = 1;
  *g_argv = __prince_argv;
 
- // debug only: check that the sequence table deobfuscation did not mess things
- // up
+ // debug only: check that the sequence table deobfuscation did not mess things up
 
  load_global_options();
  check_mod_param();
@@ -160,7 +176,7 @@ void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
 
  stop_sounds();
 
- draw_level_first();
+ //draw_level_first();
  show_copyprot(0);
  reset_timer(timer_1);
 
@@ -203,13 +219,19 @@ void SDLPopInstance::performMove(const std::string& move)
  (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 0;
  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 0;
 
- if (move.find("R") != std::string::npos) (*key_states)[SDL_SCANCODE_RIGHT] = 1;
- if (move.find("L") != std::string::npos) (*key_states)[SDL_SCANCODE_LEFT] = 1;
- if (move.find("U") != std::string::npos) (*key_states)[SDL_SCANCODE_UP] = 1;
- if (move.find("D") != std::string::npos) (*key_states)[SDL_SCANCODE_DOWN] = 1;
- if (move.find("S") != std::string::npos) (*key_states)[SDL_SCANCODE_RSHIFT] = 1;
- if (move == "restart") (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1;
- if (move == "toggle_sound") (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1;
+ bool recognizedMove = false;
+
+ if (move.find(".") != std::string::npos) { recognizedMove = true; }
+ if (move.find("R") != std::string::npos) { (*key_states)[SDL_SCANCODE_RIGHT] = 1; recognizedMove = true; }
+ if (move.find("L") != std::string::npos) { (*key_states)[SDL_SCANCODE_LEFT] = 1; recognizedMove = true; }
+ if (move.find("U") != std::string::npos) { (*key_states)[SDL_SCANCODE_UP] = 1; recognizedMove = true; }
+ if (move.find("D") != std::string::npos) { (*key_states)[SDL_SCANCODE_DOWN] = 1; recognizedMove = true; }
+ if (move.find("S") != std::string::npos) { (*key_states)[SDL_SCANCODE_RSHIFT] = 1; recognizedMove = true; }
+ if (move == "restart") {  (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1; recognizedMove = true; }
+ if (move == "toggle_sound") {  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1; recognizedMove = true; }
+
+ if (recognizedMove == false)
+  EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
 }
 
 void SDLPopInstance::advanceFrame()
@@ -231,7 +253,10 @@ void SDLPopInstance::printFrameInfo()
 
 SDLPopInstance::SDLPopInstance()
 {
- _dllHandle = dlopen("./libsdlPopLib.so", RTLD_LAZY);
+ _dllHandle = dlopen("libsdlPopLib.so", RTLD_LAZY);
+
+ if (!_dllHandle)
+  EXIT_WITH_ERROR("Could not find libsdlPopLib.so. Check that this library's path is included in the LD_LIBRARY_PATH environment variable");
 
  // Functions
  restore_room_after_quick_load = (restore_room_after_quick_load_t) dlsym(_dllHandle, "restore_room_after_quick_load");

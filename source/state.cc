@@ -110,26 +110,6 @@ State::State(SDLPopInstance *sdlPop)
  _items = GenerateItemsMap(sdlPop);
 }
 
-void State::quickLoad(const std::string& filename) {
-  std::ifstream fi(filename.c_str());
-  for (const auto& item : _items) {
-    if (item.type != ONLY_STATE) {
-      fi.read(reinterpret_cast<char*>(item.ptr), item.size);
-    }
-  }
-  _sdlPop->restore_room_after_quick_load();
-  // update_screen();
-}
-
-void State::quickSave(const std::string& filename) {
-  std::ofstream fo(filename.c_str());
-  for (const auto& item : _items) {
-    if (item.type != ONLY_STATE) {
-      fo.write(reinterpret_cast<char*>(item.ptr), item.size);
-    }
-  }
-}
-
 uint64_t State::kidHash() const {
   uint64_t hash;
   MetroHash64::Hash(reinterpret_cast<uint8_t*>(_sdlPop->Kid), sizeof(*_sdlPop->Kid),
@@ -205,6 +185,35 @@ uint64_t State::computeHash() const {
   uint64_t result;
   hash.Finalize(reinterpret_cast<uint8_t*>(&result));
   return result;
+}
+
+
+void State::quickLoad(const std::string& filename) {
+  std::ifstream fi(filename.c_str());
+
+  if (fi.good() == false)
+     EXIT_WITH_ERROR("Error reading from or opening input save file: %s\n", filename.c_str());
+
+  for (const auto& item : _items) {
+    if (item.type != ONLY_STATE) {
+      fi.read(reinterpret_cast<char*>(item.ptr), item.size);
+    }
+  }
+  _sdlPop->restore_room_after_quick_load();
+  // update_screen();
+}
+
+void State::quickSave(const std::string& filename) {
+  std::ofstream fo(filename.c_str());
+
+  if (fo.good() == false)
+   EXIT_WITH_ERROR("Error writing to or opening output save file: %s\n", filename.c_str());
+
+  for (const auto& item : _items) {
+    if (item.type != ONLY_STATE) {
+      fo.write(reinterpret_cast<char*>(item.ptr), item.size);
+    }
+  }
 }
 
 void State::loadBase(const std::string& data) {
