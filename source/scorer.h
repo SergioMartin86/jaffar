@@ -13,6 +13,7 @@ class Scorer
 public:
 
   Scorer(SDLPopInstance *sdlPop, State *state, nlohmann::json& config);
+  float calculateScore();
 
 private:
 

@@ -115,13 +115,13 @@ void parseArgs(int argc, char* argv[])
  {
   _jaffarConfig.opMode = m_play;
   bool status = loadStringFromFile(_jaffarConfig.moveSequence, _jaffarConfig.inputSequenceFile.c_str());
-  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from sequence input file: %s\n", _jaffarConfig.inputSequenceFile.c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from sequence input file: %s\n%s \n", _jaffarConfig.inputSequenceFile.c_str(), program.help().str().c_str());
  }
 
  // Reading config file
  std::string configString;
  bool status = loadStringFromFile(configString, _jaffarConfig.inputConfigFile.c_str());
- if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n", _jaffarConfig.inputConfigFile.c_str());
+ if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", _jaffarConfig.inputConfigFile.c_str(), program.help().str().c_str());
 
  // Parsing JSON from config file
  try

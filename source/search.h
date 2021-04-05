@@ -1,5 +1,7 @@
 #pragma once
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include "SDLPopInstance.h"
 #include "state.h"
 #include "scorer.h"
@@ -33,11 +35,18 @@ private:
  Scorer* _scorer;
  std::string _baseStateData;
 
+ // Current frame counter
+ size_t _currentFrame;
+
+ // Frame databases
  std::vector<Frame*>* _currentFrameDB;
  std::vector<Frame*>* _nextFrameDB;
- std::vector<std::vector<std::string>> _kidFrameActionMap;
 
- size_t _currentFrame;
+ // Hash information
+ absl::flat_hash_set<uint64_t> _hashes;
+ size_t _hashCollisions;
+
+ // Flag to indicate finalization
  bool _hasFinalized;
 
 };

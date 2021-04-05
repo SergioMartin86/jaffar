@@ -207,6 +207,51 @@ void SDLPopInstance::draw()
  do_simple_wait(timer_1);
 }
 
+void SDLPopInstance::refreshEngine()
+{
+  int temp1 = *curr_guard_color;
+  int temp2 = *next_level;
+
+  reset_level_unused_fields(false);
+
+  // load_lev_spr(current_level);
+  *curr_guard_color = temp1;
+  *next_level = temp2;
+
+  // need_full_redraw = 1;
+  *different_room = 1;
+
+  // Show the room where the prince is, even if the player moved the view away
+  // from it (with the H,J,U,N keys).
+  *next_room = *drawn_room = Kid->room;
+  load_room_links();
+
+  // draw_level_first();
+  // gen_palace_wall_colors();
+  *is_guard_notice = 0;  // prevent guard turning around immediately
+
+  // draw_game_frame();    // for falling
+  // redraw_screen(1); // for room_L
+
+  *hitp_delta = *guardhp_delta = 1;  // force HP redraw
+
+  // Don't draw guard HP if a previously viewed room (with the H,J,U,N keys) had
+  // a guard but the current room doesn't have one.
+  if (Guard->room != *drawn_room) {
+    // Like in clear_char().
+    Guard->direction = dir_56_none;
+    *guardhp_curr = 0;
+  }
+
+  // draw_hp();
+  /* loadkid_and_opp();
+  // Get rid of "press button" message if kid was dead before quickload.
+  text_time_total = text_time_remaining = 0;
+  // next_sound = current_sound = -1;
+  exit_room_timer = 0; */
+}
+
+
 void SDLPopInstance::performMove(const std::string& move)
 {
  _currentMove = move;

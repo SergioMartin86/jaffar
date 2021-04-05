@@ -53,6 +53,8 @@ deps = [
   dependency('mpich', required : false),
   dependency('mpi', required : false),
   cc.find_library('m', required : false),
+  subproject('abseil').get_variable('absl_base_dep'),
+  subproject('abseil').get_variable('absl_container_dep')
 ]
 
 metroHash64Lib = library('metroHash64Lib',

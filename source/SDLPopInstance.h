@@ -97,7 +97,10 @@ class SDLPopInstance {
  // Print information about the current frame
  void printFrameInfo();
 
- // Functions
+ // Refreshes state after a load
+ void refreshEngine();
+
+ // SDLPop Functions
  restore_room_after_quick_load_t restore_room_after_quick_load;
  load_global_options_t load_global_options;
  check_mod_param_t check_mod_param;
@@ -155,7 +158,7 @@ class SDLPopInstance {
  draw_level_first_t draw_level_first;
  play_level_t play_level;
 
- // State variables
+ // SDLPop State variables
  char_type* Kid; //
  char_type* Guard; //
  char_type* Char; //
