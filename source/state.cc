@@ -104,10 +104,25 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
 
 }  // namespace
 
-State::State(SDLPopInstance *sdlPop)
+State::State(SDLPopInstance *sdlPop, nlohmann::json &stateConfig)
 {
  _sdlPop = sdlPop;
  _items = GenerateItemsMap(sdlPop);
+
+ // Loading save file
+  if (isDefined(stateConfig, "Save File") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Save File' key.\n");
+  const std::string saveFile = stateConfig["Save File"].get<std::string>();
+  quickLoad(saveFile);
+
+ // Parsing random seed information
+ if (isDefined(stateConfig, "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed', 'Override' key.\n");
+ if (isDefined(stateConfig, "Random Seed", "Value") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed, 'Value' key.\n");
+
+ const bool overrideSeedEnabled = stateConfig["Random Seed"]["Override"].get<bool>();
+ const dword overrideSeedValue = stateConfig["Random Seed"]["Value"].get<dword>();
+
+ // Setting seed, if override was selected
+ if (overrideSeedEnabled) _sdlPop->setSeed(overrideSeedValue);
 }
 
 uint64_t State::kidHash() const {

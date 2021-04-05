@@ -27,19 +27,15 @@ int main(int argc, char* argv[])
 
  parseArgs(argc, argv);
 
- SDLPopInstance sdlpop;
- State state(&sdlpop);
- Scorer scorer(&sdlpop, &state, _jaffarConfig.configJs);
-
  // Initializing SDLPop Instance
+ SDLPopInstance sdlpop;
  sdlpop.initialize(1, true);
 
- // Loading save file
- state.quickLoad(_jaffarConfig.inputSaveFile);
+ // Initializing State Handler
+ State state(&sdlpop, _jaffarConfig.configJs["State Configuration"]);
 
- // Setting seed, if override was selected
- if (_jaffarConfig.overrideSeedEnabled)
-  sdlpop.setSeed(_jaffarConfig.overrideSeedValue);
+ // Initializing Scorer
+ Scorer scorer(&sdlpop, &state, _jaffarConfig.configJs["Scorer Configuration"]);
 
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.opMode == m_play)
@@ -52,6 +48,7 @@ int main(int argc, char* argv[])
   sdlpop.draw();
   getchar();
 
+  // Iterating move list in the sequence
   const auto moveList = split(_jaffarConfig.moveSequence, ' ');
   for (const auto move : moveList)
   {
@@ -62,10 +59,13 @@ int main(int argc, char* argv[])
   }
  }
 
- // If this is to train, instantiate the search module
+ // If this is to find a sequence, run the searcher
  if (_jaffarConfig.opMode == m_train)
  {
-  Search search(&sdlpop, &state, &scorer, _jaffarConfig.configJs);
+  // Initializing search module
+  Search search(&sdlpop, &state, &scorer, _jaffarConfig.configJs["Search Configuration"]);
+
+  // Running Search
   search.run();
  }
 
@@ -83,11 +83,6 @@ void parseArgs(int argc, char* argv[])
    .default_value(std::string("jaffar.config"))
    .required();
 
- program.add_argument("--save", "-s")
-    .help("path to the SDLPop savegame (.sav) file to run.")
-    .default_value(std::string("quicksave.sav"))
-    .required();
-
  program.add_argument("--play", "-p")
    .help("plays a given sequence (.seq) file.")
    .default_value(std::string(""))
@@ -104,7 +99,6 @@ void parseArgs(int argc, char* argv[])
  }
 
  _jaffarConfig.inputConfigFile = program.get<std::string>("--config");
- _jaffarConfig.inputSaveFile = program.get<std::string>("--save");
  _jaffarConfig.inputSequenceFile = program.get<std::string>("--play");
 
  // By default do train
@@ -133,13 +127,4 @@ void parseArgs(int argc, char* argv[])
    fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _jaffarConfig.inputConfigFile.c_str(), err.what());
    exit(-1);
  }
-
- // Parsing random seed information
- if (isDefined(_jaffarConfig.configJs, "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Random Seed', 'Override' key.\n");
- if (isDefined(_jaffarConfig.configJs, "Random Seed", "Value") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Random Seed, 'Value' key.\n");
- _jaffarConfig.overrideSeedEnabled = _jaffarConfig.configJs["Random Seed"]["Override"].get<bool>();
- _jaffarConfig.overrideSeedValue = _jaffarConfig.configJs["Random Seed"]["Value"].get<dword>();
-
- // Making sure Rules entry exists
- if (isDefined(_jaffarConfig.configJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Rules' key.\n");
 }

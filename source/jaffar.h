@@ -20,7 +20,6 @@ struct jaffarConfigStruct
 
   // Input Files (from command line)
   std::string inputConfigFile;
-  std::string inputSaveFile;
   std::string inputSequenceFile;
 
   // Sequence to play
@@ -28,10 +27,6 @@ struct jaffarConfigStruct
 
   // Raw JSON of the config file
   nlohmann::json configJs;
-
-  // Seed override settings
-  bool overrideSeedEnabled;
-  dword overrideSeedValue;
 };
 
 // Argument parser function

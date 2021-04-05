@@ -29,7 +29,6 @@ public:
 
 private:
 
- size_t _searchWidth;
  SDLPopInstance* _sdlPop;
  State* _state;
  Scorer* _scorer;
@@ -39,6 +38,7 @@ private:
  size_t _currentFrame;
 
  // Frame databases
+ size_t _maxDatabaseSize;
  std::vector<Frame*>* _currentFrameDB;
  std::vector<Frame*>* _nextFrameDB;
 

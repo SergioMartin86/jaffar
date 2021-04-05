@@ -10,16 +10,16 @@ Search::Search(SDLPopInstance *sdlPop, State *state, Scorer *scorer, nlohmann::j
  _scorer = scorer;
 
  // Parsing search width from configuration file
- if (isDefined(config, "Search Width") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Search Width' key.\n");
- _searchWidth = config["Search Width"].get<size_t>();
+ if (isDefined(config, "Max Database Size") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Max Database Size' key.\n");
+ _maxDatabaseSize = config["Max Database Size"].get<size_t>();
 
  // Allocating databases
  _currentFrameDB = new std::vector<Frame*>();
  _nextFrameDB = new std::vector<Frame*>();
 
  // Reserving space for frame data
- _currentFrameDB->reserve(_searchWidth);
- _nextFrameDB->reserve(_searchWidth);
+ _currentFrameDB->reserve(_maxDatabaseSize);
+ _nextFrameDB->reserve(_maxDatabaseSize);
 
  // Setting initial values
  _currentFrame = 0;
