@@ -18,8 +18,8 @@ Search::Search(SDLPopInstance *sdlPop, State *state, Scorer *scorer, nlohmann::j
  _nextFrameDB = new std::vector<Frame*>();
 
  // Reserving space for frame data
- _currentFrameDB->reserve(_maxDatabaseSize);
- _nextFrameDB->reserve(_maxDatabaseSize);
+ _currentFrameDB->reserve(_maxDatabaseSize * _possibleMoves.size());
+ _nextFrameDB->reserve(_maxDatabaseSize * _possibleMoves.size());
 
  // Setting initial values
  _currentFrame = 0;
@@ -110,4 +110,11 @@ void Search::runFrame()
 
  // Swapping DB pointers
  std::swap(_currentFrameDB, _nextFrameDB);
+
+ // Sorting DB frames by score
+ std::sort(_currentFrameDB->begin(), _currentFrameDB->end(), [](const auto& a, const auto& b) { return a->score > b->score; });
+
+ // Clipping excessive frames out
+ for (size_t frameId = _maxDatabaseSize; frameId < _currentFrameDB->size(); frameId++) delete (*_currentFrameDB)[frameId];
+ if (_currentFrameDB->size() > _maxDatabaseSize) _currentFrameDB->resize(_maxDatabaseSize);
 }
