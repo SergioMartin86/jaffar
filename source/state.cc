@@ -110,9 +110,9 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json &stateConfig)
  _items = GenerateItemsMap(sdlPop);
 
  // Loading save file
-  if (isDefined(stateConfig, "Save File") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Save File' key.\n");
-  const std::string saveFile = stateConfig["Save File"].get<std::string>();
-  quickLoad(saveFile);
+ if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
+ const std::string saveFile = stateConfig["Path"].get<std::string>();
+ quickLoad(saveFile);
 
  // Parsing random seed information
  if (isDefined(stateConfig, "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed', 'Override' key.\n");

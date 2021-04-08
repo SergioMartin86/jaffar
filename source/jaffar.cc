@@ -32,10 +32,7 @@ int main(int argc, char* argv[])
  sdlpop.initialize(1, true);
 
  // Initializing State Handler
- State state(&sdlpop, _jaffarConfig.configJs["State Configuration"]);
-
- // Initializing Scorer
- Scorer scorer(&sdlpop, &state, _jaffarConfig.configJs["Scorer Configuration"]);
+ State state(&sdlpop, _jaffarConfig.configJs["Savefile Configuration"]);
 
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.opMode == m_play)
@@ -63,7 +60,7 @@ int main(int argc, char* argv[])
  if (_jaffarConfig.opMode == m_train)
  {
   // Initializing search module
-  Search search(&sdlpop, &state, &scorer, _jaffarConfig.configJs["Search Configuration"]);
+  Search search(&sdlpop, &state, _jaffarConfig.configJs["Search Configuration"]);
 
   // Running Search
   search.run();

@@ -3,15 +3,21 @@
 
 const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
 
-Search::Search(SDLPopInstance *sdlPop, State *state, Scorer *scorer, nlohmann::json& config)
+Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
 {
  _sdlPop = sdlPop;
  _state = state;
- _scorer = scorer;
 
  // Parsing search width from configuration file
- if (isDefined(config, "Max Database Size") == false) EXIT_WITH_ERROR("[ERROR] Config file missing 'Max Database Size' key.\n");
+ if (isDefined(config, "Max Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Database Size' key.\n");
  _maxDatabaseSize = config["Max Database Size"].get<size_t>();
+
+ // Processing rules
+ if (isDefined(config, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Search configuration file missing 'Rules' key.\n");
+ for (size_t i = 0; i < config["Rules"].size(); i++)
+  _rules.push_back(new Rule(config["Rules"][i], _sdlPop));
+
+ exit(0);
 
  // Allocating databases
  _currentFrameDB = new std::vector<Frame*>();
@@ -89,7 +95,7 @@ void Search::runFrame()
     }
 
     // Obtaining score for current frame
-    const auto score = _scorer->calculateScore();
+    const float score = 0.0; // TO-DO: Get score from scorer
 
     // Adding novel frame in the next frame database
     Frame* newFrame = new Frame;

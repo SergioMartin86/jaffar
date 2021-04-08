@@ -2,6 +2,7 @@
 
 #include "json.hpp"
 #include "utils.h"
+#include "SDLPopInstance.h"
 #include <vector>
 
 enum op_t
@@ -14,6 +15,16 @@ enum op_t
   op_less_or_equal = 5
 };
 
+enum datatype_t
+{
+  dt_byte = 0,
+  dt_sbyte = 1,
+  dt_short = 2,
+  dt_int = 3,
+  dt_word = 4,
+  dt_dword = 5
+};
+
 class Condition;
 
 class Rule
@@ -21,10 +32,13 @@ class Rule
 
 public:
 
- Rule(nlohmann::json ruleJs);
+ Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop);
 
 private:
 
+ datatype_t getPropertyType(const std::string& property);
+ void* getPropertyPointer(const std::string& property, SDLPopInstance* sdlPop);
+ op_t getOperationType(const std::string& operation);
  std::vector<Condition*> _conditions;
 
 };
@@ -54,11 +68,9 @@ class _vCondition : public Condition
 
 public:
 
-  _vCondition(const op_t opType);
-  void setOp1(const T* op1);
-  void setOp2(const T* op2);
-  void setImmediate1(const T immediate);
-  void setImmediate2(const T immediate);
+  _vCondition(const op_t opType, void* property, T immediate);
+  void setProperty(const T* property);
+  void setImmediate(const T immediate);
   bool evaluate();
 
 private:
@@ -72,14 +84,12 @@ private:
 
   bool (*_opFcPtr)(const T, const T);
 
-  T _immediate1;
-  T _immediate2;
-  T* _op1;
-  T* _op2;
+  T* _property;
+  T _immediate;
 };
 
 template <typename T>
-_vCondition<T>::_vCondition(const op_t opType) : Condition(opType)
+_vCondition<T>::_vCondition(const op_t opType, void* property, T immediate) : Condition(opType)
 {
  if (_opType == op_equal) _opFcPtr = _opEqual;
  if (_opType == op_not_equal) _opFcPtr = _opEqual;
@@ -87,36 +97,13 @@ _vCondition<T>::_vCondition(const op_t opType) : Condition(opType)
  if (_opType == op_greater_or_equal) _opFcPtr = _opGreaterOrEqual;
  if (_opType == op_less) _opFcPtr = _opLess;
  if (_opType == op_less_or_equal) _opFcPtr = _opLessOrEqual;
+
+ _property = (T*)property;
+ _immediate = immediate;
 }
 
 template <typename T>
 bool _vCondition<T>::evaluate()
 {
- return _opFcPtr(*_op1, *_op2);
-}
-
-template <typename T>
-void _vCondition<T>::setOp1(const T* op1)
-{
- _op1 = op1;
-}
-
-template <typename T>
-void _vCondition<T>::setOp2(const T* op2)
-{
- _op2 = op2;
-}
-
-template <typename T>
-void _vCondition<T>::setImmediate1(const T immediate)
-{
- _immediate1 = immediate;
- _op1 = &_immediate1;
-}
-
-template <typename T>
-void _vCondition<T>::setImmediate2(const T immediate)
-{
- _immediate2 = immediate;
- _op2 = &_immediate2;
+ return _opFcPtr(*_property, _immediate);
 }

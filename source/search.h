@@ -4,8 +4,8 @@
 #include <absl/container/flat_hash_set.h>
 #include "SDLPopInstance.h"
 #include "state.h"
-#include "scorer.h"
 #include "json.hpp"
+#include "rule.h"
 #include <string>
 #include <vector>
 
@@ -21,7 +21,7 @@ class Search
 
 public:
 
-  Search(SDLPopInstance *sdlPop, State *state, Scorer *scorer, nlohmann::json& config);
+  Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config);
   ~Search();
 
   void run();
@@ -31,8 +31,10 @@ private:
 
  SDLPopInstance* _sdlPop;
  State* _state;
- Scorer* _scorer;
  std::string _baseStateData;
+
+ // Rule collection
+ std::vector<Rule*> _rules;
 
  // Current frame counter
  size_t _currentFrame;
