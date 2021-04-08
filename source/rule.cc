@@ -36,6 +36,16 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
   // Adding condition to the list
   _conditions.push_back(condition);
  }
+
+ // Adding actions
+ if (isDefined(ruleJs, "Actions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Actions' key.\n");
+ for (size_t i = 0; i < ruleJs["Actions"].size(); i++)
+  _actions.push_back(ruleJs["Actions"][i]);
+}
+
+bool Rule::evaluate(SDLPopInstance* sdlPop)
+{
+ return false;
 }
 
 op_t Rule::getOperationType(const std::string& operation)

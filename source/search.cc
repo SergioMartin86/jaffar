@@ -17,8 +17,6 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  for (size_t i = 0; i < config["Rules"].size(); i++)
   _rules.push_back(new Rule(config["Rules"][i], _sdlPop));
 
- exit(0);
-
  // Allocating databases
  _currentFrameDB = new std::vector<Frame*>();
  _nextFrameDB = new std::vector<Frame*>();

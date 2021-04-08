@@ -33,14 +33,21 @@ class Rule
 public:
 
  Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop);
+ bool evaluate(SDLPopInstance* sdlPop);
 
 private:
 
+ // Conditions are evaluated frequently, so this optimized for performance
+ // Operands are stored as pointers/immediates and the evaluation function
+ // is a template that is created at compilation time.
+ std::vector<Condition*> _conditions;
  datatype_t getPropertyType(const std::string& property);
  void* getPropertyPointer(const std::string& property, SDLPopInstance* sdlPop);
  op_t getOperationType(const std::string& operation);
- std::vector<Condition*> _conditions;
 
+ // Actions are seldom executed, so this is optimized for flexibility
+ // Here, the json is stored, and the parsing is handled on runtime
+ std::vector<nlohmann::json> _actions;
 };
 
 class Condition
