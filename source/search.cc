@@ -109,9 +109,6 @@ void Search::runFrame()
 
  //printf("MPI Rank %d, New Hash Entries: %lu, Hash table size: %lu\n", _jaffarConfig.mpiRank, newHashVector.size(), _hashes.size());
 
- auto communicationTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameCommunicationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(communicationTimeEnd - communicationTimeBegin).count();    // Profiling
-
  ////////////////////////////////////////////////////////////////////////////////////////////////////
  // Frame Distribution Section -- Base Frames are split into the workers for processing
  ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,12 +164,40 @@ void Search::runFrame()
  // Scattering frames among the workers
  MPI_Scatterv(frameSendBuffer, frameCounts.data(), startPositions.data(), _mpiFrameType, frameReceiveBuffer, rankFrameCount, _mpiFrameType, 0, MPI_COMM_WORLD);
 
+ auto frameScatterEnd = std::chrono::steady_clock::now(); // Profiling
+ _commFrameScatterTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameScatterEnd - frameScatterBegin).count();    // Profiling
+
+ // Freeing memory for current DB frames
+ auto databaseClearTimeBegin = std::chrono::steady_clock::now(); // Profiling
+ for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
+  delete (*_currentFrameDB)[frameId];
+
+ // Clearing current frame DB
+ _currentFrameDB->clear();
+ auto databaseClearTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _frameDatabaseClearTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClearTimeEnd - databaseClearTimeBegin).count();    // Profiling
+
+ // Adding new worker's frames into the frame database
+ auto frameDatabaseDeserializationBegin = std::chrono::steady_clock::now(); // Profiling
+
+ currentPosition = 0;
+ for (int frameId = 0; frameId < rankFrameCount; frameId++)
+ {
+  Frame* newFrame = new Frame;
+  newFrame->deserialize(&frameReceiveBuffer[currentPosition]);
+  _currentFrameDB->push_back(newFrame);
+  currentPosition += _frameSerializedSize;
+ }
+
  // Freeing frame buffers
  if (_jaffarConfig.mpiRank == 0) free(frameSendBuffer);
  free(frameReceiveBuffer);
 
- auto frameScatterEnd = std::chrono::steady_clock::now(); // Profiling
- _commFrameScatterTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameScatterEnd - frameScatterBegin).count();    // Profiling
+ auto frameDatabaseDeserializationEnd = std::chrono::steady_clock::now(); // Profiling
+ _commDatabaseDeserializationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDatabaseDeserializationEnd - frameDatabaseDeserializationBegin).count();    // Profiling
+
+ auto communicationTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _frameCommunicationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(communicationTimeEnd - communicationTimeBegin).count();    // Profiling
 
  ////////////////////////////////////////////////////////////////////////////////////////////////////
  // Parallel Computation Section -- Each worker processes its own unique base frames
@@ -287,18 +312,8 @@ void Search::runFrame()
  // Gathering new frames from workers
  ////////////////////////////////////////////////////////////////////////////////////////////////////
 
- // Freeing memory for current DB frames
- auto databaseClearTimeBegin = std::chrono::steady_clock::now(); // Profiling
- for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
-  delete (*_currentFrameDB)[frameId];
-
- // Clearing current frame DB
- _currentFrameDB->clear();
-
  // Swapping DB pointers
  std::swap(_currentFrameDB, _nextFrameDB);
- auto databaseClearTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameDatabaseClearTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClearTimeEnd - databaseClearTimeBegin).count();    // Profiling
 
  // Sorting DB frames by score
  auto databaseSortTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -577,6 +592,7 @@ void Search::printSearchStatus()
   printf("[Jaffar]  + Hash Values Broadcasting Time: %3.3fs\n", _commHashBroadcastTime / 1.0e+9);
   printf("[Jaffar]  + Database Serialization Time: %3.3fs\n", _commDatabaseSerializationTime / 1.0e+9);
   printf("[Jaffar]  + Frame Scatter Time: %3.3fs\n", _commFrameScatterTime / 1.0e+9);
+  printf("[Jaffar]  + Database Deserialization Time: %3.3fs\n", _commDatabaseDeserializationTime / 1.0e+9);
  }
 
  if (_showDebuggingInformation)

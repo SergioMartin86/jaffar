@@ -86,6 +86,7 @@ private:
  double _commHashBroadcastTime;
  double _commDatabaseSerializationTime;
  double _commFrameScatterTime;
+ double _commDatabaseDeserializationTime;
 };
 
 extern size_t _ruleCount;
