@@ -5,7 +5,14 @@
 #include "SDLPopInstance.h"
 #include <vector>
 
-enum op_t
+enum status_t
+{
+  st_active = 0,
+  st_inactive = 1,
+  st_achieved = 2
+};
+
+enum operator_t
 {
   op_equal = 0,
   op_not_equal = 1,
@@ -33,7 +40,14 @@ class Rule
 public:
 
  Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop);
- bool evaluate(SDLPopInstance* sdlPop);
+ bool evaluate();
+
+ // Stores the reward associated with meeting this rule
+ float _reward;
+
+ // Actions are seldom executed, so this is optimized for flexibility
+ // Here, the json is stored, and the parsing is handled on runtime
+ std::vector<nlohmann::json> _actions;
 
 private:
 
@@ -43,11 +57,7 @@ private:
  std::vector<Condition*> _conditions;
  datatype_t getPropertyType(const std::string& property);
  void* getPropertyPointer(const std::string& property, SDLPopInstance* sdlPop);
- op_t getOperationType(const std::string& operation);
-
- // Actions are seldom executed, so this is optimized for flexibility
- // Here, the json is stored, and the parsing is handled on runtime
- std::vector<nlohmann::json> _actions;
+ operator_t getOperationType(const std::string& operation);
 };
 
 class Condition
@@ -55,16 +65,18 @@ class Condition
 
 public:
 
- Condition(const op_t opType)
+ Condition(const operator_t opType)
  {
   _immediateAssigned = false;
   _opType = opType;
  }
 
+ virtual bool evaluate() = 0;
+ virtual ~Condition() = default;
 
 protected:
 
- op_t _opType;
+ operator_t _opType;
  bool _immediateAssigned;
 
 };
@@ -75,10 +87,10 @@ class _vCondition : public Condition
 
 public:
 
-  _vCondition(const op_t opType, void* property, T immediate);
+  _vCondition(const operator_t opType, void* property, T immediate);
   void setProperty(const T* property);
   void setImmediate(const T immediate);
-  bool evaluate();
+  bool evaluate() override;
 
 private:
 
@@ -96,7 +108,7 @@ private:
 };
 
 template <typename T>
-_vCondition<T>::_vCondition(const op_t opType, void* property, T immediate) : Condition(opType)
+_vCondition<T>::_vCondition(const operator_t opType, void* property, T immediate) : Condition(opType)
 {
  if (_opType == op_equal) _opFcPtr = _opEqual;
  if (_opType == op_not_equal) _opFcPtr = _opEqual;

@@ -23,6 +23,16 @@ struct Frame
  std::string move;
  float score;
  std::string frameStateData;
+
+ // Store termination conditions
+ bool isFail;
+ bool isWin;
+
+ // Magnet vector
+ std::vector<Magnet> magnets;
+
+ // Rule status vector
+ std::vector<status_t> rulesStatus;
 };
 
 class Search
@@ -40,9 +50,6 @@ private:
  SDLPopInstance* _sdlPop;
  State* _state;
  std::string _baseStateData;
-
- // Magnet array (one per each possible room)
- Magnet _magnets[256];
 
  // Rule vector
  std::vector<Rule*> _rules;
@@ -70,5 +77,8 @@ private:
  void runFrame();
 
  // Obtains the score of a given frame
- float getFrameScore();
+ float getFrameScore(const Frame* frame);
+
+ // Evaluates the rule set on a given frame
+ void evaluateRules(Frame* frame);
 };

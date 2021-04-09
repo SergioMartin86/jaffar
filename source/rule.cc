@@ -2,7 +2,9 @@
 
 Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
 {
- printf("Rule: %s\n", ruleJs.dump(2).c_str());
+ // Parsing rule reward
+ if (isDefined(ruleJs, "Reward") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Reward' key.\n");
+ _reward = ruleJs["Reward"].get<float>();
 
  // Adding conditions. All of them must be satisfied for the rule to count
  if (isDefined(ruleJs, "Conditions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Conditions' key.\n");
@@ -12,7 +14,7 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
 
   // Parsing operation type
   if (isDefined(conditionJs, "Operation") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Operation' key.\n");
-  op_t operation = getOperationType(conditionJs["Operation"].get<std::string>());
+  operator_t operation = getOperationType(conditionJs["Operation"].get<std::string>());
 
   // Parsing first operand (property name)
   if (isDefined(conditionJs, "Operand 1") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Operand 1' key.\n");
@@ -43,12 +45,18 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
   _actions.push_back(ruleJs["Actions"][i]);
 }
 
-bool Rule::evaluate(SDLPopInstance* sdlPop)
+bool Rule::evaluate()
 {
- return false;
+ bool isAchieved = true;
+
+ // The rule is achieved only if all conditions are met
+ for (size_t i = 0; i < _conditions.size(); i++)
+  isAchieved = isAchieved && _conditions[i]->evaluate();
+
+ return isAchieved;
 }
 
-op_t Rule::getOperationType(const std::string& operation)
+operator_t Rule::getOperationType(const std::string& operation)
 {
  if (operation == "==") return op_equal;
  if (operation == "!=") return op_not_equal;

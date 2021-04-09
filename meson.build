@@ -70,7 +70,8 @@ linkFlags = [
   
 cppFlags = [
   '-Wfatal-errors',
-  '-fopenmp',
+  '-O3',
+  '-g'
   ]
 
 executable('jaffar',
