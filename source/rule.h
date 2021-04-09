@@ -38,7 +38,7 @@ public:
 private:
 
  // Conditions are evaluated frequently, so this optimized for performance
- // Operands are stored as pointers/immediates and the evaluation function
+ // Operands are pre-parsed as pointers/immediates and the evaluation function
  // is a template that is created at compilation time.
  std::vector<Condition*> _conditions;
  datatype_t getPropertyType(const std::string& property);

@@ -9,7 +9,6 @@ char* __prince_argv[] = { (char*)"prince" };
 void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
 {
  // Resetting frame counter
- _currentFrame = 0;
  _currentMove = ".";
 
  // Looking for sdlpop in default folders when running examples
@@ -286,14 +285,13 @@ void SDLPopInstance::advanceFrame()
   timers();
   play_frame();
 
-  _currentFrame++;
   _prevDrawnRoom = *drawn_room;
 }
 
 void SDLPopInstance::printFrameInfo()
 {
- printf("[Frame %4lu] Action: %3s, Room: %2d, Kid Pos: [%3d, %3d] Frame: %3d, Guard Pos: [%3d, %3d] Frame: %3d, Seed: 0x%08X\n",
-        _currentFrame, _currentMove.c_str(), *drawn_room, int(Kid->x), int(Kid->y), int(Kid->frame), int(Guard->x), int(Guard->y), int(Guard->frame), *random_seed);
+ printf("[Jaffar]  + Action: %3s, Room: %2d, Kid Pos: [%3d, %3d] Frame: %3d, Guard Pos: [%3d, %3d] Frame: %3d, Seed: 0x%08X\n",
+         _currentMove.c_str(), *drawn_room, int(Kid->x), int(Kid->y), int(Kid->frame), int(Guard->x), int(Guard->y), int(Guard->frame), *random_seed);
 }
 
 SDLPopInstance::SDLPopInstance()

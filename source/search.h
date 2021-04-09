@@ -10,8 +10,17 @@
 #include <vector>
 
 
+struct Magnet
+{
+ float intensityX;
+ float positionX;
+ float intensityY;
+ float positionY;
+};
+
 struct Frame
 {
+ std::string move;
  float score;
  std::string frameStateData;
 };
@@ -25,7 +34,6 @@ public:
   ~Search();
 
   void run();
-  void runFrame();
 
 private:
 
@@ -33,11 +41,15 @@ private:
  State* _state;
  std::string _baseStateData;
 
- // Rule collection
+ // Magnet array (one per each possible room)
+ Magnet _magnets[256];
+
+ // Rule vector
  std::vector<Rule*> _rules;
 
- // Current frame counter
+ // Frame counter
  size_t _currentFrame;
+ size_t _maxFrames;
 
  // Frame databases
  size_t _maxDatabaseSize;
@@ -51,4 +63,12 @@ private:
  // Flag to indicate finalization
  bool _hasFinalized;
 
+ // Printing stats
+ void printSearchStatus();
+
+ // Runs the search for a single frame
+ void runFrame();
+
+ // Obtains the score of a given frame
+ float getFrameScore();
 };

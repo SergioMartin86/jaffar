@@ -100,6 +100,12 @@ class SDLPopInstance {
  // Refreshes state after a load
  void refreshEngine();
 
+ // String to store current move
+ std::string _currentMove;
+
+ // Storing previously drawn room
+ word _prevDrawnRoom;
+
  // SDLPop Functions
  restore_room_after_quick_load_t restore_room_after_quick_load;
  load_global_options_t load_global_options;
@@ -269,7 +275,4 @@ class SDLPopInstance {
  private:
 
   void* _dllHandle;
-  size_t _currentFrame;
-  std::string _currentMove;
-  word _prevDrawnRoom;
 };
