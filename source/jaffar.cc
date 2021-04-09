@@ -13,23 +13,22 @@ jaffarConfigStruct _jaffarConfig;
 int main(int argc, char* argv[])
 {
  // Initialize the MPI environment
- //MPI_Init(&argc, &argv);
+ MPI_Init(&argc, &argv);
 
  // Get the number of processes
- //int commSize;
- //MPI_Comm_size(MPI_COMM_WORLD, &commSize);
+ MPI_Comm_size(MPI_COMM_WORLD, &_jaffarConfig.mpiSize);
 
  // Get the rank of the process
- //int commRank;
- //MPI_Comm_rank(MPI_COMM_WORLD, &commRank);
+ MPI_Comm_rank(MPI_COMM_WORLD, &_jaffarConfig.mpiRank);
 
- //printf("Rank: %d/%d - Loading SDLPop...\n", commRank, commSize);
+ printf("Rank: %d/%d - Loading SDLPop...\n", _jaffarConfig.mpiRank, _jaffarConfig.mpiSize);
 
  parseArgs(argc, argv);
 
  // Initializing SDLPop Instance
+ bool useSDLPopGUI = _jaffarConfig.mpiRank == 0; // Only show GUI if this is root MPI rank (0)
  SDLPopInstance sdlpop;
- sdlpop.initialize(1, true);
+ sdlpop.initialize(1, useSDLPopGUI);
 
  // Initializing State Handler
  State state(&sdlpop, _jaffarConfig.configJs["Savefile Configuration"]);
@@ -66,7 +65,8 @@ int main(int argc, char* argv[])
   search.run();
  }
 
- printf("Done.\n");
+ printf("[Jaffar] Finished.\n");
+ return MPI_Finalize();
 }
 
 using namespace argparse;
@@ -121,7 +121,7 @@ void parseArgs(int argc, char* argv[])
  }
  catch (const std::exception& err)
  {
-   fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _jaffarConfig.inputConfigFile.c_str(), err.what());
+   if (_jaffarConfig.mpiRank == 0) fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _jaffarConfig.inputConfigFile.c_str(), err.what());
    exit(-1);
  }
 }

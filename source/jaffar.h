@@ -18,6 +18,10 @@ struct jaffarConfigStruct
   // Operation Mode
   opMode_t opMode;
 
+  // MPI variables
+  int mpiRank;
+  int mpiSize;
+
   // Input Files (from command line)
   std::string inputConfigFile;
   std::string inputSequenceFile;

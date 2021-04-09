@@ -64,6 +64,7 @@ private:
  std::vector<Frame*>* _nextFrameDB;
 
  // Hash information
+ absl::flat_hash_set<uint64_t> _newHashes;
  absl::flat_hash_set<uint64_t> _hashes;
  size_t _hashCollisions;
 
@@ -81,4 +82,26 @@ private:
 
  // Evaluates the rule set on a given frame
  void evaluateRules(Frame* frame);
+
+ // Profiling and Debugging
+ bool _showProfilingInformation;
+ bool _showDebuggingInformation;
+ double _searchTotalTime;
+ double _frameCommunicationTime;
+ double _frameComputationTime;
+ double _frameStateLoadTime;
+ double _frameAdvanceTime;
+ double _frameHashComputationTime;
+ double _frameHashInsertionTime;
+ double _frameCreationTime;
+ double _frameRuleEvaluationTime;
+ double _frameScoreEvaluationTime;
+ double _frameDatabaseUpdateTime;
+ double _frameDatabaseClearTime;
+ double _frameDatabaseSortTime;
+ double _frameDatabaseClippingTime;
+
+ double _commHashBroadcastNewEntryCountTime;
+ double _commHashBufferingTime;
+ double _commHashBroadcastTime;
 };
