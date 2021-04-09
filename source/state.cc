@@ -1,5 +1,6 @@
 #include "state.h"
 #include "utils.h"
+#include "frame.h"
 #include <fstream>
 #include "metrohash64.h"
 
@@ -263,7 +264,7 @@ void State::loadFrame(const std::string& data) {
 }
 
 std::string State::saveFrame() const {
-  constexpr size_t kExpectedSize = 2689;
+  constexpr size_t kExpectedSize = _FRAME_DATA_SIZE;
   std::string res;
   res.reserve(kExpectedSize);
   for (const auto& item : _items) {

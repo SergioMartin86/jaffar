@@ -6,34 +6,10 @@
 #include "state.h"
 #include "json.hpp"
 #include "rule.h"
+#include "frame.h"
 #include <string>
 #include <vector>
-
-
-struct Magnet
-{
- float intensityX;
- float positionX;
- float intensityY;
- float positionY;
-};
-
-struct Frame
-{
- std::string move;
- float score;
- std::string frameStateData;
-
- // Store termination conditions
- bool isFail;
- bool isWin;
-
- // Magnet vector
- std::vector<Magnet> magnets;
-
- // Rule status vector
- std::vector<status_t> rulesStatus;
-};
+#include <mpi.h>
 
 class Search
 {
@@ -67,6 +43,10 @@ private:
  absl::flat_hash_set<uint64_t> _newHashes;
  absl::flat_hash_set<uint64_t> _hashes;
  size_t _hashCollisions;
+
+ // Storage for rule serialization size
+ size_t _frameSerializedSize;
+ MPI_Datatype _mpiFrameType;
 
  // Flag to indicate finalization
  bool _hasFinalized;
@@ -104,4 +84,8 @@ private:
  double _commHashBroadcastNewEntryCountTime;
  double _commHashBufferingTime;
  double _commHashBroadcastTime;
+ double _commDatabaseSerializationTime;
+ double _commFrameScatterTime;
 };
+
+extern size_t _ruleCount;

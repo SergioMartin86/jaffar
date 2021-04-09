@@ -2,8 +2,8 @@
 #include "utils.h"
 #include "jaffar.h"
 #include <chrono>
-#include <mpi.h>
 
+size_t _ruleCount;
 const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
 
 void Search::run()
@@ -72,10 +72,12 @@ void Search::runFrame()
 
  // Broadcasting new hash entry count
  auto hashBroadcastNewEntryCountTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
  size_t newHashEntryCount = _newHashes.size();
  MPI_Bcast(&newHashEntryCount, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
  std::vector<uint64_t> newHashVector;
  newHashVector.resize(newHashEntryCount);
+
  auto hashBroadcastNewEntryCountTimeEnd = std::chrono::steady_clock::now(); // Profiling
  _commHashBroadcastNewEntryCountTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashBroadcastNewEntryCountTimeEnd - hashBroadcastNewEntryCountTimeBegin).count();    // Profiling
 
@@ -94,7 +96,9 @@ void Search::runFrame()
 
  // Broadcasting new hash entries
  auto hashBroadcastingTimeBegin = std::chrono::steady_clock::now(); // Profiling
- MPI_Bcast(newHashVector.data(), newHashEntryCount, MPI_UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD);
+
+ MPI_Bcast(newHashVector.data(), newHashEntryCount, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+
  auto hashBroadcastingTimeEnd = std::chrono::steady_clock::now(); // Profiling
  _commHashBroadcastTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashBroadcastingTimeEnd - hashBroadcastingTimeBegin).count();    // Profiling
 
@@ -112,7 +116,63 @@ void Search::runFrame()
  // Frame Distribution Section -- Base Frames are split into the workers for processing
  ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ // Serializing current frame database
+ auto frameDatabaseSerializationBegin = std::chrono::steady_clock::now(); // Profiling
 
+ // Getting frame count in the current database
+ size_t frameCount = _currentFrameDB->size();
+ MPI_Bcast(&frameCount, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+
+ // Serializing all database frames into a single buffer
+ size_t currentPosition = 0;
+ char* frameSendBuffer = NULL;
+
+ if (_jaffarConfig.mpiRank == 0)
+ {
+  frameSendBuffer = (char*) malloc(_frameSerializedSize * frameCount);
+
+  for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
+  {
+   (*_currentFrameDB)[frameId]->serialize(&frameSendBuffer[currentPosition]);
+   currentPosition += _frameSerializedSize;
+  }
+ }
+
+ auto frameDatabaseSerializationEnd = std::chrono::steady_clock::now(); // Profiling
+ _commDatabaseSerializationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDatabaseSerializationEnd - frameDatabaseSerializationBegin).count();    // Profiling
+
+ // Figuring out how many frmes to give each worker
+ auto frameScatterBegin = std::chrono::steady_clock::now(); // Profiling
+
+ size_t framesPerWorker = frameCount / _jaffarConfig.mpiSize;
+
+ // Figuring out work distribution
+ currentPosition = 0;
+ std::vector<int> startPositions(_jaffarConfig.mpiSize);
+ std::vector<int> frameCounts(_jaffarConfig.mpiSize);
+ for (int i = 0; i < _jaffarConfig.mpiSize; i++)
+ {
+  startPositions[i] = currentPosition;
+  frameCounts[i] = framesPerWorker;
+  currentPosition += framesPerWorker;
+ }
+
+ // The last worker gets the remainder
+ frameCounts[_jaffarConfig.mpiSize-1] = frameCount - startPositions[_jaffarConfig.mpiSize-1];
+
+ // Allocating receive buffer for incoming frames
+ int rankFrameCount = frameCounts[_jaffarConfig.mpiRank];
+ char* frameReceiveBuffer = (char*) malloc(_frameSerializedSize * rankFrameCount);
+
+ // Scattering frames among the workers
+ MPI_Scatterv(frameSendBuffer, frameCounts.data(), startPositions.data(), _mpiFrameType, frameReceiveBuffer, rankFrameCount, _mpiFrameType, 0, MPI_COMM_WORLD);
+
+ // Freeing frame buffers
+ if (_jaffarConfig.mpiRank == 0) free(frameSendBuffer);
+ free(frameReceiveBuffer);
+
+ auto frameScatterEnd = std::chrono::steady_clock::now(); // Profiling
+ _commFrameScatterTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameScatterEnd - frameScatterBegin).count();    // Profiling
 
  ////////////////////////////////////////////////////////////////////////////////////////////////////
  // Parallel Computation Section -- Each worker processes its own unique base frames
@@ -181,6 +241,7 @@ void Search::runFrame()
    newFrame->isFail = false;
    newFrame->isWin = false;
    newFrame->move = move;
+   newFrame->hash = hash;
    newFrame->rulesStatus = baseFrame->rulesStatus;
    newFrame->frameStateData = _state->saveFrame();
    newFrame->magnets = baseFrame->magnets;
@@ -437,6 +498,14 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
   if (statusRecognized == false) EXIT_WITH_ERROR("[ERROR] Rule %lu status %s not recognized.\n", i, config["Rules"][i]["Status"].get<std::string>().c_str());
  }
 
+ // Setting global for rule count
+ _ruleCount = _rules.size();
+
+ // Calculating frame size and creating MPI datatype
+ _frameSerializedSize = Frame::getSerializationSize();
+ MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
+ MPI_Type_commit(&_mpiFrameType);
+
  // Allocating databases
  _currentFrameDB = new std::vector<Frame*>();
  _nextFrameDB = new std::vector<Frame*>();
@@ -506,6 +575,8 @@ void Search::printSearchStatus()
   printf("[Jaffar]  + Hash Count Broadcasting Time: %3.3fs\n", _commHashBroadcastNewEntryCountTime / 1.0e+9);
   printf("[Jaffar]  + Hash Buffering Time: %3.3fs\n", _commHashBufferingTime / 1.0e+9);
   printf("[Jaffar]  + Hash Values Broadcasting Time: %3.3fs\n", _commHashBroadcastTime / 1.0e+9);
+  printf("[Jaffar]  + Database Serialization Time: %3.3fs\n", _commDatabaseSerializationTime / 1.0e+9);
+  printf("[Jaffar]  + Frame Scatter Time: %3.3fs\n", _commFrameScatterTime / 1.0e+9);
  }
 
  if (_showDebuggingInformation)
