@@ -80,12 +80,16 @@ private:
  double _frameDatabaseClearTime;
  double _frameDatabaseSortTime;
  double _frameDatabaseClippingTime;
+ double _framePostprocessingTime;
 
  double _commHashBroadcastNewEntryCountTime;
  double _commHashBufferingTime;
  double _commHashBroadcastTime;
  double _commDatabaseSerializationTime;
  double _commFrameScatterTime;
+ double _commFrameGatherTime;
+ double _commGatherWorkerInformationTime;
+ double _commWorkerFrameSerializationTime;
  double _commDatabaseDeserializationTime;
 };
 
