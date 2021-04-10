@@ -464,6 +464,12 @@ void Search::evaluateRules(Frame* frame)
      // Running the action, depending on the type
      bool recognizedActionType = false;
 
+     if (actionType == "Add Reward")
+     {
+      // This action is handled during startup, no need to do anything now.
+      recognizedActionType = true;
+     }
+
      if (actionType == "Trigger Fail")
      {
       frame->isFail = true;
@@ -524,7 +530,7 @@ void Search::evaluateRules(Frame* frame)
       recognizedActionType = true;
      }
 
-     if (recognizedActionType == false) EXIT_WITH_ERROR("[ERROR] Unrecognized action type %s\n", actionType);
+     if (recognizedActionType == false) EXIT_WITH_ERROR("[ERROR] Unrecognized action type %s\n", actionType.c_str());
     }
    }
   }
@@ -558,48 +564,27 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  _maxDatabaseSize = config["Max Database Size"].get<size_t>();
 
  // Setting magnet default values. This default repels unspecified rooms, but rewards 'glitchy' rooms
- std::vector<Magnet> magnets(256);
+ std::vector<Magnet> magnets(_ROOM_ENTRY_COUNT);
 
- magnets[0].intensityX = 0.1f;
- magnets[0].intensityY = 0.1f;
+ magnets[0].intensityX = 1.0f;
+ magnets[0].intensityY = 1.0f;
  magnets[0].positionX = 128.0f;
  magnets[0].positionY = 128.0f;
 
  for (size_t i = 1; i < 24; i++)
  {
-  magnets[i].intensityX = -0.1f;
-  magnets[i].intensityY = -0.1f;
+  magnets[i].intensityX = -1.0f;
+  magnets[i].intensityY = -1.0f;
   magnets[i].positionX = 128.0f;
   magnets[i].positionY = 128.0f;
  }
 
  for (size_t i = 25; i < 256; i++)
  {
-   magnets[i].intensityX = +0.1f;
-   magnets[i].intensityY = +0.1f;
+   magnets[i].intensityX = 1.0f;
+   magnets[i].intensityY = 1.0f;
    magnets[i].positionX = 128.0f;
    magnets[i].positionY = 128.0f;
- }
-
- // Processing user-specified magnets
- if (isDefined(config, "Magnets") == false) EXIT_WITH_ERROR("[ERROR] Search configuration file missing 'Magnets' key.\n");
- for (size_t i = 0; i < config["Magnets"].size(); i++)
- {
-   auto magnet = config["Magnets"][i];
-
-   if (isDefined(magnet, "Room") == false) EXIT_WITH_ERROR("[ERROR] Magnet %lu missing 'Room' key.\n", i);
-   if (isDefined(magnet, "Intensity X") == false) EXIT_WITH_ERROR("[ERROR] Magnet %lu missing 'Intensity X' key.\n", i);
-   if (isDefined(magnet, "Position X") == false) EXIT_WITH_ERROR("[ERROR] Magnet %lu missing 'Position X' key.\n", i);
-   if (isDefined(magnet, "Intensity Y") == false) EXIT_WITH_ERROR("[ERROR] Magnet %lu missing 'Intensity Y' key.\n", i);
-   if (isDefined(magnet, "Position Y") == false) EXIT_WITH_ERROR("[ERROR] Magnet %lu missing 'Position Y' key.\n", i);
-
-   int room = magnet["Room"].get<int>();
-   if (room > 255 || room < 0) EXIT_WITH_ERROR("[ERROR] Invalid room value %d for magnet %lu (must be between 0 and 255).\n", room, i);
-
-   magnets[room].intensityX = magnet["Intensity X"].get<float>();
-   magnets[room].intensityY = magnet["Intensity Y"].get<float>();
-   magnets[room].positionX = magnet["Position X"].get<float>();
-   magnets[room].positionY = magnet["Position Y"].get<float>();
  }
 
  // Processing user-specified rules
@@ -607,22 +592,12 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  for (size_t i = 0; i < config["Rules"].size(); i++)
   _rules.push_back(new Rule(config["Rules"][i], _sdlPop));
 
- // Getting initial status for each rule
- std::vector<status_t> rulesStatus(config["Rules"].size());
- for (size_t i = 0; i < config["Rules"].size(); i++)
- {
-  if (isDefined(config["Rules"][i], "Status") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu missing 'Status' key.\n", i);
-
-  bool statusRecognized = false;
-  if (config["Rules"][i]["Status"] == "Active") { rulesStatus[i] = st_active; statusRecognized = true; }
-  if (config["Rules"][i]["Status"] == "Inactive") { rulesStatus[i] = st_inactive; statusRecognized = true; }
-  if (config["Rules"][i]["Status"] == "Achieved") { rulesStatus[i] = st_achieved; statusRecognized = true; }
-
-  if (statusRecognized == false) EXIT_WITH_ERROR("[ERROR] Rule %lu status %s not recognized.\n", i, config["Rules"][i]["Status"].get<std::string>().c_str());
- }
-
  // Setting global for rule count
  _ruleCount = _rules.size();
+
+ // Getting initial status for each rule
+ std::vector<status_t> rulesStatus(_ruleCount);
+ for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = st_active;
 
  // Calculating frame size and creating MPI datatype
  _frameSerializedSize = Frame::getSerializationSize();
@@ -675,13 +650,10 @@ void Search::printSearchStatus()
  auto bestFrame = (*_currentFrameDB)[0];
 
  printf("[Jaffar] ----------------------------------------------------------------\n");
- printf("[Jaffar] Total Elapsed Time: %3.3fs\n", _searchTotalTime / 1.0e+9);
  printf("[Jaffar] Current Frame: %lu/%lu\n", _currentFrame, _maxFrames);
  printf("[Jaffar] Best Score: %f\n", bestFrame->score);
- printf("[Jaffar] Hash Table Collisions %lu\n", _hashCollisions);
- printf("[Jaffar] Hash Table Entries (New/Total): %lu/%lu\n", _newHashes.size(), _hashes.size());
- printf("[Jaffar] Hash Table Size: %lu\n", _hashes.size());
  printf("[Jaffar] Database Size: %lu/%lu\n", _currentFrameDB->size(), _maxDatabaseSize);
+ printf("[Jaffar] Elapsed Time (Frame/Total): %3.3fs / %3.3fs\n", (_frameComputationTime + _frameCommunicationTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
 
  if (_showProfilingInformation)
  {
@@ -713,8 +685,23 @@ void Search::printSearchStatus()
 
  if (_showDebuggingInformation)
  {
+  printf("[Jaffar] Hash Table Collisions: %lu\n", _hashCollisions);
+  printf("[Jaffar] Hash Table Entries (New/Total): %lu/%lu\n", _newHashes.size(), _hashes.size());
+
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
+
+  // Printing Rule Status
+  printf("[Jaffar]  + Rule Status: [ %d", (int)bestFrame->rulesStatus[0]);
+  for (size_t i = 1; i < bestFrame->rulesStatus.size(); i++)
+   printf(", %d", (int) bestFrame->rulesStatus[i]);
+  printf(" ]\n");
+
+  // Printing Rule Status
+  int currentRoom = _sdlPop->Kid->room;
+  const auto& magnet = bestFrame->magnets[currentRoom];
+  printf("[Jaffar]  + Magnet Intensity = [X = %f, Y = %f]\n", magnet.intensityX, magnet.intensityY);
+  printf("[Jaffar]  + Magnet Position  = [X = %f, Y = %f]\n", magnet.positionX, magnet.positionY);
  }
 }
 

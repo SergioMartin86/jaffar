@@ -2,10 +2,6 @@
 
 Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
 {
- // Parsing rule reward
- if (isDefined(ruleJs, "Reward") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Reward' key.\n");
- _reward = ruleJs["Reward"].get<float>();
-
  // Adding conditions. All of them must be satisfied for the rule to count
  if (isDefined(ruleJs, "Conditions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Conditions' key.\n");
  for (size_t i = 0; i < ruleJs["Conditions"].size(); i++)
@@ -43,6 +39,12 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
  if (isDefined(ruleJs, "Actions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Actions' key.\n");
  for (size_t i = 0; i < ruleJs["Actions"].size(); i++)
   _actions.push_back(ruleJs["Actions"][i]);
+
+ // By default, rules add no reward, unless an action modifies this
+ _reward = 0.0;
+ for (size_t actionId = 0; actionId < _actions.size(); actionId++)
+  if (_actions[actionId]["Type"] == "Add Reward")
+   _reward = _actions[actionId]["Value"].get<float>();
 }
 
 bool Rule::evaluate()
@@ -62,10 +64,10 @@ operator_t Rule::getOperationType(const std::string& operation)
  if (operation == "!=") return op_not_equal;
  if (operation == ">") return op_greater;
  if (operation == ">=") return op_greater_or_equal;
- if (operation == ">") return op_less;
- if (operation == ">=") return op_less_or_equal;
+ if (operation == "<") return op_less;
+ if (operation == "<=") return op_less_or_equal;
 
- EXIT_WITH_ERROR("[Error] Unrecognized (smooth) operator: %s\n", operation);
+ EXIT_WITH_ERROR("[Error] Unrecognized (smooth) operator: %s\n", operation.c_str());
 
  return op_equal;
 }

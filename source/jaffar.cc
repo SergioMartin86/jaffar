@@ -21,12 +21,18 @@ int main(int argc, char* argv[])
  // Get the rank of the process
  MPI_Comm_rank(MPI_COMM_WORLD, &_jaffarConfig.mpiRank);
 
- printf("Rank: %d/%d - Loading SDLPop...\n", _jaffarConfig.mpiRank, _jaffarConfig.mpiSize);
-
  parseArgs(argc, argv);
 
+ bool useSDLPopGUI = false;
+ if (_jaffarConfig.mpiRank == 0)
+ {
+  useSDLPopGUI = true; // Only show GUI if this is root MPI rank (0)
+  printf("[Jaffar] ----------------------------------------------------------------\n");
+  printf("[Jaffar] Running script: %s.\n", _jaffarConfig.inputConfigFile.c_str());
+  printf("[Jaffar] Using %d MPI Ranks.\n", _jaffarConfig.mpiSize);
+ }
+
  // Initializing SDLPop Instance
- bool useSDLPopGUI = _jaffarConfig.mpiRank == 0; // Only show GUI if this is root MPI rank (0)
  SDLPopInstance sdlpop;
  sdlpop.initialize(1, useSDLPopGUI);
 

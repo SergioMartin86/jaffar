@@ -8,8 +8,8 @@
 enum status_t
 {
   st_active = 0,
-  st_inactive = 1,
-  st_achieved = 2
+  st_inactive = -1,
+  st_achieved = 1
 };
 
 enum operator_t

@@ -18,7 +18,7 @@ size_t Frame::getSerializationSize()
  size += _FRAME_DATA_SIZE * sizeof(char);
 
  // Adding magnet information
- size += _ROOM_ENTRY_COUNT * 4 * sizeof(float);
+ size += _ROOM_ENTRY_COUNT * sizeof(Magnet);
 
  // Adding rule status information
  size += _ruleCount * sizeof(status_t);
