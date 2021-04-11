@@ -54,6 +54,8 @@ void Search::runFrame()
  // [Communication] Base Frames are split into equally sized chunks for the workers to process
  ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ auto communicationTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
  // Serializing current frame database
  auto frameDatabaseSerializationBegin = std::chrono::steady_clock::now(); // Profiling
 
@@ -593,7 +595,6 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
 
  // Registering hash for initial frame
  _hashes.insert(hash);
- _newHashes.insert(hash);
 }
 
 Search::~Search()
@@ -640,7 +641,7 @@ void Search::printSearchStatus()
  if (_showDebuggingInformation)
  {
   printf("[Jaffar] Hash Table Collisions: %lu\n", _hashCollisions);
-  printf("[Jaffar] Hash Table Entries (New/Total): %lu/%lu\n", _newHashes.size(), _hashes.size());
+  printf("[Jaffar] Hash Table Entries: %lu\n", _hashes.size());
 
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
