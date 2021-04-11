@@ -43,6 +43,11 @@ private:
  absl::flat_hash_set<uint64_t> _hashes;
  size_t _hashCollisions;
 
+ // Storage for the position of win rules, for win detection
+ std::vector<size_t> _winRulePositions;
+ bool _winFrameFound;
+ Frame* _winFrame;
+
  // Storage for rule serialization size
  size_t _frameSerializedSize;
  MPI_Datatype _mpiFrameType;
@@ -59,8 +64,11 @@ private:
  // Obtains the score of a given frame
  float getFrameScore(const Frame* frame);
 
- // Evaluates the rule set on a given frame
- void evaluateRules(Frame* frame);
+ // Evaluates the rule set on a given frame. Returns true if it is a fail.
+ bool evaluateRules(Frame* frame);
+
+ // Print Rule information
+ void printRuleStatus(const Frame* frame);
 
  // Profiling and Debugging
  bool _showProfilingInformation;

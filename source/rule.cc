@@ -113,7 +113,7 @@ datatype_t Rule::getPropertyType(const std::string& property)
  if (property == "Current Level") return dt_word;
  if (property == "Next Level") return dt_word;
  if (property == "Drawn Room") return dt_word;
- if (property == "Exit Door Open") return dt_word;
+ if (property == "Exit Door Open") return dt_byte;
  if (property == "Checkpoint Reached") return dt_word;
  if (property == "Is Upside Down") return dt_word;
  if (property == "Is Feather Fall") return dt_word;
@@ -164,7 +164,7 @@ void* Rule::getPropertyPointer(const std::string& property, SDLPopInstance* sdlP
  if (property == "Current Level") return sdlPop->current_level;
  if (property == "Next Level") return sdlPop->next_level;
  if (property == "Drawn Room") return sdlPop->drawn_room;
- if (property == "Exit Door Open") return sdlPop->leveldoor_open;
+ if (property == "Exit Door Open") return &sdlPop->isExitDoorOpen;
  if (property == "Checkpoint Reached") return sdlPop->checkpoint;
  if (property == "Is Upside Down") return sdlPop->upside_down;
  if (property == "Is Feather Fall") return sdlPop->is_feather_fall;

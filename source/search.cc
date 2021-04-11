@@ -10,7 +10,10 @@ void Search::run()
 {
  auto searchTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
- for(_currentFrame = 1; _currentFrame <= _maxFrames; _currentFrame++)
+ // Storage for termination trigger
+ bool terminate = false;
+
+ while(terminate == false)
  {
   // If this is the root rank, plot the best frame and print information
   if (_jaffarConfig.mpiRank == 0)
@@ -31,17 +34,53 @@ void Search::run()
 
    // Printing search status
    printSearchStatus();
-
-   // Check if search came to an early end
-   if (_currentFrameDB->size() == 0)
-   {
-    printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
-    exit(0);
-   }
   }
 
   // All workers: running a single frame search
   runFrame();
+
+  // Checking termination criteria
+  if (_jaffarConfig.mpiRank == 0)
+  {
+   // Terminate if DB is depleted and no winning rule was found
+   if (_currentFrameDB->size() == 0)
+   {
+    printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
+    terminate = true;
+   }
+
+   // Terminate if a winning rule was found
+   if (_winFrameFound == true)
+   {
+    printf("[Jaffar] Winning frame reached, finishing...\n");
+    terminate = true;
+   }
+
+   // Terminate if maximum number of frames was reached
+   if (_currentFrame > _maxFrames)
+   {
+    printf("[Jaffar] Maximum frame number reached, finishing...\n");
+    terminate = true;
+   }
+  }
+
+  // Broadcasting whether a winning frame was found
+  MPI_Bcast(&terminate, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
+
+  // Advancing frame
+  _currentFrame++;
+ }
+
+ // Print winning frame if found
+ if (_winFrameFound == true)
+ {
+  printf("[Jaffar] Win Frame Information:\n");
+  _state->loadBase(_baseStateData);
+  _state->loadFrame(_winFrame->frameStateData);
+  _sdlPop->refreshEngine();
+  _sdlPop->printFrameInfo();
+  printRuleStatus(_winFrame);
+  printf("[Jaffar]  + Move List: . . %s\n", _winFrame->moveHistory.c_str());
  }
 
  // Barrier to wait for all workers
@@ -116,7 +155,7 @@ void Search::runFrame()
  auto frameDatabaseDeserializationBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Storage for the incoming frames
- std::vector<Frame*> workerFrames;
+ std::vector<Frame*> workerInputFrames;
 
  // Deserializing incoming frames into the storage
  currentPosition = 0;
@@ -124,7 +163,7 @@ void Search::runFrame()
  {
   Frame* newFrame = new Frame;
   newFrame->deserialize(&frameReceiveBuffer[currentPosition]);
-  workerFrames.push_back(newFrame);
+  workerInputFrames.push_back(newFrame);
   currentPosition += _frameSerializedSize;
  }
 
@@ -155,16 +194,16 @@ void Search::runFrame()
  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Storage for newly produced frames by workers
- std::vector<Frame*> newWorkerFrames;
+ std::vector<Frame*> workerOutputFrames;
 
- for (size_t frameId = 0; frameId < workerFrames.size(); frameId++)
+ for (size_t frameId = 0; frameId < workerInputFrames.size(); frameId++)
   for (size_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
   {
    auto stateLoadTimeBegin = std::chrono::steady_clock::now(); // Profiling
    const std::string move = _possibleMoves[moveId].c_str();
 
    // Getting base frame pointer
-   Frame* baseFrame = workerFrames[frameId];
+   Frame* baseFrame = workerInputFrames[frameId];
 
    // Loading frame state
    _state->loadBase(_baseStateData);
@@ -201,8 +240,6 @@ void Search::runFrame()
    auto newFrameCreationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    Frame* newFrame = new Frame;
    newFrame->frameId = baseFrame->frameId;
-   newFrame->isFail = false;
-   newFrame->isWin = false;
    newFrame->currentMove = move;
    newFrame->hash = hash;
    newFrame->rulesStatus = baseFrame->rulesStatus;
@@ -213,12 +250,12 @@ void Search::runFrame()
 
    // Evaluating rules on the new frame
    auto ruleEvaluationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-   evaluateRules(newFrame);
+   bool isFail = evaluateRules(newFrame);
    auto ruleEvaluationEnd = std::chrono::steady_clock::now(); // Profiling
    _frameRuleEvaluationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(ruleEvaluationEnd - ruleEvaluationTimeBegin).count();    // Profiling
 
    // If frame has failed, then proceed to the next one
-   if (newFrame->isFail == true) continue;
+   if (isFail == true) continue;
 
    // Calculating score
    auto scoreEvaluationTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -228,25 +265,18 @@ void Search::runFrame()
 
    // Adding novel frame in the next frame database
    auto databaseUpdateTimeBegin = std::chrono::steady_clock::now(); // Profiling
-   newWorkerFrames.push_back(newFrame);
+   workerOutputFrames.push_back(newFrame);
    auto databaseUpdateTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _frameDatabaseUpdateTime += std::chrono::duration_cast<std::chrono::nanoseconds>(databaseUpdateTimeEnd - databaseUpdateTimeBegin).count();    // Profiling
-
-   // If frame has succeeded, then exit
-   if (newFrame->isWin == true)
-   {
-    printf("Success Frame found!\n");
-    exit(0);
-   }
  }
 
  // Freeing memory for worker frames
  auto databaseClearTimeBegin = std::chrono::steady_clock::now(); // Profiling
- for (size_t frameId = 0; frameId < workerFrames.size(); frameId++)
-  delete workerFrames[frameId];
+ for (size_t frameId = 0; frameId < workerInputFrames.size(); frameId++)
+  delete workerInputFrames[frameId];
 
  // Clearing worker frames vector
- workerFrames.clear();
+ workerInputFrames.clear();
 
  auto databaseClearTimeEnd = std::chrono::steady_clock::now(); // Profiling
  _frameDatabaseClearTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClearTimeEnd - databaseClearTimeBegin).count();    // Profiling
@@ -265,7 +295,7 @@ void Search::runFrame()
 
  // Gathering total new frames per worker
  std::vector<int> newFrameCounts(_jaffarConfig.mpiSize);
- size_t newFrameCounter = newWorkerFrames.size();
+ size_t newFrameCounter = workerOutputFrames.size();
 
  size_t allNewFrameCounter;
  MPI_Reduce(&newFrameCounter, &allNewFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -282,13 +312,13 @@ void Search::runFrame()
  for (size_t frameId = 0; frameId < newFrameCounter; frameId++)
  {
   // Serializing new frame
-  newWorkerFrames[frameId]->serialize(&newFrameSendBuffer[currentPosition]);
+  workerOutputFrames[frameId]->serialize(&newFrameSendBuffer[currentPosition]);
 
   // Advancing send buffer pointer
   currentPosition += _frameSerializedSize;
 
   // Freeing new frame
-  delete newWorkerFrames[frameId];
+  delete workerOutputFrames[frameId];
  }
 
  auto commWorkerFrameSerializationEnd = std::chrono::steady_clock::now(); // Profiling
@@ -300,7 +330,6 @@ void Search::runFrame()
  // Allocating buffer to receieve all new experiences
  char* allNewFrameRootBuffer = NULL;
  size_t bufferSize = allNewFrameCounter * _frameSerializedSize;
- if (_jaffarConfig.mpiRank == 0) printf("bufferSize: %lu\n", bufferSize);
 
  if (_jaffarConfig.mpiRank == 0)
    allNewFrameRootBuffer = (char*) malloc(bufferSize);
@@ -315,11 +344,6 @@ void Search::runFrame()
  }
 
  // Gathering new frames into the root rank
- if (_jaffarConfig.mpiRank == 0)
- {
-  printf("Receiving Frames: %lu\n", allNewFrameCounter);
-  printf("Receive Pointer: 0x%lX\n", (unsigned long int)allNewFrameRootBuffer);
- }
  MPI_Gatherv(newFrameSendBuffer, newFrameCounter, _mpiFrameType, allNewFrameRootBuffer, newFrameCounts.data(), newFrameDisplacements.data(), _mpiFrameType, 0, MPI_COMM_WORLD);
 
  auto commGatherTimeEnd = std::chrono::steady_clock::now(); // Profiling
@@ -356,12 +380,6 @@ void Search::runFrame()
     // Getting pointer to base frame
     const Frame* baseFrame = (*_currentFrameDB)[baseFrameId];
 
-    // Getting id for new frame from its DB position
-    const size_t frameId = _currentFrameDB->size();
-
-    // Now setting new frame Id
-    newFrame->frameId = frameId;
-
     // Getting corresponding base frame move history
     const std::string baseMoveHistory = baseFrame->moveHistory;
 
@@ -370,6 +388,14 @@ void Search::runFrame()
 
     // Putting new path into the database
     newFrame->moveHistory = newMoveHistory;
+
+    // Check for win condition
+    for (size_t winRuleId = 0; winRuleId < _winRulePositions.size(); winRuleId++)
+     if (newFrame->rulesStatus[_winRulePositions[winRuleId]] == st_achieved)
+     {
+      _winFrameFound = true;
+      _winFrame = newFrame;
+     }
 
     // Adding to next database
     _nextFrameDB->push_back(newFrame);
@@ -391,18 +417,24 @@ void Search::runFrame()
  // Clearing next frame DB
  _nextFrameDB->clear();
 
- // Sorting DB frames by score
- auto databaseSortTimeBegin = std::chrono::steady_clock::now(); // Profiling
- std::sort(_currentFrameDB->begin(), _currentFrameDB->end(), [](const auto& a, const auto& b) { return a->score > b->score; });
- auto databaseSortTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameDatabaseSortTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseSortTimeEnd - databaseSortTimeBegin).count();    // Profiling
+ // Sorting DB frames by score, only if winning frame wasn't found
+ if (_winFrameFound == false)
+ {
+  auto databaseSortTimeBegin = std::chrono::steady_clock::now(); // Profiling
+  std::sort(_currentFrameDB->begin(), _currentFrameDB->end(), [](const auto& a, const auto& b) { return a->score > b->score; });
+  auto databaseSortTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _frameDatabaseSortTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseSortTimeEnd - databaseSortTimeBegin).count();    // Profiling
 
- // Clipping excessive frames out
- auto databaseClippingTimeBegin = std::chrono::steady_clock::now(); // Profiling
- for (size_t frameId = _maxDatabaseSize; frameId < _currentFrameDB->size(); frameId++) delete (*_currentFrameDB)[frameId];
- if (_currentFrameDB->size() > _maxDatabaseSize) _currentFrameDB->resize(_maxDatabaseSize);
- auto databaseClippingTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameDatabaseClippingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClippingTimeEnd - databaseClippingTimeBegin).count();    // Profiling
+  // Clipping excessive frames out
+  auto databaseClippingTimeBegin = std::chrono::steady_clock::now(); // Profiling
+  for (size_t frameId = _maxDatabaseSize; frameId < _currentFrameDB->size(); frameId++) delete (*_currentFrameDB)[frameId];
+  if (_currentFrameDB->size() > _maxDatabaseSize) _currentFrameDB->resize(_maxDatabaseSize);
+  auto databaseClippingTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _frameDatabaseClippingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClippingTimeEnd - databaseClippingTimeBegin).count();    // Profiling
+
+  // Resetting frame id to every frame in the database
+  for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++) (*_currentFrameDB)[frameId]->frameId = frameId;
+ }
 
  // Freeing buffers
  free(newFrameSendBuffer);
@@ -413,7 +445,7 @@ void Search::runFrame()
  _frameComputationTime += _framePostprocessingTime;
 }
 
-void Search::evaluateRules(Frame* frame)
+bool Search::evaluateRules(Frame* frame)
 {
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
  {
@@ -448,13 +480,13 @@ void Search::evaluateRules(Frame* frame)
 
      if (actionType == "Trigger Fail")
      {
-      frame->isFail = true;
+      return true;
       recognizedActionType = true;
      }
 
+     // This action is handled during startup, no need to do anything now.
      if (actionType == "Trigger Win")
      {
-      frame->isWin = true;
       recognizedActionType = true;
      }
 
@@ -488,6 +520,8 @@ void Search::evaluateRules(Frame* frame)
    }
   }
  }
+
+ return false;
 }
 
 Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
@@ -499,6 +533,9 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  _searchTotalTime = 0.0;
  _frameComputationTime = 0.0;
  _frameCommunicationTime = 0.0;
+
+ // Setting starting Frame id
+ _currentFrame = 1;
 
  // Parsing profiling verbosity
  if (isDefined(config, "Show Profiling Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Profiling Information' key.\n");
@@ -537,11 +574,10 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  // Setting global for rule count
  _ruleCount = _rules.size();
 
- // Getting initial status for each rule
+ // Setting initial status for each rule
  std::vector<status_t> rulesStatus(_ruleCount);
  for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = st_active;
 
- // Calculating frame size and creating MPI datatype
  _frameSerializedSize = Frame::getSerializationSize();
  MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
  MPI_Type_commit(&_mpiFrameType);
@@ -565,11 +601,21 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  initialFrame->frameStateData = _state->saveFrame();
  initialFrame->magnets = magnets;
  initialFrame->rulesStatus = rulesStatus;
- initialFrame->isFail = false;
- initialFrame->isWin = false;
 
  // Evaluating Rules on initial frame
  evaluateRules(initialFrame);
+
+ // Storing which rules are win rules
+ for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
+  for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
+   if (_rules[ruleId]->_actions[actionId]["Type"] == "Trigger Win")
+    _winRulePositions.push_back(ruleId);
+
+ if (_winRulePositions.size() == 0)
+  EXIT_WITH_ERROR("[ERROR] No win (Trigger Win) rules were defined in the config file.\n");
+
+ _winFrameFound = false;
+ _winFrame = NULL;
 
  // Evaluating Score on initial frame
  initialFrame->score = getFrameScore(initialFrame);
@@ -630,13 +676,9 @@ void Search::printSearchStatus()
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
 
-  // Printing Rule Status
-  printf("[Jaffar]  + Rule Status: [ %d", (int)bestFrame->rulesStatus[0]);
-  for (size_t i = 1; i < bestFrame->rulesStatus.size(); i++)
-   printf(", %d", (int) bestFrame->rulesStatus[i]);
-  printf(" ]\n");
+  printRuleStatus(bestFrame);
 
-  // Printing Rule Status
+  // Printing Magnet Status
   int currentRoom = _sdlPop->Kid->room;
   const auto& magnet = bestFrame->magnets[currentRoom];
   printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensity, magnet.position);
@@ -644,6 +686,15 @@ void Search::printSearchStatus()
   // Printing Move List
   printf("[Jaffar]  + Move List: . . %s\n", bestFrame->moveHistory.c_str());
  }
+}
+
+void Search::printRuleStatus(const Frame* frame)
+{
+ printf("[Jaffar]  + Rule Status: [ %d", (int)frame->rulesStatus[0]);
+ for (size_t i = 1; i < frame->rulesStatus.size(); i++)
+  printf(", %d", (int) frame->rulesStatus[i]);
+ printf(" ]\n");
+
 }
 
 float Search::getFrameScore(const Frame* frame)

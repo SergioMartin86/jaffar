@@ -39,6 +39,9 @@ int main(int argc, char* argv[])
  // Initializing State Handler
  State state(&sdlpop, _jaffarConfig.configJs["Savefile Configuration"]);
 
+ // Wait for all workers to be ready
+ MPI_Barrier(MPI_COMM_WORLD);
+
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.opMode == m_play)
  {
@@ -48,7 +51,6 @@ int main(int argc, char* argv[])
   // Printing initial frame info
   sdlpop.printFrameInfo();
   sdlpop.draw();
-  getchar();
 
   // Iterating move list in the sequence
   const auto moveList = split(_jaffarConfig.moveSequence, ' ');
@@ -71,7 +73,8 @@ int main(int argc, char* argv[])
   search.run();
  }
 
- printf("[Jaffar] Finished.\n");
+ if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Finished.\n");
+ MPI_Barrier(MPI_COMM_WORLD);
  return MPI_Finalize();
 }
 

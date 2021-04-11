@@ -37,10 +37,6 @@ public:
  // Stores the game state data
  std::string frameStateData;
 
- // Termination conditions
- bool isFail;
- bool isWin;
-
  // Magnet vector
  std::vector<Magnet> magnets;
 

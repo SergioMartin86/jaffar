@@ -100,6 +100,9 @@ class SDLPopInstance {
  // Refreshes state after a load
  void refreshEngine();
 
+ // Check if exit door is open
+ bool isLevelExitDoorOpen();
+
  // String to store current move
  std::string _currentMove;
 
@@ -271,6 +274,7 @@ class SDLPopInstance {
  bool* found_exe_dir;
  key_states_t* key_states;
  word* is_cutscene;
+ bool isExitDoorOpen;
 
  private:
 

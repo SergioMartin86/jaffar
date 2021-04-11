@@ -183,6 +183,9 @@ void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
 
  set_timer_length(timer_1, 20);
 
+ // Setting exit door status
+ isExitDoorOpen = isLevelExitDoorOpen();
+
 // // Skip cutscenes
 // while(*is_cutscene == 1)
 // {
@@ -286,12 +289,35 @@ void SDLPopInstance::advanceFrame()
   play_frame();
 
   _prevDrawnRoom = *drawn_room;
+  isExitDoorOpen = isLevelExitDoorOpen();
 }
 
 void SDLPopInstance::printFrameInfo()
 {
- printf("[Jaffar]  + Action: %3s, Room: %2d, Kid Pos: [%3d, %3d] Frame: %3d, Guard Pos: [%3d, %3d] Frame: %3d, Seed: 0x%08X\n",
-         _currentMove.c_str(), *drawn_room, int(Kid->x), int(Kid->y), int(Kid->frame), int(Guard->x), int(Guard->y), int(Guard->frame), *random_seed);
+ printf("[Jaffar]  + Action: %s\n", _currentMove.c_str());
+ printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame));
+ printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame));
+ printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
+ printf("[Jaffar]  + RNG State: 0x%08X\n", *random_seed);
+}
+
+bool SDLPopInstance::isLevelExitDoorOpen()
+{
+ bool door_open = *leveldoor_open;
+
+ if (!door_open) {
+   for (int i = 0; i < *trobs_count; ++i) {
+     const auto& trob = (*trobs)[i];
+     const auto idx = (trob.room - 1) * 30 + trob.tilepos;
+     const auto type = level->fg[idx] & 0x1f;
+     if (type == tiles_16_level_door_left) {
+       door_open = true;
+       break;
+     }
+   }
+ }
+
+ return door_open;
 }
 
 SDLPopInstance::SDLPopInstance()
