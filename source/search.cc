@@ -281,8 +281,14 @@ void Search::runFrame()
  currentPosition = 0;
  for (size_t frameId = 0; frameId < newFrameCounter; frameId++)
  {
+  // Serializing new frame
   newWorkerFrames[frameId]->serialize(&newFrameSendBuffer[currentPosition]);
+
+  // Advancing send buffer pointer
   currentPosition += _frameSerializedSize;
+
+  // Freeing new frame
+  delete newWorkerFrames[frameId];
  }
 
  auto commWorkerFrameSerializationEnd = std::chrono::steady_clock::now(); // Profiling
