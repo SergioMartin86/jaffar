@@ -453,47 +453,27 @@ void Search::evaluateRules(Frame* frame)
      }
 
      // Parsing room here to avoid duplicating code per each rule
-     int room = _VISIBLE_ROOM_OFFSET;
-     if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>() - _VISIBLE_ROOM_OFFSET;
-     if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room+_VISIBLE_ROOM_OFFSET);
+     int room = 0;
+     if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>();
+     if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room);
 
-     if (actionType == "Set Magnet Intensity X")
+     if (actionType == "Set Horizontal Magnet Intensity")
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float intensity = actionJs["Value"].get<float>();
 
-      frame->magnets[room].intensityX = intensity;
+      frame->magnets[room].intensity = intensity;
       recognizedActionType = true;
      }
 
-     if (actionType == "Set Magnet Intensity Y")
-     {
-      if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-      if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-      float intensity = actionJs["Value"].get<float>();
-
-      frame->magnets[room].intensityY = intensity;
-      recognizedActionType = true;
-     }
-
-     if (actionType == "Set Magnet Position X")
+     if (actionType == "Set Horizontal Magnet Position")
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float position = actionJs["Value"].get<float>();
 
-      frame->magnets[room].positionX = position;
-      recognizedActionType = true;
-     }
-
-     if (actionType == "Set Magnet Position Y")
-     {
-      if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-      if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-      float position = actionJs["Value"].get<float>();
-
-      frame->magnets[room].positionY = position;
+      frame->magnets[room].position = position;
       recognizedActionType = true;
      }
 
@@ -535,10 +515,8 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
 
  for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
  {
-  magnets[i].intensityX = -1.0f;
-  magnets[i].intensityY = -1.0f;
-  magnets[i].positionX = 128.0f;
-  magnets[i].positionY = 128.0f;
+  magnets[i].intensity = -1.0f;
+  magnets[i].position = 128.0f;
  }
 
  // Creating frame databases
@@ -645,7 +623,6 @@ void Search::printSearchStatus()
 
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
-  printf("[Jaffar]  + Move List: . . %s\n", bestFrame->moveHistory.c_str());
 
   // Printing Rule Status
   printf("[Jaffar]  + Rule Status: [ %d", (int)bestFrame->rulesStatus[0]);
@@ -656,8 +633,10 @@ void Search::printSearchStatus()
   // Printing Rule Status
   int currentRoom = _sdlPop->Kid->room;
   const auto& magnet = bestFrame->magnets[currentRoom];
-  printf("[Jaffar]  + Magnet Intensity = [X = %f, Y = %f]\n", magnet.intensityX, magnet.intensityY);
-  printf("[Jaffar]  + Magnet Position  = [X = %f, Y = %f]\n", magnet.positionX, magnet.positionY);
+  printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensity, magnet.position);
+
+  // Printing Move List
+  printf("[Jaffar]  + Move List: . . %s\n", bestFrame->moveHistory.c_str());
  }
 }
 
@@ -670,23 +649,13 @@ float Search::getFrameScore(const Frame* frame)
  int currentRoom = _sdlPop->Kid->room;
 
  // If room is outside visible rooms, do not apply magnet reward
- if (currentRoom >= _VISIBLE_ROOM_OFFSET && currentRoom < _VISIBLE_ROOM_OFFSET + _VISIBLE_ROOM_COUNT)
+ if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
  {
-  const auto &magnet = frame->magnets[currentRoom - _VISIBLE_ROOM_OFFSET];
+  const auto &magnet = frame->magnets[currentRoom];
 
   // Evaluating magnet's score on the X axis
-  const float kidPosX = _sdlPop->Kid->x;
-  const float magPosX = magnet.positionX;
-  const float magIntensityX = magnet.intensityX;
-  const float diffX = std::abs(kidPosX - magPosX);
-  score += magIntensityX * (256.0f - diffX);
-
-  // Evaluating magnet's score on the Y axis
-  const float kidPosY = _sdlPop->Kid->y;
-  const float magPosY = magnet.positionY;
-  const float magIntensityY = magnet.intensityY;
-  const float diffY = std::abs(kidPosY - magPosY);
-  score += magIntensityY * (256.0f - diffY);
+  const float diff = std::abs(_sdlPop->Kid->x - magnet.position);
+  score += magnet.intensity * (256.0f - diff);
  }
 
  // Now adding rule rewards

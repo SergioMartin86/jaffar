@@ -118,7 +118,7 @@ datatype_t Rule::getPropertyType(const std::string& property)
  if (property == "Is Upside Down") return dt_word;
  if (property == "Is Feather Fall") return dt_word;
 
- EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property);
+ EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property.c_str());
 
  return dt_byte;
 }
@@ -169,7 +169,7 @@ void* Rule::getPropertyPointer(const std::string& property, SDLPopInstance* sdlP
  if (property == "Is Upside Down") return sdlPop->upside_down;
  if (property == "Is Feather Fall") return sdlPop->is_feather_fall;
 
- EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property);
+ EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property.c_str());
 
  return NULL;
 }

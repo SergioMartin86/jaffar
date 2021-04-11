@@ -2,8 +2,7 @@
 
 #define _FRAME_DATA_SIZE 2689
 #define _MAX_MOVE_SIZE 4
-#define _VISIBLE_ROOM_COUNT 24
-#define _VISIBLE_ROOM_OFFSET 1
+#define _VISIBLE_ROOM_COUNT 25
 
 #include "rule.h"
 #include "json.hpp"
@@ -12,10 +11,8 @@
 
 struct Magnet
 {
- float intensityX;
- float positionX;
- float intensityY;
- float positionY;
+ float intensity;
+ float position;
 };
 
 class Frame
