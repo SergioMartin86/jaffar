@@ -43,3 +43,18 @@ bool isDefined(T &js, const Key &... key)
   ((result && ((it = tmp->find(key)) == tmp->end() ? (result = false) : (tmp = &*it, true))), ...);
   return result;
 }
+
+// Function to split a vector into n mostly fair chunks
+template<typename T>
+std::vector<T> splitVector(const T size, const T n)
+{
+  std::vector<T> subSizes(n);
+
+  T length = size / n;
+  T remain = size % n;
+
+  for (T i = 0; i < n; i++)
+   subSizes[i] = i < remain ? length + 1 : length;
+
+  return subSizes;
+}

@@ -20,7 +20,7 @@ void Search::run()
    _state->loadBase(_baseStateData);
    _state->loadFrame(bestFrame->frameStateData);
    _sdlPop->refreshEngine();
-   _sdlPop->_currentMove = bestFrame->move;
+   _sdlPop->_currentMove = bestFrame->currentMove;
 
    // Drawing frame
    _sdlPop->draw();
@@ -126,11 +126,18 @@ void Search::runFrame()
 
  if (_jaffarConfig.mpiRank == 0)
  {
+  // Allocating send buffer
   frameSendBuffer = (char*) malloc(_frameSerializedSize * frameCount);
 
   for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
   {
+   // Setting base frame id to relate new frames to their base frames
+   (*_currentFrameDB)[frameId]->frameId = frameId;
+
+   // Serializing frame into the buffer
    (*_currentFrameDB)[frameId]->serialize(&frameSendBuffer[currentPosition]);
+
+   // Advancing the buffer position
    currentPosition += _frameSerializedSize;
   }
  }
@@ -141,21 +148,16 @@ void Search::runFrame()
  // Figuring out how many frmes to give each worker
  auto frameScatterBegin = std::chrono::steady_clock::now(); // Profiling
 
- size_t framesPerWorker = frameCount / _jaffarConfig.mpiSize;
-
  // Figuring out work distribution
- currentPosition = 0;
  std::vector<int> startPositions(_jaffarConfig.mpiSize);
- std::vector<int> frameCounts(_jaffarConfig.mpiSize);
+ std::vector<int> frameCounts = splitVector((int)frameCount, _jaffarConfig.mpiSize);
+
+ currentPosition = 0;
  for (int i = 0; i < _jaffarConfig.mpiSize; i++)
  {
   startPositions[i] = currentPosition;
-  frameCounts[i] = framesPerWorker;
-  currentPosition += framesPerWorker;
+  currentPosition += frameCounts[i];
  }
-
- // The last worker gets the remainder
- frameCounts[_jaffarConfig.mpiSize-1] = frameCount - startPositions[_jaffarConfig.mpiSize-1];
 
  // Allocating receive buffer for incoming frames
  int rankFrameCount = frameCounts[_jaffarConfig.mpiRank];
@@ -167,26 +169,19 @@ void Search::runFrame()
  auto frameScatterEnd = std::chrono::steady_clock::now(); // Profiling
  _commFrameScatterTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameScatterEnd - frameScatterBegin).count();    // Profiling
 
- // Freeing memory for current DB frames
- auto databaseClearTimeBegin = std::chrono::steady_clock::now(); // Profiling
- for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
-  delete (*_currentFrameDB)[frameId];
-
- // Clearing current frame DB
- _currentFrameDB->clear();
-
- auto databaseClearTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameDatabaseClearTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClearTimeEnd - databaseClearTimeBegin).count();    // Profiling
-
  // Adding each worker's frames into the frame database
  auto frameDatabaseDeserializationBegin = std::chrono::steady_clock::now(); // Profiling
 
+ // Storage for the incoming frames
+ std::vector<Frame*> workerFrames;
+
+ // Deserializing incoming frames into the storage
  currentPosition = 0;
  for (int frameId = 0; frameId < rankFrameCount; frameId++)
  {
   Frame* newFrame = new Frame;
   newFrame->deserialize(&frameReceiveBuffer[currentPosition]);
-  _currentFrameDB->push_back(newFrame);
+  workerFrames.push_back(newFrame);
   currentPosition += _frameSerializedSize;
  }
 
@@ -210,14 +205,17 @@ void Search::runFrame()
  // Hash collision counter
  size_t hashCollisions = 0;
 
- for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
+ // Storage for newly produced frames by workers
+ std::vector<Frame*> newWorkerFrames;
+
+ for (size_t frameId = 0; frameId < workerFrames.size(); frameId++)
   for (size_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
   {
    auto stateLoadTimeBegin = std::chrono::steady_clock::now(); // Profiling
    const std::string move = _possibleMoves[moveId].c_str();
 
    // Getting base frame pointer
-   Frame* baseFrame = (*_currentFrameDB)[frameId];
+   Frame* baseFrame = workerFrames[frameId];
 
    // Loading frame state
    _state->loadBase(_baseStateData);
@@ -257,9 +255,10 @@ void Search::runFrame()
    // Creating new frame, mixing base frame information and the current sdlpop state
    auto newFrameCreationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    Frame* newFrame = new Frame;
+   newFrame->frameId = baseFrame->frameId;
    newFrame->isFail = false;
    newFrame->isWin = false;
-   newFrame->move = move;
+   newFrame->currentMove = move;
    newFrame->hash = hash;
    newFrame->rulesStatus = baseFrame->rulesStatus;
    newFrame->frameStateData = _state->saveFrame();
@@ -284,11 +283,9 @@ void Search::runFrame()
 
    // Adding novel frame in the next frame database
    auto databaseUpdateTimeBegin = std::chrono::steady_clock::now(); // Profiling
-   _nextFrameDB->push_back(newFrame);
+   newWorkerFrames.push_back(newFrame);
    auto databaseUpdateTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _frameDatabaseUpdateTime += std::chrono::duration_cast<std::chrono::nanoseconds>(databaseUpdateTimeEnd - databaseUpdateTimeBegin).count();    // Profiling
-
-   //printf("New Frame - Action: %s - Hash: 0x%lX - Score: %f - NextDBSize: %lu\n", move.c_str(), hash, newFrame->score, _nextFrameDB->size());
 
    // If frame has succeeded, then exit
    if (newFrame->isWin == true)
@@ -297,6 +294,17 @@ void Search::runFrame()
     exit(0);
    }
  }
+
+ // Freeing memory for worker frames
+ auto databaseClearTimeBegin = std::chrono::steady_clock::now(); // Profiling
+ for (size_t frameId = 0; frameId < workerFrames.size(); frameId++)
+  delete workerFrames[frameId];
+
+ // Clearing worker frames vector
+ workerFrames.clear();
+
+ auto databaseClearTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _frameDatabaseClearTime = std::chrono::duration_cast<std::chrono::nanoseconds>(databaseClearTimeEnd - databaseClearTimeBegin).count();    // Profiling
 
  MPI_Barrier(MPI_COMM_WORLD);
  auto frameComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
@@ -317,10 +325,10 @@ void Search::runFrame()
 
  // Gathering total new frames per worker
  std::vector<int> newFrameCounts(_jaffarConfig.mpiSize);
- int newFrameCounter = _nextFrameDB->size();
+ size_t newFrameCounter = newWorkerFrames.size();
 
- int allNewFrameCounter;
- MPI_Reduce(&newFrameCounter, &allNewFrameCounter, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+ size_t allNewFrameCounter;
+ MPI_Reduce(&newFrameCounter, &allNewFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
  MPI_Gather(&newFrameCounter, 1, MPI_INT, newFrameCounts.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
  auto commGatherWorkerInformationEnd = std::chrono::steady_clock::now(); // Profiling
@@ -331,9 +339,9 @@ void Search::runFrame()
 
  char* newFrameSendBuffer = (char*) malloc(_frameSerializedSize * newFrameCounter);
  currentPosition = 0;
- for (int frameId = 0; frameId < newFrameCounter; frameId++)
+ for (size_t frameId = 0; frameId < newFrameCounter; frameId++)
  {
-  (*_nextFrameDB)[frameId]->serialize(&newFrameSendBuffer[currentPosition]);
+  newWorkerFrames[frameId]->serialize(&newFrameSendBuffer[currentPosition]);
   currentPosition += _frameSerializedSize;
  }
 
@@ -345,8 +353,11 @@ void Search::runFrame()
 
  // Allocating buffer to receieve all new experiences
  char* allNewFrameRootBuffer = NULL;
+ size_t bufferSize = allNewFrameCounter * _frameSerializedSize;
+ if (_jaffarConfig.mpiRank == 0) printf("bufferSize: %lu\n", bufferSize);
+
  if (_jaffarConfig.mpiRank == 0)
-   allNewFrameRootBuffer = (char*) malloc(allNewFrameCounter * _frameSerializedSize);
+   allNewFrameRootBuffer = (char*) malloc(bufferSize);
 
  // Calculating gather displacements
  std::vector<int> newFrameDisplacements(_jaffarConfig.mpiSize);
@@ -358,6 +369,11 @@ void Search::runFrame()
  }
 
  // Gathering new frames into the root rank
+ if (_jaffarConfig.mpiRank == 0)
+ {
+  printf("Receiving Frames: %lu\n", allNewFrameCounter);
+  printf("Receive Pointer: 0x%lX\n", (unsigned long int)allNewFrameRootBuffer);
+ }
  MPI_Gatherv(newFrameSendBuffer, newFrameCounter, _mpiFrameType, allNewFrameRootBuffer, newFrameCounts.data(), newFrameDisplacements.data(), _mpiFrameType, 0, MPI_COMM_WORLD);
 
  auto commGatherTimeEnd = std::chrono::steady_clock::now(); // Profiling
@@ -375,18 +391,11 @@ void Search::runFrame()
  // Clearing new hash table
  _newHashes.clear();
 
- // Freeing memory for current DB frames again
- for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
-  delete (*_currentFrameDB)[frameId];
-
- // Clearing current frame DB again
- _currentFrameDB->clear();
-
  // Adding new frames into the new current database
  if (_jaffarConfig.mpiRank == 0)
  {
   currentPosition = 0;
-  for (int frameId = 0; frameId < allNewFrameCounter; frameId++)
+  for (size_t frameId = 0; frameId < allNewFrameCounter; frameId++)
   {
    Frame* newFrame = new Frame;
    newFrame->deserialize(&allNewFrameRootBuffer[currentPosition]);
@@ -396,9 +405,33 @@ void Search::runFrame()
    bool collisionDetected = !_hashes.insert(hash).second;
 
    // Adding frames as long as they are new. For frames from rank 0, we know they were new and we force them in to avoid false collisions
-   if (collisionDetected == false || frameId < newFrameCounts[0])
+   if (collisionDetected == false || frameId < (size_t)newFrameCounts[0])
    {
-    _currentFrameDB->push_back(newFrame);
+    // Getting base frame id from the incoming data
+    const size_t baseFrameId = newFrame->frameId;
+
+    // Getting pointer to base frame
+    const Frame* baseFrame = (*_currentFrameDB)[baseFrameId];
+
+    // Getting id for new frame from its DB position
+    const size_t frameId = _currentFrameDB->size();
+
+    // Now setting new frame Id
+    newFrame->frameId = frameId;
+
+    // Getting corresponding base frame move history
+    const std::string baseMoveHistory = baseFrame->moveHistory;
+
+    // Appending new move to the base path
+    const std::string newMoveHistory = baseMoveHistory + std::string(" ") + newFrame->currentMove;
+
+    // Putting new path into the database
+    newFrame->moveHistory = newMoveHistory;
+
+    // Adding to next database
+    _nextFrameDB->push_back(newFrame);
+
+    // Inserting hash to new hash collection to send only the new entries to the workers
     _newHashes.insert(hash);
    }
    else
@@ -408,7 +441,10 @@ void Search::runFrame()
   }
  }
 
- // Clearing next frame database
+ // Swapping path databases
+ std::swap(_nextFrameDB, _currentFrameDB);
+
+ // Clearing previous next frame database
  for (size_t frameId = 0; frameId < _nextFrameDB->size(); frameId++)
   delete (*_nextFrameDB)[frameId];
 
@@ -482,11 +518,14 @@ void Search::evaluateRules(Frame* frame)
       recognizedActionType = true;
      }
 
+     // Parsing room here to avoid duplicating code per each rule
+     int room = _VISIBLE_ROOM_OFFSET;
+     if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>() - _VISIBLE_ROOM_OFFSET;
+     if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room+_VISIBLE_ROOM_OFFSET);
+
      if (actionType == "Set Magnet Intensity X")
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-      int room = actionJs["Room"].get<int>();
-
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float intensity = actionJs["Value"].get<float>();
 
@@ -497,8 +536,6 @@ void Search::evaluateRules(Frame* frame)
      if (actionType == "Set Magnet Intensity Y")
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-      int room = actionJs["Room"].get<int>();
-
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float intensity = actionJs["Value"].get<float>();
 
@@ -509,8 +546,6 @@ void Search::evaluateRules(Frame* frame)
      if (actionType == "Set Magnet Position X")
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-      int room = actionJs["Room"].get<int>();
-
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float position = actionJs["Value"].get<float>();
 
@@ -521,8 +556,6 @@ void Search::evaluateRules(Frame* frame)
      if (actionType == "Set Magnet Position Y")
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-      int room = actionJs["Room"].get<int>();
-
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float position = actionJs["Value"].get<float>();
 
@@ -563,15 +596,10 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  if (isDefined(config, "Max Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Database Size' key.\n");
  _maxDatabaseSize = config["Max Database Size"].get<size_t>();
 
- // Setting magnet default values. This default repels unspecified rooms, but rewards 'glitchy' rooms
- std::vector<Magnet> magnets(_ROOM_ENTRY_COUNT);
+ // Setting magnet default values. This default repels unspecified rooms.
+ std::vector<Magnet> magnets(_VISIBLE_ROOM_COUNT);
 
- magnets[0].intensityX = 1.0f;
- magnets[0].intensityY = 1.0f;
- magnets[0].positionX = 128.0f;
- magnets[0].positionY = 128.0f;
-
- for (size_t i = 1; i < 24; i++)
+ for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
  {
   magnets[i].intensityX = -1.0f;
   magnets[i].intensityY = -1.0f;
@@ -579,13 +607,9 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
   magnets[i].positionY = 128.0f;
  }
 
- for (size_t i = 25; i < 256; i++)
- {
-   magnets[i].intensityX = 1.0f;
-   magnets[i].intensityY = 1.0f;
-   magnets[i].positionX = 128.0f;
-   magnets[i].positionY = 128.0f;
- }
+ // Creating frame databases
+ _currentFrameDB = new std::vector<Frame*>;
+ _nextFrameDB = new std::vector<Frame*>;
 
  // Processing user-specified rules
  if (isDefined(config, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Search configuration file missing 'Rules' key.\n");
@@ -604,14 +628,6 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
  MPI_Type_commit(&_mpiFrameType);
 
- // Allocating databases
- _currentFrameDB = new std::vector<Frame*>();
- _nextFrameDB = new std::vector<Frame*>();
-
- // Reserving space for frame data
- _currentFrameDB->reserve(_maxDatabaseSize * _possibleMoves.size());
- _nextFrameDB->reserve(_maxDatabaseSize * _possibleMoves.size());
-
  // Setting initial values
  _hasFinalized = false;
  _hashCollisions = 0;
@@ -624,14 +640,23 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
 
  // Setting initial frame
  Frame* initialFrame = new Frame;
- initialFrame->move = ".";
+ initialFrame->currentMove = ".";
+ initialFrame->moveHistory = ".";
  initialFrame->hash = hash;
- initialFrame->score = 0.0f; // TO-DO: Get score from scorer
+ initialFrame->frameId = 0;
  initialFrame->frameStateData = _state->saveFrame();
  initialFrame->magnets = magnets;
  initialFrame->rulesStatus = rulesStatus;
  initialFrame->isFail = false;
  initialFrame->isWin = false;
+
+ // Evaluating Rules on initial frame
+ evaluateRules(initialFrame);
+
+ // Evaluating Score on initial frame
+ initialFrame->score = getFrameScore(initialFrame);
+
+ // Adding frame to the current database
  _currentFrameDB->push_back(initialFrame);
 
  // Registering hash for initial frame
@@ -690,6 +715,7 @@ void Search::printSearchStatus()
 
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
+  printf("[Jaffar]  + Move List: . . %s\n", bestFrame->moveHistory.c_str());
 
   // Printing Rule Status
   printf("[Jaffar]  + Rule Status: [ %d", (int)bestFrame->rulesStatus[0]);
@@ -712,21 +738,26 @@ float Search::getFrameScore(const Frame* frame)
 
  // Obtaining magnet corresponding to kid's room
  int currentRoom = _sdlPop->Kid->room;
- const auto &magnet = frame->magnets[currentRoom];
 
- // Evaluating magnet's score on the X axis
- const float kidPosX = _sdlPop->Kid->x;
- const float magPosX = magnet.positionX;
- const float magIntensityX = magnet.intensityX;
- const float diffX = std::abs(kidPosX - magPosX);
- score += magIntensityX * (256.0f - diffX);
+ // If room is outside visible rooms, do not apply magnet reward
+ if (currentRoom >= _VISIBLE_ROOM_OFFSET && currentRoom < _VISIBLE_ROOM_OFFSET + _VISIBLE_ROOM_COUNT)
+ {
+  const auto &magnet = frame->magnets[currentRoom - _VISIBLE_ROOM_OFFSET];
 
- // Evaluating magnet's score on the Y axis
- const float kidPosY = _sdlPop->Kid->y;
- const float magPosY = magnet.positionY;
- const float magIntensityY = magnet.intensityY;
- const float diffY = std::abs(kidPosY - magPosY);
- score += magIntensityY * (256.0f - diffY);
+  // Evaluating magnet's score on the X axis
+  const float kidPosX = _sdlPop->Kid->x;
+  const float magPosX = magnet.positionX;
+  const float magIntensityX = magnet.intensityX;
+  const float diffX = std::abs(kidPosX - magPosX);
+  score += magIntensityX * (256.0f - diffX);
+
+  // Evaluating magnet's score on the Y axis
+  const float kidPosY = _sdlPop->Kid->y;
+  const float magPosY = magnet.positionY;
+  const float magIntensityY = magnet.intensityY;
+  const float diffY = std::abs(kidPosY - magPosY);
+  score += magIntensityY * (256.0f - diffY);
+ }
 
  // Now adding rule rewards
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)

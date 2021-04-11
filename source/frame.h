@@ -1,7 +1,9 @@
 #pragma once
 
 #define _FRAME_DATA_SIZE 2689
-#define _ROOM_ENTRY_COUNT 256
+#define _MAX_MOVE_SIZE 4
+#define _VISIBLE_ROOM_COUNT 24
+#define _VISIBLE_ROOM_OFFSET 1
 
 #include "rule.h"
 #include "json.hpp"
@@ -20,12 +22,25 @@ class Frame
 {
 public:
 
- std::string move;
+ // Identifier for the frame
+ size_t frameId;
+
+ // Move executed by the frame
+ std::string currentMove;
+
+ // Stores the entire move history of the frame
+ std::string moveHistory;
+
+ // The score calculated for this frame
  float score;
+
+ // Stores the unique hash for this frame
  uint64_t hash;
+
+ // Stores the game state data
  std::string frameStateData;
 
- // Store termination conditions
+ // Termination conditions
  bool isFail;
  bool isWin;
 
