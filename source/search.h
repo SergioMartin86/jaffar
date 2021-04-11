@@ -40,7 +40,6 @@ private:
  std::vector<Frame*>* _nextFrameDB;
 
  // Hash information
- absl::flat_hash_set<uint64_t> _newHashes;
  absl::flat_hash_set<uint64_t> _hashes;
  size_t _hashCollisions;
 
@@ -82,9 +81,6 @@ private:
  double _frameDatabaseClippingTime;
  double _framePostprocessingTime;
 
- double _commHashBroadcastNewEntryCountTime;
- double _commHashBufferingTime;
- double _commHashBroadcastTime;
  double _commDatabaseSerializationTime;
  double _commFrameScatterTime;
  double _commFrameGatherTime;

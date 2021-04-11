@@ -50,65 +50,6 @@ void Search::run()
 
 void Search::runFrame()
 {
- // Resetting timers for computation profiling
- _frameStateLoadTime = 0.0;
- _frameAdvanceTime = 0.0;
- _frameHashComputationTime = 0.0;
- _frameHashInsertionTime = 0.0;
- _frameRuleEvaluationTime = 0.0;
- _frameDatabaseUpdateTime = 0.0;
- _frameCreationTime = 0.0;
-
- // Resetting timers for communication profiling
- _commHashBroadcastNewEntryCountTime = 0.0;
- _commHashBufferingTime = 0.0;
- _commHashBroadcastTime = 0.0;
-
- ////////////////////////////////////////////////////////////////////////////////////////////////////
- // [Communication] New hashes are distributed to the workers from the engine
- ////////////////////////////////////////////////////////////////////////////////////////////////////
-
- auto communicationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
- // Broadcasting new hash entry count
- auto hashBroadcastNewEntryCountTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
- size_t newHashEntryCount = _newHashes.size();
- MPI_Bcast(&newHashEntryCount, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
- std::vector<uint64_t> newHashVector;
- newHashVector.resize(newHashEntryCount);
-
- auto hashBroadcastNewEntryCountTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _commHashBroadcastNewEntryCountTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashBroadcastNewEntryCountTimeEnd - hashBroadcastNewEntryCountTimeBegin).count();    // Profiling
-
- // Buffering new hash table entries for broadcasting
- if (_jaffarConfig.mpiRank == 0)
- {
-  auto hashBufferingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
-  size_t currentEntry = 0;
-  for (auto hashIterator = _newHashes.begin(); hashIterator != _newHashes.end(); hashIterator++)
-   newHashVector[currentEntry++] = *hashIterator;
-
-  auto hashBufferingTimeEnd = std::chrono::steady_clock::now(); // Profiling
-  _commHashBufferingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashBufferingTimeEnd - hashBufferingTimeBegin).count();    // Profiling
- }
-
- // Broadcasting new hash entries
- auto hashBroadcastingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
- MPI_Bcast(newHashVector.data(), newHashEntryCount, MPI_UINT64_T, 0, MPI_COMM_WORLD);
-
- auto hashBroadcastingTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _commHashBroadcastTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashBroadcastingTimeEnd - hashBroadcastingTimeBegin).count();    // Profiling
-
- // Having non-root workers update their hash tables
- if (_jaffarConfig.mpiRank != 0)
-  for (size_t i = 0; i < newHashVector.size(); i++)
-   _hashes.insert(newHashVector[i]);
-
- //printf("MPI Rank %d, New Hash Entries: %lu, Hash table size: %lu\n", _jaffarConfig.mpiRank, newHashVector.size(), _hashes.size());
-
  ////////////////////////////////////////////////////////////////////////////////////////////////////
  // [Communication] Base Frames are split into equally sized chunks for the workers to process
  ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,11 +140,17 @@ void Search::runFrame()
  // [Computation - Parallel] Each worker processes its own unique base frames
  ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ // Resetting timers for computation profiling
+ _frameStateLoadTime = 0.0;
+ _frameAdvanceTime = 0.0;
+ _frameHashComputationTime = 0.0;
+ _frameHashInsertionTime = 0.0;
+ _frameRuleEvaluationTime = 0.0;
+ _frameDatabaseUpdateTime = 0.0;
+ _frameCreationTime = 0.0;
+
  MPI_Barrier(MPI_COMM_WORLD);
  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
- // Hash collision counter
- size_t hashCollisions = 0;
 
  // Storage for newly produced frames by workers
  std::vector<Frame*> newWorkerFrames;
@@ -245,12 +192,8 @@ void Search::runFrame()
    auto hashInsertionTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _frameHashInsertionTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashInsertionTimeEnd - hashInsertionTimeBegin).count();    // Profiling
 
-   // If collision detected, discard this frame
-   if (collisionDetected)
-   {
-    hashCollisions++;
-    continue;
-   }
+   // If collision detected locally, discard this frame
+   if (collisionDetected) continue;
 
    // Creating new frame, mixing base frame information and the current sdlpop state
    auto newFrameCreationTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -318,11 +261,6 @@ void Search::runFrame()
 
  auto commGatherWorkerInformationBegin = std::chrono::steady_clock::now(); // Profiling
 
- // Gathering total new hash collision counter
- size_t newHashCollisions;
- MPI_Reduce(&hashCollisions, &newHashCollisions, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
- _hashCollisions += newHashCollisions;
-
  // Gathering total new frames per worker
  std::vector<int> newFrameCounts(_jaffarConfig.mpiSize);
  size_t newFrameCounter = newWorkerFrames.size();
@@ -388,9 +326,6 @@ void Search::runFrame()
 
  auto postProcessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
- // Clearing new hash table
- _newHashes.clear();
-
  // Adding new frames into the new current database
  if (_jaffarConfig.mpiRank == 0)
  {
@@ -430,9 +365,6 @@ void Search::runFrame()
 
     // Adding to next database
     _nextFrameDB->push_back(newFrame);
-
-    // Inserting hash to new hash collection to send only the new entries to the workers
-    _newHashes.insert(hash);
    }
    else
    {
@@ -697,9 +629,6 @@ void Search::printSearchStatus()
   printf("[Jaffar]  + Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
   printf("[Jaffar] Communication Time: %3.3fs\n", _frameCommunicationTime / 1.0e+9);
-  printf("[Jaffar]  + Hash Count Broadcasting Time: %3.3fs\n", _commHashBroadcastNewEntryCountTime / 1.0e+9);
-  printf("[Jaffar]  + Hash Buffering Time: %3.3fs\n", _commHashBufferingTime / 1.0e+9);
-  printf("[Jaffar]  + Hash Values Broadcasting Time: %3.3fs\n", _commHashBroadcastTime / 1.0e+9);
   printf("[Jaffar]  + Database Serialization Time: %3.3fs\n", _commDatabaseSerializationTime / 1.0e+9);
   printf("[Jaffar]  + Frame Scatter Time: %3.3fs\n", _commFrameScatterTime / 1.0e+9);
   printf("[Jaffar]  + Database Deserialization Time: %3.3fs\n", _commDatabaseDeserializationTime / 1.0e+9);
