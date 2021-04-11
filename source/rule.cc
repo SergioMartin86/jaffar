@@ -9,27 +9,27 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance* sdlPop)
   auto conditionJs = ruleJs["Conditions"][i];
 
   // Parsing operation type
-  if (isDefined(conditionJs, "Operation") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Operation' key.\n");
-  operator_t operation = getOperationType(conditionJs["Operation"].get<std::string>());
+  if (isDefined(conditionJs, "Op") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Op' key.\n");
+  operator_t operation = getOperationType(conditionJs["Op"].get<std::string>());
 
   // Parsing first operand (property name)
-  if (isDefined(conditionJs, "Operand 1") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Operand 1' key.\n");
-  if (conditionJs["Operand 1"].is_string() == false) EXIT_WITH_ERROR("[ERROR] Condition operand 1 must be a string with the name of a property.\n");
-  datatype_t dtype = getPropertyType(conditionJs["Operand 1"].get<std::string>());
-  auto property = getPropertyPointer(conditionJs["Operand 1"].get<std::string>(), sdlPop);
+  if (isDefined(conditionJs, "Property") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Property' key.\n");
+  if (conditionJs["Property"].is_string() == false) EXIT_WITH_ERROR("[ERROR] Condition operand 1 must be a string with the name of a property.\n");
+  datatype_t dtype = getPropertyType(conditionJs["Property"].get<std::string>());
+  auto property = getPropertyPointer(conditionJs["Property"].get<std::string>(), sdlPop);
 
   // Parsing second operand (number)
-  if (isDefined(conditionJs, "Operand 2") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Operand 2' key.\n");
-  if (conditionJs["Operand 2"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Condition operand 2 must be an integer number.\n");
+  if (isDefined(conditionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Value' key.\n");
+  if (conditionJs["Value"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Condition operand 2 must be an integer number.\n");
 
   // Creating new condition object
   Condition* condition;
-  if (dtype == dt_byte) condition = new _vCondition<byte>(operation, property, conditionJs["Operand 2"].get<byte>());
-  if (dtype == dt_sbyte) condition = new _vCondition<sbyte>(operation, property, conditionJs["Operand 2"].get<sbyte>());
-  if (dtype == dt_short) condition = new _vCondition<short>(operation, property, conditionJs["Operand 2"].get<short>());
-  if (dtype == dt_int) condition = new _vCondition<int>(operation, property, conditionJs["Operand 2"].get<int>());
-  if (dtype == dt_word) condition = new _vCondition<word>(operation, property, conditionJs["Operand 2"].get<word>());
-  if (dtype == dt_dword) condition = new _vCondition<dword>(operation, property, conditionJs["Operand 2"].get<dword>());
+  if (dtype == dt_byte) condition = new _vCondition<byte>(operation, property, conditionJs["Value"].get<byte>());
+  if (dtype == dt_sbyte) condition = new _vCondition<sbyte>(operation, property, conditionJs["Value"].get<sbyte>());
+  if (dtype == dt_short) condition = new _vCondition<short>(operation, property, conditionJs["Value"].get<short>());
+  if (dtype == dt_int) condition = new _vCondition<int>(operation, property, conditionJs["Value"].get<int>());
+  if (dtype == dt_word) condition = new _vCondition<word>(operation, property, conditionJs["Value"].get<word>());
+  if (dtype == dt_dword) condition = new _vCondition<dword>(operation, property, conditionJs["Value"].get<dword>());
 
   // Adding condition to the list
   _conditions.push_back(condition);

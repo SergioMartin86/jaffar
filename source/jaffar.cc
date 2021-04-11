@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
  {
   useSDLPopGUI = true; // Only show GUI if this is root MPI rank (0)
   printf("[Jaffar] ----------------------------------------------------------------\n");
-  printf("[Jaffar] Running script: %s.\n", _jaffarConfig.inputConfigFile.c_str());
-  printf("[Jaffar] Using %d MPI Ranks.\n", _jaffarConfig.mpiSize);
+  printf("[Jaffar] Using configuration file: %s.\n", _jaffarConfig.inputConfigFile.c_str());
+  printf("[Jaffar] Opening SDLPop...\n");
  }
 
  // Initializing SDLPop Instance
@@ -43,8 +43,17 @@ int main(int argc, char* argv[])
  MPI_Barrier(MPI_COMM_WORLD);
 
  // If this is to play a sequence, simply play it
- if (_jaffarConfig.opMode == m_play)
+ if (_jaffarConfig.mpiRank == 0 && _jaffarConfig.opMode == m_play)
  {
+  // Creating move list
+  const auto moveList = split(_jaffarConfig.moveSequence, ' ');
+
+  // Printing info
+  printf("[Jaffar] Playing sequence file: %s\n", _jaffarConfig.inputSequenceFile.c_str());
+  printf("[Jaffar] Sequence length: %lu frames\n", moveList.size());
+  printf("[Jaffar] Press any key to start...\n");
+  getchar();
+
   // Setting timer for a sane animation
   sdlpop.set_timer_length(timer_1, 20);
 
@@ -53,7 +62,6 @@ int main(int argc, char* argv[])
   sdlpop.draw();
 
   // Iterating move list in the sequence
-  const auto moveList = split(_jaffarConfig.moveSequence, ' ');
   for (const auto move : moveList)
   {
    sdlpop.performMove(move);
@@ -66,6 +74,8 @@ int main(int argc, char* argv[])
  // If this is to find a sequence, run the searcher
  if (_jaffarConfig.opMode == m_train)
  {
+  printf("[Jaffar] Starting search with %d MPI Ranks.\n", _jaffarConfig.mpiSize);
+
   // Initializing search module
   Search search(&sdlpop, &state, _jaffarConfig.configJs["Search Configuration"]);
 
@@ -73,8 +83,10 @@ int main(int argc, char* argv[])
   search.run();
  }
 
- if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Finished.\n");
+ // Synchronize all workers
  MPI_Barrier(MPI_COMM_WORLD);
+
+ if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Finished.\n");
  return MPI_Finalize();
 }
 

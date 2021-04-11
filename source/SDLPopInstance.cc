@@ -295,8 +295,8 @@ void SDLPopInstance::advanceFrame()
 void SDLPopInstance::printFrameInfo()
 {
  printf("[Jaffar]  + Action: %s\n", _currentMove.c_str());
- printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame));
- printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame));
+ printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, Sequence: %d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame), int(Kid->curr_seq));
+ printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, Sequence: %d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame), int(Guard->curr_seq));
  printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
  printf("[Jaffar]  + RNG State: 0x%08X\n", *random_seed);
 }

@@ -80,7 +80,7 @@ void Search::run()
   _sdlPop->refreshEngine();
   _sdlPop->printFrameInfo();
   printRuleStatus(_winFrame);
-  printf("[Jaffar]  + Move List: . . %s\n", _winFrame->moveHistory.c_str());
+  printf("[Jaffar]  + Move List: %s\n", _winFrame->moveHistory.c_str());
  }
 
  // Barrier to wait for all workers
@@ -684,7 +684,7 @@ void Search::printSearchStatus()
   printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensity, magnet.position);
 
   // Printing Move List
-  printf("[Jaffar]  + Move List: . . %s\n", bestFrame->moveHistory.c_str());
+  printf("[Jaffar]  + Move List: %s\n", bestFrame->moveHistory.c_str());
  }
 }
 
