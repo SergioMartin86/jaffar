@@ -11,8 +11,9 @@
 
 struct Magnet
 {
- float intensity;
- float position;
+ float intensityY;
+ float intensityX;
+ float positionX;
 };
 
 class Frame

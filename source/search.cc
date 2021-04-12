@@ -119,7 +119,7 @@ void Search::runFrame()
    // Serializing frame into the buffer
    (*_currentFrameDB)[frameId]->serialize(&frameSendBuffer[currentPosition]);
 
-   // Advancing the buffer position
+   // Advancing the buffer positionX
    currentPosition += _frameSerializedSize;
   }
  }
@@ -212,6 +212,8 @@ void Search::runFrame()
    auto stateLoadTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _frameStateLoadTime += std::chrono::duration_cast<std::chrono::nanoseconds>(stateLoadTimeEnd - stateLoadTimeBegin).count();    // Profiling
 
+   const auto baseFrameId = _sdlPop->Kid->frame;
+
    // Perform the selected move
    auto advanceFrameTimeBegin = std::chrono::steady_clock::now(); // Profiling
    _sdlPop->performMove(move);
@@ -220,6 +222,8 @@ void Search::runFrame()
    _sdlPop->advanceFrame();
    auto advanceFrameTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _frameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(advanceFrameTimeEnd - advanceFrameTimeBegin).count();    // Profiling
+
+   const auto curFrameId = _sdlPop->Kid->frame;
 
    // Compute hash value
    auto hashComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -254,14 +258,14 @@ void Search::runFrame()
    auto ruleEvaluationEnd = std::chrono::steady_clock::now(); // Profiling
    _frameRuleEvaluationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(ruleEvaluationEnd - ruleEvaluationTimeBegin).count();    // Profiling
 
-   // If frame has failed, then proceed to the next one
-   if (isFail == true) continue;
-
    // Calculating score
    auto scoreEvaluationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    newFrame->score =  getFrameScore(newFrame);
    auto scoreEvaluationTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _frameScoreEvaluationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(scoreEvaluationTimeEnd - scoreEvaluationTimeBegin).count();    // Profiling
+
+   // If frame has failed, then proceed to the next one
+   if (isFail == true) continue;
 
    // Adding novel frame in the next frame database
    auto databaseUpdateTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -410,13 +414,6 @@ void Search::runFrame()
  // Swapping path databases
  std::swap(_nextFrameDB, _currentFrameDB);
 
- // Clearing previous next frame database
- for (size_t frameId = 0; frameId < _nextFrameDB->size(); frameId++)
-  delete (*_nextFrameDB)[frameId];
-
- // Clearing next frame DB
- _nextFrameDB->clear();
-
  // Sorting DB frames by score, only if winning frame wasn't found
  if (_winFrameFound == false)
  {
@@ -435,6 +432,13 @@ void Search::runFrame()
   // Resetting frame id to every frame in the database
   for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++) (*_currentFrameDB)[frameId]->frameId = frameId;
  }
+
+ // Clearing previous next frame database
+ for (size_t frameId = 0; frameId < _nextFrameDB->size(); frameId++)
+  delete (*_nextFrameDB)[frameId];
+
+ // Clearing next frame DB
+ _nextFrameDB->clear();
 
  // Freeing buffers
  free(newFrameSendBuffer);
@@ -499,9 +503,9 @@ bool Search::evaluateRules(Frame* frame)
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-      float intensity = actionJs["Value"].get<float>();
+      float intensityX = actionJs["Value"].get<float>();
 
-      frame->magnets[room].intensity = intensity;
+      frame->magnets[room].intensityX = intensityX;
       recognizedActionType = true;
      }
 
@@ -509,9 +513,19 @@ bool Search::evaluateRules(Frame* frame)
      {
       if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-      float position = actionJs["Value"].get<float>();
+      float positionX = actionJs["Value"].get<float>();
 
-      frame->magnets[room].position = position;
+      frame->magnets[room].positionX = positionX;
+      recognizedActionType = true;
+     }
+
+     if (actionType == "Set Vertical Magnet Intensity")
+     {
+      if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+      if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+      float intensityY = actionJs["Value"].get<float>();
+
+      frame->magnets[room].intensityY = intensityY;
       recognizedActionType = true;
      }
 
@@ -558,8 +572,9 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
 
  for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
  {
-  magnets[i].intensity = -1.0f;
-  magnets[i].position = 128.0f;
+  magnets[i].intensityY = 0.0f;
+  magnets[i].intensityX = -1.0f;
+  magnets[i].positionX = 128.0f;
  }
 
  // Creating frame databases
@@ -681,7 +696,8 @@ void Search::printSearchStatus()
   // Printing Magnet Status
   int currentRoom = _sdlPop->Kid->room;
   const auto& magnet = bestFrame->magnets[currentRoom];
-  printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensity, magnet.position);
+  printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensityX, magnet.positionX);
+  printf("[Jaffar]  + Vertical Magnet Intensity: %.1f\n", magnet.intensityY);
 
   // Printing Move List
   printf("[Jaffar]  + Move List: %s\n", bestFrame->moveHistory.c_str());
@@ -709,10 +725,50 @@ float Search::getFrameScore(const Frame* frame)
  if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
  {
   const auto &magnet = frame->magnets[currentRoom];
+  const auto curFrame = _sdlPop->Kid->frame;
 
   // Evaluating magnet's score on the X axis
-  const float diff = std::abs(_sdlPop->Kid->x - magnet.position);
-  score += magnet.intensity * (256.0f - diff);
+  const float diff = std::abs(_sdlPop->Kid->x - magnet.positionX);
+  score += magnet.intensityX * (256.0f - diff);
+
+  // For positive Y axis magnet, rewarding climbing frames
+  if (magnet.intensityY > 0.0f)
+  {
+   // Jumphang, because it preludes climbing (Score + 1-20)
+   if (curFrame >= 67 && curFrame <= 80)
+   {
+    float scoreAdd = magnet.intensityY * (0.0f + (curFrame - 66));
+    score += scoreAdd;
+   }
+
+   // Hang, because it preludes climbing (Score +21)
+   if (curFrame == 91) score += 21.0f * magnet.intensityY;
+
+   // Climbing (Score +22-38)
+   if (curFrame >= 135 && curFrame <= 149) score += magnet.intensityY * (22.0f + (curFrame - 134));
+  }
+
+  // For negative Y axis magnet, rewarding falling/climbing down frames
+  if (magnet.intensityY < 0.0f)
+  {
+   // Turning around, because it generally preludes climbing down
+   if (curFrame >= 45 && curFrame <= 52) score += -0.5f * magnet.intensityY;
+
+   // Hanging, because it preludes falling
+   if (curFrame >= 87 && curFrame <= 99) score += -0.5f * magnet.intensityY;
+
+   // Hang drop, because it preludes falling
+   if (curFrame >= 81 && curFrame <= 85) score += -1.0f * magnet.intensityY;
+
+   // Falling start
+   if (curFrame >= 102 && curFrame <= 105) score += -1.0f * magnet.intensityY;
+
+   // Falling itself
+   if (curFrame == 106) score += -2.0f + magnet.intensityY;
+
+   // Climbing down
+   if (curFrame == 148) score += -2.0f + magnet.intensityY;
+  }
  }
 
  // Now adding rule rewards
