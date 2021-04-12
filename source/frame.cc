@@ -102,3 +102,19 @@ void Frame::deserialize(const char* input)
  memcpy(rulesStatus.data(), &input[currentPos], _ruleCount * sizeof(status_t));
  currentPos += _ruleCount * sizeof(status_t);
 }
+
+Frame& Frame::operator=(Frame sourceFrame)
+{
+ frameId = sourceFrame.frameId;
+ currentMove = sourceFrame.currentMove;
+ moveHistory = sourceFrame.moveHistory;
+ score = sourceFrame.score;
+ hash = sourceFrame.hash;
+ frameStateData = sourceFrame.frameStateData;
+ magnets = sourceFrame.magnets;
+ rulesStatus = sourceFrame.rulesStatus;
+
+ return *this;
+}
+
+

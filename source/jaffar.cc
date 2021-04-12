@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
  // If this is to find a sequence, run the searcher
  if (_jaffarConfig.opMode == m_train)
  {
-  printf("[Jaffar] Starting search with %d MPI Ranks.\n", _jaffarConfig.mpiSize);
+  if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Starting search with %d MPI Ranks.\n", _jaffarConfig.mpiSize);
 
   // Initializing search module
   Search search(&sdlpop, &state, _jaffarConfig.configJs["Search Configuration"]);

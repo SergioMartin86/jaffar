@@ -48,4 +48,6 @@ public:
  static size_t getSerializationSize();
  void serialize(char* output);
  void deserialize(const char* input);
+
+ Frame& operator=(Frame sourceFrame);
 };

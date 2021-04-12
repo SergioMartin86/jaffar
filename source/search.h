@@ -27,10 +27,15 @@ private:
  State* _state;
  std::string _baseStateData;
 
+ // Worker id and count
+ size_t _workerId;
+ size_t _workerCount;
+
  // Rule vector
  std::vector<Rule*> _rules;
 
  // Frame counter
+ size_t _globalFrameCounter;
  size_t _currentFrame;
  size_t _maxFrames;
 
@@ -38,6 +43,9 @@ private:
  size_t _maxDatabaseSize;
  std::vector<Frame*>* _currentFrameDB;
  std::vector<Frame*>* _nextFrameDB;
+
+ // Storage for the best frame
+ Frame _bestFrame;
 
  // Hash information
  absl::flat_hash_set<uint64_t> _hashes;
