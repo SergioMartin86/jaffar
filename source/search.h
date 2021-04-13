@@ -58,6 +58,7 @@ private:
  size_t _hashDatabaseSizeThreshold;
  size_t _globalHashCollisions;
  size_t _globalHashEntries;
+ size_t _hashDatabaseSwapCount;
 
  // Storage for the position of win rules, for win detection
  std::vector<size_t> _winRulePositions;

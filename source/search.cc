@@ -283,9 +283,9 @@ void Search::runFrame()
    auto hash = _state->computeHash();
 
    // Inserting and checking for the existence of the hash in the hash databases
-   bool collisionDetected = _hashDatabases[0].insert(hash).second;
-//   for (size_t i = 1; i < _hashDatabaseCount; i++)
-//    collisionDetected |= _hashDatabases[i].contains(hash);
+   bool collisionDetected = !_hashDatabases[0].insert(hash).second;
+   for (size_t i = 1; i < _hashDatabaseCount; i++)
+    collisionDetected |= _hashDatabases[i].contains(hash);
 
    // If collision detected locally, discard this frame
    if (collisionDetected) { newCollisionCounter++; continue; }
@@ -423,24 +423,29 @@ void Search::runFrame()
  MPI_Allreduce(&localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
  _totalFramesProcessedCounter += _stepFramesProcessedCounter;
 
-// // If the primary database reached critical mass, perform swap
-// if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
-// {
-//  // Swapping primary into secondary
-//  for (int i = _hashDatabaseCount-1; i > 0; i--)
-//   _hashDatabases[i] = std::move(_hashDatabases[i-1]);
-//
-//  // Cleaning primary hash DB
-//  _hashDatabases[0].clear();
-// }
+ // If the primary database reached critical mass, perform swap
+ size_t localStepSwapCounter = 0;
+ if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
+ {
+  // Swapping primary into secondary
+  for (int i = _hashDatabaseCount-1; i > 0; i--)
+   _hashDatabases[i] = std::move(_hashDatabases[i-1]);
+
+  // Cleaning primary hash DB
+  _hashDatabases[0].clear();
+
+  // Increasing swapping counter
+  localStepSwapCounter = 1;
+ }
+
+ // Gathering global swap conunter for the current step
+ size_t globalStepSwapCounter;
+ MPI_Allreduce(&localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _hashDatabaseSwapCount += globalStepSwapCounter;
 
  // Calculating global hash entry count
  size_t localHashDBSize = 0;
- for (size_t i = 0; i < _hashDatabaseCount; i++)
- {
-  printf("Current DB Size: %lu\n", _hashDatabases[i].size());
-  localHashDBSize += _hashDatabases[i].size();
- }
+ for (size_t i = 0; i < _hashDatabaseCount; i++) localHashDBSize += _hashDatabases[i].size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
  auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
@@ -547,6 +552,7 @@ Search::Search()
  // Initializing counters
  _stepFramesProcessedCounter = 0;
  _totalFramesProcessedCounter = 0;
+ _hashDatabaseSwapCount = 0;
 
  // Getting worker count
  _workerId = (size_t) _jaffarConfig.mpiRank;
@@ -700,6 +706,7 @@ void Search::printSearchStatus()
  {
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
   printf("[Jaffar] Hash DB Entries: (%lu)\n", _globalHashEntries);
+  printf("[Jaffar] Hash DB Swaps: (%lu)\n", _hashDatabaseSwapCount);
 
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
