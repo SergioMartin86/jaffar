@@ -16,7 +16,7 @@ class Search
 
 public:
 
-  Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config);
+  Search();
   ~Search();
 
   void run();
@@ -26,6 +26,7 @@ private:
  SDLPopInstance* _sdlPop;
  State* _state;
  std::string _baseStateData;
+ bool _showSDLPopPreview;
 
  // Worker id and count
  size_t _workerId;
@@ -40,7 +41,7 @@ private:
  size_t _maxFrames;
 
  // Frame databases
- size_t _maxDatabaseSize;
+ size_t _maxLocalDatabaseSize;
  std::vector<Frame*>* _currentFrameDB;
  std::vector<Frame*>* _nextFrameDB;
 
@@ -49,7 +50,7 @@ private:
 
  // Hash information
  absl::flat_hash_set<uint64_t> _hashes;
- size_t _hashCollisions;
+ size_t _globalHashCollisions;
 
  // Storage for the position of win rules, for win detection
  std::vector<size_t> _winRulePositions;
@@ -82,27 +83,9 @@ private:
  bool _showProfilingInformation;
  bool _showDebuggingInformation;
  double _searchTotalTime;
- double _frameCommunicationTime;
+ double _framePreprocessingTime;
  double _frameComputationTime;
- double _frameStateLoadTime;
- double _frameAdvanceTime;
- double _frameHashComputationTime;
- double _frameHashInsertionTime;
- double _frameCreationTime;
- double _frameRuleEvaluationTime;
- double _frameScoreEvaluationTime;
- double _frameDatabaseUpdateTime;
- double _frameDatabaseClearTime;
- double _frameDatabaseSortTime;
- double _frameDatabaseClippingTime;
  double _framePostprocessingTime;
-
- double _commDatabaseSerializationTime;
- double _commFrameScatterTime;
- double _commFrameGatherTime;
- double _commGatherWorkerInformationTime;
- double _commWorkerFrameSerializationTime;
- double _commDatabaseDeserializationTime;
 };
 
 extern size_t _ruleCount;

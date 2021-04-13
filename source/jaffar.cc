@@ -23,21 +23,12 @@ int main(int argc, char* argv[])
 
  parseArgs(argc, argv);
 
- bool useSDLPopGUI = false;
  if (_jaffarConfig.mpiRank == 0)
  {
-  useSDLPopGUI = true; // Only show GUI if this is root MPI rank (0)
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Using configuration file: %s.\n", _jaffarConfig.inputConfigFile.c_str());
   printf("[Jaffar] Opening SDLPop...\n");
  }
-
- // Initializing SDLPop Instance
- SDLPopInstance sdlpop;
- sdlpop.initialize(1, useSDLPopGUI);
-
- // Initializing State Handler
- State state(&sdlpop, _jaffarConfig.configJs["Savefile Configuration"]);
 
  // Wait for all workers to be ready
  MPI_Barrier(MPI_COMM_WORLD);
@@ -45,6 +36,13 @@ int main(int argc, char* argv[])
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.mpiRank == 0 && _jaffarConfig.opMode == m_play)
  {
+  // Initializing SDLPop Instance
+  SDLPopInstance sdlpop;
+  sdlpop.initialize(1, true);
+
+  // Initializing State Handler
+  State state(&sdlpop);
+
   // Creating move list
   const auto moveList = split(_jaffarConfig.moveSequence, ' ');
 
@@ -77,7 +75,7 @@ int main(int argc, char* argv[])
   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Starting search with %d MPI Ranks.\n", _jaffarConfig.mpiSize);
 
   // Initializing search module
-  Search search(&sdlpop, &state, _jaffarConfig.configJs["Search Configuration"]);
+  Search search;
 
   // Running Search
   search.run();

@@ -91,8 +91,10 @@ void Search::run()
 void Search::runFrame()
 {
  ////////////////////////////////////////////////////////////////////////////////////////////////////
- // [Communication] Redistribute base frames all-to-all among workers
+ // [Preprocessing] Redistribute base frames all-to-all among workers
  ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+ auto framePreprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Getting worker's own base frame count
  size_t localBaseFrameCount = _currentFrameDB->size();
@@ -181,30 +183,6 @@ void Search::runFrame()
  // Resizing next DB to receive the new frames
  size_t localNextFrameCount = localNextFrameCounts[_workerId];
 
- if (_jaffarConfig.mpiRank == 0)
- {
-  for (size_t wId = 0; wId < _workerCount; wId++)
-  {
-   printf("Rank: %lu\n", wId);
-
-   printf("    Send Counts: [ %d", allToAllSendCounts[wId][0]);
-   for (size_t i = 1; i < _workerCount; i++) printf(", %d", allToAllSendCounts[wId][i]);
-   printf(" ]\n");
-
-   printf("    Send Displs: [ %d", allToAllSendDispls[wId][0]);
-   for (size_t i = 1; i < _workerCount; i++) printf(", %d", allToAllSendDispls[wId][i]);
-   printf(" ]\n");
-
-   printf("    Recv Counts: [ %d", allToAllRecvCounts[wId][0]);
-   for (size_t i = 1; i < _workerCount; i++) printf(", %d", allToAllRecvCounts[wId][i]);
-   printf(" ]\n");
-
-   printf("    Recv Displs: [ %d", allToAllRecvDispls[wId][0]);
-   for (size_t i = 1; i < _workerCount; i++) printf(", %d", allToAllRecvDispls[wId][i]);
-   printf(" ]\n");
-  }
- }
-
  // Serializing database into a contiguous buffer
  size_t currentPosition = 0;
  char* frameSendBuffer = (char*) malloc(_frameSerializedSize * _currentFrameDB->size());
@@ -230,6 +208,9 @@ void Search::runFrame()
  MPI_Alltoallv(frameSendBuffer, allToAllSendCounts[_workerId].data(), allToAllSendDispls[_workerId].data(), _mpiFrameType,
                frameRecvBuffer, allToAllRecvCounts[_workerId].data(), allToAllRecvDispls[_workerId].data(), _mpiFrameType, MPI_COMM_WORLD);
 
+ // Freeing send buffer
+ free(frameSendBuffer);
+
  // Deserializing contiguous buffer into the new frame database
  currentPosition = 0;
  for (size_t frameId = 0; frameId < localNextFrameCount; frameId++)
@@ -240,30 +221,15 @@ void Search::runFrame()
   // Deserializing frame
   newFrame->deserialize(&frameRecvBuffer[currentPosition]);
 
-  // Adding new frame into the data base
+    // Adding new frame into the data base
   _nextFrameDB->push_back(newFrame);
 
   // Advancing send buffer pointer
   currentPosition += _frameSerializedSize;
  }
 
- // Freeing buffers
+ // Freeing send buffers
  free(frameRecvBuffer);
- free(frameSendBuffer);
-
- // Print base and post distribution
- if (_jaffarConfig.mpiRank == 0)
- {
-  printf("Total Frames: %lu\n", _globalFrameCounter);
-  printf("New Distribution: \n");
-  for (size_t i = 0; i < _workerCount; i++)
-  {
-   printf(" + Rank %lu: %lu -> %lu [%lu:%lu]\n", i, localBaseFrameCounts[i], localNextFrameCounts[i], localNextFrameStart[i], localNextFrameEnd[i]);
-   printf("    Receiving From: [ %d", allToAllSendCounts[0][i]);
-   for (size_t j = 1; j < _workerCount; j++) printf(", %d", allToAllSendCounts[j][i]);
-   printf(" ]\n");
-  }
- }
 
  // Swapping database pointers
  std::swap(_currentFrameDB, _nextFrameDB);
@@ -275,26 +241,23 @@ void Search::runFrame()
  // Clearing next frame DB
  _nextFrameDB->clear();
 
+ auto framePreprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _framePreprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePreprocessingTimeEnd - framePreprocessingTimeBegin).count();    // Profiling
+
  ////////////////////////////////////////////////////////////////////////////////////////////////////
  // [Computation - Parallel] Each worker processes its own unique base frames
  ////////////////////////////////////////////////////////////////////////////////////////////////////
 
- // Resetting timers for computation profiling
- _frameStateLoadTime = 0.0;
- _frameAdvanceTime = 0.0;
- _frameHashComputationTime = 0.0;
- _frameHashInsertionTime = 0.0;
- _frameRuleEvaluationTime = 0.0;
- _frameDatabaseUpdateTime = 0.0;
- _frameCreationTime = 0.0;
-
  MPI_Barrier(MPI_COMM_WORLD);
  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
+ // Storing new hashes to broadcast to other workers
+ absl::flat_hash_set<uint64_t> newHashes;
+ size_t newCollisionCounter = 0;
 
  for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
   for (size_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
   {
-   auto stateLoadTimeBegin = std::chrono::steady_clock::now(); // Profiling
    const std::string move = _possibleMoves[moveId].c_str();
 
    // Getting base frame pointer
@@ -304,35 +267,23 @@ void Search::runFrame()
    _state->loadBase(_baseStateData);
    _state->loadFrame(baseFrame->frameStateData);
    _sdlPop->refreshEngine();
-   auto stateLoadTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameStateLoadTime += std::chrono::duration_cast<std::chrono::nanoseconds>(stateLoadTimeEnd - stateLoadTimeBegin).count();    // Profiling
 
    // Perform the selected move
-   auto advanceFrameTimeBegin = std::chrono::steady_clock::now(); // Profiling
    _sdlPop->performMove(move);
 
    // Advance a single frame
    _sdlPop->advanceFrame();
-   auto advanceFrameTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(advanceFrameTimeEnd - advanceFrameTimeBegin).count();    // Profiling
 
    // Compute hash value
-   auto hashComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    const auto hash = _state->computeHash();
-   auto hashComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameHashComputationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashComputationTimeEnd - hashComputationTimeBegin).count();    // Profiling
 
    // Adding hash to the collection, and check whether it already existed
-   auto hashInsertionTimeBegin = std::chrono::steady_clock::now(); // Profiling
    bool collisionDetected = !_hashes.insert(hash).second;
-   auto hashInsertionTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameHashInsertionTime += std::chrono::duration_cast<std::chrono::nanoseconds>(hashInsertionTimeEnd - hashInsertionTimeBegin).count();    // Profiling
 
    // If collision detected locally, discard this frame
-   if (collisionDetected) continue;
+   if (collisionDetected) { newCollisionCounter++; continue; }
 
    // Creating new frame, mixing base frame information and the current sdlpop state
-   auto newFrameCreationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    Frame* newFrame = new Frame;
    newFrame->frameId = baseFrame->frameId;
    newFrame->currentMove = move;
@@ -340,32 +291,22 @@ void Search::runFrame()
    newFrame->rulesStatus = baseFrame->rulesStatus;
    newFrame->frameStateData = _state->saveFrame();
    newFrame->magnets = baseFrame->magnets;
-   auto newFrameCreationTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameCreationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(newFrameCreationTimeEnd - newFrameCreationTimeBegin).count();    // Profiling
 
    // Evaluating rules on the new frame
-   auto ruleEvaluationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    bool isFail = evaluateRules(newFrame);
-   auto ruleEvaluationEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameRuleEvaluationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(ruleEvaluationEnd - ruleEvaluationTimeBegin).count();    // Profiling
 
    // Calculating score
-   auto scoreEvaluationTimeBegin = std::chrono::steady_clock::now(); // Profiling
    newFrame->score =  getFrameScore(newFrame);
-   auto scoreEvaluationTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameScoreEvaluationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(scoreEvaluationTimeEnd - scoreEvaluationTimeBegin).count();    // Profiling
 
    // If frame has failed, then proceed to the next one
    if (isFail == true) continue;
 
    // Adding novel frame in the next frame database
-   auto databaseUpdateTimeBegin = std::chrono::steady_clock::now(); // Profiling
    _nextFrameDB->push_back(newFrame);
-   auto databaseUpdateTimeEnd = std::chrono::steady_clock::now(); // Profiling
-   _frameDatabaseUpdateTime += std::chrono::duration_cast<std::chrono::nanoseconds>(databaseUpdateTimeEnd - databaseUpdateTimeBegin).count();    // Profiling
- }
 
- printf("Rank: %lu, New Frames: %lu\n", _workerId, _nextFrameDB->size());
+   // Adding hash into the new hashes table
+   newHashes.insert(hash);
+ }
 
  // Swapping database pointers
  std::swap(_currentFrameDB, _nextFrameDB);
@@ -383,8 +324,10 @@ void Search::runFrame()
  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count();    // Profiling
 
  /////////////////////////////////////////////////////////////////////////////////////////////////////
- // [Communication] Each worker processes its own unique base frames and communicates partial results
+ // [Postprocessing] Each worker processes its own unique base frames and communicates partial results
  /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+ auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Sorting local DB frames by score
  std::sort(_currentFrameDB->begin(), _currentFrameDB->end(), [](const auto& a, const auto& b) { return a->score > b->score; });
@@ -409,14 +352,47 @@ void Search::runFrame()
  _bestFrame.deserialize(frameBcastBuffer);
 
  // Clipping database to the maximum threshold
- if (_currentFrameDB->size() > _maxDatabaseSize)
-  _currentFrameDB->resize(_maxDatabaseSize);
+ if (_currentFrameDB->size() > _maxLocalDatabaseSize)
+  _currentFrameDB->resize(_maxLocalDatabaseSize);
 
  // Calculating global frame count
  size_t newLocalFrameDatabaseSize = _currentFrameDB->size();
  MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-// if (_jaffarConfig.mpiRank == 0) getchar();
+ // Gathering number of new hash entries
+ int localNewHashEntryCount = (int)newHashes.size();
+ std::vector<int> globalNewHashEntryCounts(_workerCount);
+ MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+ // Calculating displacements for new hash entries
+ std::vector<int> globalNewHashEntryDispls(_workerCount);
+ int currentDispl = 0;
+ for(size_t i = 0; i < _workerCount; i++)
+ {
+  globalNewHashEntryDispls[i] = currentDispl;
+  currentDispl += globalNewHashEntryCounts[i];
+ }
+
+ // Serializing new hash entries
+ std::vector<uint64_t> localNewHashVector;
+ for (const auto& key : newHashes) localNewHashVector.push_back(key);
+
+ // Gathering new hash entries
+ size_t globalNewHashEntryCount = currentDispl;
+ std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
+ MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+
+ // Adding new hash entries
+ for (size_t i = 0; i < globalNewHashEntryCount; i++)
+  _hashes.insert(globalNewHashVector[i]);
+
+ // Finding global collision counter
+ size_t globalNewCollisionCounter;
+ MPI_Allreduce(&newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _globalHashCollisions += globalNewCollisionCounter;
+
+ auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
 }
 
 bool Search::evaluateRules(Frame* frame)
@@ -508,15 +484,13 @@ bool Search::evaluateRules(Frame* frame)
  return false;
 }
 
-Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
+Search::Search()
 {
- _sdlPop = sdlPop;
- _state = state;
-
  // Profiling information
  _searchTotalTime = 0.0;
+ _framePreprocessingTime = 0.0;
  _frameComputationTime = 0.0;
- _frameCommunicationTime = 0.0;
+ _framePostprocessingTime = 0.0;
 
  // Getting worker count
  _workerId = (size_t) _jaffarConfig.mpiRank;
@@ -526,20 +500,34 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  _currentFrame = 1;
 
  // Parsing profiling verbosity
- if (isDefined(config, "Show Profiling Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Profiling Information' key.\n");
- _showProfilingInformation = config["Show Profiling Information"].get<bool>();
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show Profiling Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Profiling Information' key.\n");
+ _showProfilingInformation = _jaffarConfig.configJs["Search Configuration"]["Show Profiling Information"].get<bool>();
 
  // Parsing debugging verbosity
- if (isDefined(config, "Show Debugging Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Debugging Information' key.\n");
- _showDebuggingInformation = config["Show Debugging Information"].get<bool>();
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show Debugging Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Debugging Information' key.\n");
+ _showDebuggingInformation = _jaffarConfig.configJs["Search Configuration"]["Show Debugging Information"].get<bool>();
+
+ // Parsing preview display
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show SDLPop Display") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show SDLPop Display' key.\n");
+ _showSDLPopPreview = _jaffarConfig.configJs["Search Configuration"]["Show SDLPop Display"].get<bool>();
 
  // Parsing max frames from configuration file
- if (isDefined(config, "Max Frames") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Frames' key.\n");
- _maxFrames = config["Max Frames"].get<size_t>();
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Frames") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Frames' key.\n");
+ _maxFrames = _jaffarConfig.configJs["Search Configuration"]["Max Frames"].get<size_t>();
 
  // Parsing search width from configuration file
- if (isDefined(config, "Max Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Database Size' key.\n");
- _maxDatabaseSize = config["Max Database Size"].get<size_t>();
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Local Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Local Database Size' key.\n");
+ _maxLocalDatabaseSize = _jaffarConfig.configJs["Search Configuration"]["Max Local Database Size"].get<size_t>();
+
+ // Initializing SDLPop
+ _sdlPop = new SDLPopInstance;
+
+ bool showSDLPopPreview = false;
+ if (_workerId == 0) showSDLPopPreview = _showSDLPopPreview;
+ _sdlPop->initialize(1, showSDLPopPreview);
+
+ // Initializing State Handler
+ _state = new State(_sdlPop);
 
  // Setting magnet default values. This default repels unspecified rooms.
  std::vector<Magnet> magnets(_VISIBLE_ROOM_COUNT);
@@ -552,9 +540,9 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
  }
 
  // Processing user-specified rules
- if (isDefined(config, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Search configuration file missing 'Rules' key.\n");
- for (size_t i = 0; i < config["Rules"].size(); i++)
-  _rules.push_back(new Rule(config["Rules"][i], _sdlPop));
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Rules") == false) EXIT_WITH_ERROR("[ERROR] Search configuration file missing 'Rules' key.\n");
+ for (size_t i = 0; i < _jaffarConfig.configJs["Search Configuration"]["Rules"].size(); i++)
+  _rules.push_back(new Rule(_jaffarConfig.configJs["Search Configuration"]["Rules"][i], _sdlPop));
 
  // Setting global for rule count
  _ruleCount = _rules.size();
@@ -573,7 +561,7 @@ Search::Search(SDLPopInstance *sdlPop, State *state, nlohmann::json& config)
 
  // Setting initial values
  _hasFinalized = false;
- _hashCollisions = 0;
+ _globalHashCollisions = 0;
 
  // Storing base frame data to be used by all frames
  _baseStateData = _state->saveBase();
@@ -635,37 +623,19 @@ void Search::printSearchStatus()
  printf("[Jaffar] ----------------------------------------------------------------\n");
  printf("[Jaffar] Current Frame: %lu/%lu\n", _currentFrame, _maxFrames);
  printf("[Jaffar] Best Score: %f\n", _bestFrame.score);
- printf("[Jaffar] Database Size: %lu/%lu\n", _currentFrameDB->size(), _maxDatabaseSize);
- printf("[Jaffar] Elapsed Time (Frame/Total): %3.3fs / %3.3fs\n", (_frameComputationTime + _frameCommunicationTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
+ printf("[Jaffar] Database Size: %lu/%lu\n", _globalFrameCounter, _maxLocalDatabaseSize*_workerCount);
+ printf("[Jaffar] Elapsed Time (Frame/Total): %3.3fs / %3.3fs\n", (_framePreprocessingTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
 
  if (_showProfilingInformation)
  {
-  printf("[Jaffar] Frame Computation Time: %3.3fs\n", _frameComputationTime / 1.0e+9);
-  printf("[Jaffar]  + State Loading Time: %3.3fs\n", _frameStateLoadTime / 1.0e+9);
-  printf("[Jaffar]  + Frame Advancing Time: %3.3fs\n", _frameAdvanceTime / 1.0e+9);
-  printf("[Jaffar]  + Hash Computation Time: %3.3fs\n", _frameHashComputationTime / 1.0e+9);
-  printf("[Jaffar]  + Hash Insertion Time: %3.3fs\n", _frameHashInsertionTime / 1.0e+9);
-  printf("[Jaffar]  + Frame Creation Time: %3.3fs\n", _frameRuleEvaluationTime / 1.0e+9);
-  printf("[Jaffar]  + Rule Evaluation Time: %3.3fs\n", _frameRuleEvaluationTime / 1.0e+9);
-  printf("[Jaffar]  + Score Evaluation Time: %3.3fs\n", _frameScoreEvaluationTime / 1.0e+9);
-  printf("[Jaffar]  + Database Update Time: %3.3fs\n", _frameDatabaseUpdateTime / 1.0e+9);
-  printf("[Jaffar]  + Database Clear Time: %3.3fs\n", _frameDatabaseClearTime / 1.0e+9);
-  printf("[Jaffar]  + Database Sort Time: %3.3fs\n", _frameDatabaseSortTime / 1.0e+9);
-  printf("[Jaffar]  + Database Clipping Time: %3.3fs\n", _frameDatabaseClippingTime / 1.0e+9);
-  printf("[Jaffar]  + Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
-
-  printf("[Jaffar] Communication Time: %3.3fs\n", _frameCommunicationTime / 1.0e+9);
-  printf("[Jaffar]  + Database Serialization Time: %3.3fs\n", _commDatabaseSerializationTime / 1.0e+9);
-  printf("[Jaffar]  + Frame Scatter Time: %3.3fs\n", _commFrameScatterTime / 1.0e+9);
-  printf("[Jaffar]  + Database Deserialization Time: %3.3fs\n", _commDatabaseDeserializationTime / 1.0e+9);
-  printf("[Jaffar]  + Frame Get Worker Info Time: %3.3fs\n", _commGatherWorkerInformationTime / 1.0e+9);
-  printf("[Jaffar]  + Frame Worker Frame Serialization Time: %3.3fs\n", _commWorkerFrameSerializationTime / 1.0e+9);
-  printf("[Jaffar]  + Frame Gather Time: %3.3fs\n", _commFrameGatherTime / 1.0e+9);
+  printf("[Jaffar] Frame Preprocessing Time:  %3.3fs\n", _framePreprocessingTime / 1.0e+9);
+  printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
+  printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
  }
 
  if (_showDebuggingInformation)
  {
-  printf("[Jaffar] Hash Table Collisions: %lu\n", _hashCollisions);
+  printf("[Jaffar] Hash Table Collisions: %lu\n", _globalHashCollisions);
   printf("[Jaffar] Hash Table Entries: %lu\n", _hashes.size());
 
   printf("[Jaffar] Best Frame Information:\n");

@@ -1,6 +1,7 @@
 #include "state.h"
 #include "utils.h"
 #include "frame.h"
+#include "jaffar.h"
 #include <fstream>
 #include "metrohash64.h"
 
@@ -105,22 +106,22 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
 
 }  // namespace
 
-State::State(SDLPopInstance *sdlPop, nlohmann::json &stateConfig)
+State::State(SDLPopInstance *sdlPop)
 {
  _sdlPop = sdlPop;
  _items = GenerateItemsMap(sdlPop);
 
  // Loading save file
- if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
- const std::string saveFile = stateConfig["Path"].get<std::string>();
+ if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
+ const std::string saveFile = _jaffarConfig.configJs["Savefile Configuration"]["Path"].get<std::string>();
  quickLoad(saveFile);
 
  // Parsing random seed information
- if (isDefined(stateConfig, "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed', 'Override' key.\n");
- if (isDefined(stateConfig, "Random Seed", "Value") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed, 'Value' key.\n");
+ if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed', 'Override' key.\n");
+ if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Random Seed", "Value") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed, 'Value' key.\n");
 
- const bool overrideSeedEnabled = stateConfig["Random Seed"]["Override"].get<bool>();
- const dword overrideSeedValue = stateConfig["Random Seed"]["Value"].get<dword>();
+ const bool overrideSeedEnabled = _jaffarConfig.configJs["Savefile Configuration"]["Random Seed"]["Override"].get<bool>();
+ const dword overrideSeedValue = _jaffarConfig.configJs["Savefile Configuration"]["Random Seed"]["Value"].get<dword>();
 
  // Setting seed, if override was selected
  if (overrideSeedEnabled) _sdlPop->setSeed(overrideSeedValue);

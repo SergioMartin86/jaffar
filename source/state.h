@@ -24,7 +24,7 @@ class State {
     ItemType type;
   };
 
-  State(SDLPopInstance *sdlPop, nlohmann::json &stateConfig);
+  State(SDLPopInstance *sdlPop);
 
   void quickLoad(const std::string& filename);
   void quickSave(const std::string& filename);
