@@ -40,36 +40,32 @@ void Search::run()
   // All workers: running a single frame search
   runFrame();
 
-  // Checking termination criteria
-  if (_jaffarConfig.mpiRank == 0)
+  // Terminate if DB is depleted and no winning rule was found
+  if (_globalFrameCounter == 0)
   {
-   // Terminate if DB is depleted and no winning rule was found
-   if (_globalFrameCounter == 0)
-   {
-    printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
-    terminate = true;
-   }
+   printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
+   terminate = true;
+  }
 
-   // Terminate if a winning rule was found
-   if (_winFrameFound == true)
-   {
-    printf("[Jaffar] Winning frame reached, finishing...\n");
-    terminate = true;
-   }
+  // Terminate if a winning rule was found
+  if (_winFrameFound == true)
+  {
+   printf("[Jaffar] Winning frame reached, finishing...\n");
+   terminate = true;
+  }
 
-   // Terminate if maximum number of frames was reached
-   if (_currentFrame > _maxFrames)
-   {
-    printf("[Jaffar] Maximum frame number reached, finishing...\n");
-    terminate = true;
-   }
+  // Terminate if maximum number of frames was reached
+  if (_currentStep > _maxSteps)
+  {
+   printf("[Jaffar] Maximum frame number reached, finishing...\n");
+   terminate = true;
   }
 
   // Broadcasting whether a winning frame was found
   MPI_Bcast(&terminate, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
 
   // Advancing frame
-  _currentFrame++;
+  _currentStep++;
  }
 
  // Print winning frame if found
@@ -77,11 +73,11 @@ void Search::run()
  {
   printf("[Jaffar] Win Frame Information:\n");
   _state->loadBase(_baseStateData);
-  _state->loadFrame(_winFrame->frameStateData);
+  _state->loadFrame(_globalWinFrame->frameStateData);
   _sdlPop->refreshEngine();
   _sdlPop->printFrameInfo();
-  printRuleStatus(_winFrame);
-  printf("[Jaffar]  + Move List: %s\n", _winFrame->moveHistory.c_str());
+  printRuleStatus(_globalWinFrame);
+  printf("[Jaffar]  + Move List: %s\n", _globalWinFrame->moveHistory.c_str());
  }
 
  // Barrier to wait for all workers
@@ -255,10 +251,16 @@ void Search::runFrame()
  absl::flat_hash_set<uint64_t> newHashes;
  size_t newCollisionCounter = 0;
 
+ // Storing win frame pointer
+ Frame* localWinFrame = NULL;
+
+ // Initializing processed frame counter
+ size_t localStepFramesProcessedCounter = 0;
+
  for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
   for (size_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
   {
-   const std::string move = _possibleMoves[moveId].c_str();
+   std::string move = _possibleMoves[moveId].c_str();
 
    // Getting base frame pointer
    Frame* baseFrame = (*_currentFrameDB)[frameId];
@@ -274,8 +276,11 @@ void Search::runFrame()
    // Advance a single frame
    _sdlPop->advanceFrame();
 
+   // Increasing  frames processed counter
+   localStepFramesProcessedCounter++;
+
    // Compute hash value
-   const auto hash = _state->computeHash();
+   auto hash = _state->computeHash();
 
    // Adding hash to the collection, and check whether it already existed
    bool collisionDetected = !_hashes.insert(hash).second;
@@ -285,19 +290,24 @@ void Search::runFrame()
 
    // Creating new frame, mixing base frame information and the current sdlpop state
    Frame* newFrame = new Frame;
+   newFrame->isWin = false;
+   newFrame->isFail = false;
    newFrame->currentMove = move;
    newFrame->rulesStatus = baseFrame->rulesStatus;
    newFrame->frameStateData = _state->saveFrame();
    newFrame->magnets = baseFrame->magnets;
 
    // Evaluating rules on the new frame
-   bool isFail = evaluateRules(newFrame);
+   evaluateRules(newFrame);
 
    // Calculating score
-   newFrame->score =  getFrameScore(newFrame);
+   newFrame->score = getFrameScore(newFrame);
 
    // If frame has failed, then proceed to the next one
-   if (isFail == true) continue;
+   if (newFrame->isFail == true) continue;
+
+   // If frame has succeded, then flag it
+   if (newFrame->isWin == true) localWinFrame = newFrame;
 
    // Adding novel frame in the next frame database
    _nextFrameDB->push_back(newFrame);
@@ -389,11 +399,33 @@ void Search::runFrame()
  MPI_Allreduce(&newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
  _globalHashCollisions += globalNewCollisionCounter;
 
+ // Exchanging the fact that a win frame has been found
+ int winRank = -1;
+ int localHasWinFrame = localWinFrame == NULL ? 0 : 1;
+ std::vector<int> globalHasWinFrameVector(_workerCount);
+ MPI_Allgather(&localHasWinFrame, 1, MPI_INT, globalHasWinFrameVector.data(), 1, MPI_INT, MPI_COMM_WORLD);
+ for (size_t i = 0; i < _workerCount; i++) if (globalHasWinFrameVector[i] == 1) winRank = i;
+
+ // If win frame found, broadcast it
+ if (winRank >= 0)
+ {
+  char winRankBuffer[_frameSerializedSize];
+  if ((size_t)winRank == _workerId) localWinFrame->serialize(winRankBuffer);
+  MPI_Bcast(winRankBuffer, 1, _mpiFrameType, winRank, MPI_COMM_WORLD);
+  _globalWinFrame = new Frame;
+  _globalWinFrame->deserialize(winRankBuffer);
+  _winFrameFound = true;
+ }
+
+ // Summing frame processing counters
+ MPI_Allreduce(&localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _totalFramesProcessedCounter += _stepFramesProcessedCounter;
+
  auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
 }
 
-bool Search::evaluateRules(Frame* frame)
+void Search::evaluateRules(Frame* frame)
 {
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
  {
@@ -426,15 +458,17 @@ bool Search::evaluateRules(Frame* frame)
       recognizedActionType = true;
      }
 
+     // Storing fail state
      if (actionType == "Trigger Fail")
      {
-      return true;
+      frame->isFail = true;
       recognizedActionType = true;
      }
 
-     // This action is handled during startup, no need to do anything now.
+     // Storing win state
      if (actionType == "Trigger Win")
      {
+      frame->isWin = true;
       recognizedActionType = true;
      }
 
@@ -478,8 +512,6 @@ bool Search::evaluateRules(Frame* frame)
    }
   }
  }
-
- return false;
 }
 
 Search::Search()
@@ -490,12 +522,16 @@ Search::Search()
  _frameComputationTime = 0.0;
  _framePostprocessingTime = 0.0;
 
+ // Initializing counters
+ _stepFramesProcessedCounter = 0;
+ _totalFramesProcessedCounter = 0;
+
  // Getting worker count
  _workerId = (size_t) _jaffarConfig.mpiRank;
  _workerCount = (size_t) _jaffarConfig.mpiSize;
 
- // Setting starting Frame id
- _currentFrame = 1;
+ // Setting starting step
+ _currentStep = 1;
 
  // Parsing profiling verbosity
  if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show Profiling Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Profiling Information' key.\n");
@@ -510,8 +546,8 @@ Search::Search()
  _showSDLPopPreview = _jaffarConfig.configJs["Search Configuration"]["Show SDLPop Display"].get<bool>();
 
  // Parsing max frames from configuration file
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Frames") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Frames' key.\n");
- _maxFrames = _jaffarConfig.configJs["Search Configuration"]["Max Frames"].get<size_t>();
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Steps") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Steps' key.\n");
+ _maxSteps = _jaffarConfig.configJs["Search Configuration"]["Max Steps"].get<size_t>();
 
  // Parsing search width from configuration file
  if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Local Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Local Database Size' key.\n");
@@ -566,7 +602,7 @@ Search::Search()
 
  // Setting win status
  _winFrameFound = false;
- _winFrame = NULL;
+ _globalWinFrame = NULL;
 
  // Creating initial frame on the root rank
  if (_jaffarConfig.mpiRank == 0)
@@ -617,10 +653,11 @@ Search::~Search()
 void Search::printSearchStatus()
 {
  printf("[Jaffar] ----------------------------------------------------------------\n");
- printf("[Jaffar] Current Frame: %lu/%lu\n", _currentFrame, _maxFrames);
+ printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
  printf("[Jaffar] Best Score: %f\n", _bestFrame.score);
- printf("[Jaffar] Database Size: %lu/%lu\n", _globalFrameCounter, _maxLocalDatabaseSize*_workerCount);
- printf("[Jaffar] Elapsed Time (Frame/Total): %3.3fs / %3.3fs\n", (_framePreprocessingTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
+ printf("[Jaffar] Database Size: %lu / %lu\n", _globalFrameCounter, _maxLocalDatabaseSize*_workerCount);
+ printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
+ printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", (_framePreprocessingTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
 
  if (_showProfilingInformation)
  {

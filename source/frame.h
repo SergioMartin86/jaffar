@@ -43,5 +43,9 @@ public:
  void serialize(char* output);
  void deserialize(const char* input);
 
+ // Additional local metadata
+ bool isWin;
+ bool isFail;
+
  Frame& operator=(Frame sourceFrame);
 };

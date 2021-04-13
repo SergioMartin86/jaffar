@@ -45,6 +45,7 @@ void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
 
  // CusPop option
  *is_blind_mode = 0;
+ *enable_quicksave_penalty = 0;
 
  // Fix bug: with start_in_blind_mode enabled, moving objects are not displayed
  // until blind mode is toggled off+on??
@@ -274,8 +275,8 @@ void SDLPopInstance::performMove(const std::string& move)
  if (move.find("U") != std::string::npos) { (*key_states)[SDL_SCANCODE_UP] = 1; recognizedMove = true; }
  if (move.find("D") != std::string::npos) { (*key_states)[SDL_SCANCODE_DOWN] = 1; recognizedMove = true; }
  if (move.find("S") != std::string::npos) { (*key_states)[SDL_SCANCODE_RSHIFT] = 1; recognizedMove = true; }
- if (move == "restart") {  (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1; recognizedMove = true; }
- if (move == "toggle_sound") {  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1; recognizedMove = true; }
+ //if (move == "restart") {  (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1; recognizedMove = true; }
+ //if (move == "toggle_sound") {  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1; recognizedMove = true; }
 
  if (recognizedMove == false)
   EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
@@ -286,6 +287,7 @@ void SDLPopInstance::advanceFrame()
   *guardhp_delta = 0;
   *hitp_delta = 0;
   timers();
+  *is_restart_level = 0;
   play_frame();
 
   _prevDrawnRoom = *drawn_room;
@@ -493,6 +495,8 @@ SDLPopInstance::SDLPopInstance()
  found_exe_dir = (bool*) dlsym(_dllHandle, "found_exe_dir");
  key_states = (key_states_t*) dlsym(_dllHandle, "key_states");
  is_cutscene = (word*) dlsym(_dllHandle, "is_cutscene");
+ enable_quicksave_penalty = (byte*) dlsym(_dllHandle, "enable_quicksave_penalty");
+ is_restart_level = (word*) dlsym(_dllHandle, "is_restart_level");
 }
 
 SDLPopInstance::~SDLPopInstance()

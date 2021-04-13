@@ -275,6 +275,8 @@ class SDLPopInstance {
  key_states_t* key_states;
  word* is_cutscene;
  bool isExitDoorOpen;
+ byte *enable_quicksave_penalty;
+ word* is_restart_level;
 
  private:
 

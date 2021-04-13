@@ -56,7 +56,9 @@ int main(int argc, char* argv[])
   sdlpop.set_timer_length(timer_1, 20);
 
   // Printing initial frame info
+  auto hash = state.computeHash();
   sdlpop.printFrameInfo();
+  printf("Hash: 0x%lX\n", hash);
   sdlpop.draw();
 
   // Iterating move list in the sequence
@@ -64,7 +66,9 @@ int main(int argc, char* argv[])
   {
    sdlpop.performMove(move);
    sdlpop.advanceFrame();
+   hash = state.computeHash();
    sdlpop.printFrameInfo();
+   printf("Hash: 0x%lX\n", hash);
    sdlpop.draw();
   }
  }

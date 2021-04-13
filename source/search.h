@@ -37,8 +37,12 @@ private:
 
  // Frame counter
  size_t _globalFrameCounter;
- size_t _currentFrame;
- size_t _maxFrames;
+ size_t _stepFramesProcessedCounter;
+ size_t _totalFramesProcessedCounter;
+
+ // Step counter
+ size_t _currentStep;
+ size_t _maxSteps;
 
  // Frame databases
  size_t _maxLocalDatabaseSize;
@@ -55,7 +59,7 @@ private:
  // Storage for the position of win rules, for win detection
  std::vector<size_t> _winRulePositions;
  bool _winFrameFound;
- Frame* _winFrame;
+ Frame* _globalWinFrame;
 
  // Storage for rule serialization size
  size_t _frameSerializedSize;
@@ -74,7 +78,7 @@ private:
  float getFrameScore(const Frame* frame);
 
  // Evaluates the rule set on a given frame. Returns true if it is a fail.
- bool evaluateRules(Frame* frame);
+ void evaluateRules(Frame* frame);
 
  // Print Rule information
  void printRuleStatus(const Frame* frame);
