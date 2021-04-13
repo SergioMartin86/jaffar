@@ -20,9 +20,6 @@ class Frame
 {
 public:
 
- // Identifier for the frame
- size_t frameId;
-
  // Move executed by the frame
  std::string currentMove;
 
@@ -31,9 +28,6 @@ public:
 
  // The score calculated for this frame
  float score;
-
- // Stores the unique hash for this frame
- uint64_t hash;
 
  // Stores the game state data
  std::string frameStateData;

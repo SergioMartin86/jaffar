@@ -285,9 +285,7 @@ void Search::runFrame()
 
    // Creating new frame, mixing base frame information and the current sdlpop state
    Frame* newFrame = new Frame;
-   newFrame->frameId = baseFrame->frameId;
    newFrame->currentMove = move;
-   newFrame->hash = hash;
    newFrame->rulesStatus = baseFrame->rulesStatus;
    newFrame->frameStateData = _state->saveFrame();
    newFrame->magnets = baseFrame->magnets;
@@ -579,8 +577,6 @@ Search::Search()
   Frame* initialFrame = new Frame;
   initialFrame->currentMove = ".";
   initialFrame->moveHistory = ".";
-  initialFrame->hash = hash;
-  initialFrame->frameId = 0;
   initialFrame->frameStateData = _state->saveFrame();
   initialFrame->magnets = magnets;
   initialFrame->rulesStatus = rulesStatus;

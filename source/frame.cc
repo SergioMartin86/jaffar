@@ -8,14 +8,8 @@ size_t Frame::getSerializationSize()
  // Adding current move
  size += _MAX_MOVE_SIZE * sizeof(char);
 
- // Adding base frame id
- size += sizeof(size_t);
-
  // Adding score size
  size += sizeof(float);
-
- // Adding hash size
- size += sizeof(uint64_t);
 
  // Adding frame state data
  size += _FRAME_DATA_SIZE * sizeof(char);
@@ -43,17 +37,9 @@ void Frame::serialize(char* output)
    // Filling with zeros until final position
    while(currentPos < _MAX_MOVE_SIZE) output[currentPos++] = '\0';
 
-   // Adding base frame id
-   memcpy(&output[currentPos], &frameId, sizeof(size_t));
-   currentPos += sizeof(size_t);
-
    // Adding score
    memcpy(&output[currentPos], &score, sizeof(float));
    currentPos += sizeof(float);
-
-   // Adding hash
-   memcpy(&output[currentPos], &hash, sizeof(uint64_t));
-   currentPos += sizeof(uint64_t);
 
    // Adding frame state data
    memcpy(&output[currentPos], frameStateData.c_str(), _FRAME_DATA_SIZE * sizeof(char));
@@ -76,17 +62,9 @@ void Frame::deserialize(const char* input)
  currentMove = std::string(&input[currentPos]);
  currentPos = _MAX_MOVE_SIZE;
 
- // Adding base frame id
- memcpy(&frameId, &input[currentPos], sizeof(size_t));
- currentPos += sizeof(size_t);
-
  // Adding score
  memcpy(&score, &input[currentPos], sizeof(float));
  currentPos += sizeof(float);
-
- // Adding hash
- memcpy(&hash, &input[currentPos], sizeof(uint64_t));
- currentPos += sizeof(uint64_t);
 
  // Adding frame state data
  frameStateData.resize(_FRAME_DATA_SIZE);
@@ -105,11 +83,9 @@ void Frame::deserialize(const char* input)
 
 Frame& Frame::operator=(Frame sourceFrame)
 {
- frameId = sourceFrame.frameId;
  currentMove = sourceFrame.currentMove;
  moveHistory = sourceFrame.moveHistory;
  score = sourceFrame.score;
- hash = sourceFrame.hash;
  frameStateData = sourceFrame.frameStateData;
  magnets = sourceFrame.magnets;
  rulesStatus = sourceFrame.rulesStatus;
