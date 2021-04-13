@@ -53,8 +53,11 @@ private:
  Frame _bestFrame;
 
  // Hash information
- absl::flat_hash_set<uint64_t> _hashes;
+ std::vector<absl::flat_hash_set<uint64_t>> _hashDatabases;
+ size_t _hashDatabaseCount;
+ size_t _hashDatabaseSizeThreshold;
  size_t _globalHashCollisions;
+ size_t _globalHashEntries;
 
  // Storage for the position of win rules, for win detection
  std::vector<size_t> _winRulePositions;

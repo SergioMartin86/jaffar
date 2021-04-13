@@ -43,21 +43,21 @@ void Search::run()
   // Terminate if DB is depleted and no winning rule was found
   if (_globalFrameCounter == 0)
   {
-   printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
+   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
    terminate = true;
   }
 
   // Terminate if a winning rule was found
   if (_winFrameFound == true)
   {
-   printf("[Jaffar] Winning frame reached, finishing...\n");
+   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Winning frame reached, finishing...\n");
    terminate = true;
   }
 
   // Terminate if maximum number of frames was reached
   if (_currentStep > _maxSteps)
   {
-   printf("[Jaffar] Maximum frame number reached, finishing...\n");
+   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Maximum frame number reached, finishing...\n");
    terminate = true;
   }
 
@@ -69,7 +69,7 @@ void Search::run()
  }
 
  // Print winning frame if found
- if (_winFrameFound == true)
+ if (_jaffarConfig.mpiRank == 0 && _winFrameFound == true)
  {
   printf("[Jaffar] Win Frame Information:\n");
   _state->loadBase(_baseStateData);
@@ -282,8 +282,10 @@ void Search::runFrame()
    // Compute hash value
    auto hash = _state->computeHash();
 
-   // Adding hash to the collection, and check whether it already existed
-   bool collisionDetected = !_hashes.insert(hash).second;
+   // Inserting and checking for the existence of the hash in the hash databases
+   bool collisionDetected = _hashDatabases[0].insert(hash).second;
+//   for (size_t i = 1; i < _hashDatabaseCount; i++)
+//    collisionDetected |= _hashDatabases[i].contains(hash);
 
    // If collision detected locally, discard this frame
    if (collisionDetected) { newCollisionCounter++; continue; }
@@ -392,7 +394,7 @@ void Search::runFrame()
 
  // Adding new hash entries
  for (size_t i = 0; i < globalNewHashEntryCount; i++)
-  _hashes.insert(globalNewHashVector[i]);
+  _hashDatabases[0].insert(globalNewHashVector[i]);
 
  // Finding global collision counter
  size_t globalNewCollisionCounter;
@@ -420,6 +422,26 @@ void Search::runFrame()
  // Summing frame processing counters
  MPI_Allreduce(&localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
  _totalFramesProcessedCounter += _stepFramesProcessedCounter;
+
+// // If the primary database reached critical mass, perform swap
+// if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
+// {
+//  // Swapping primary into secondary
+//  for (int i = _hashDatabaseCount-1; i > 0; i--)
+//   _hashDatabases[i] = std::move(_hashDatabases[i-1]);
+//
+//  // Cleaning primary hash DB
+//  _hashDatabases[0].clear();
+// }
+
+ // Calculating global hash entry count
+ size_t localHashDBSize = 0;
+ for (size_t i = 0; i < _hashDatabaseCount; i++)
+ {
+  printf("Current DB Size: %lu\n", _hashDatabases[i].size());
+  localHashDBSize += _hashDatabases[i].size();
+ }
+ MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
  auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
@@ -553,6 +575,14 @@ Search::Search()
  if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Local Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Local Database Size' key.\n");
  _maxLocalDatabaseSize = _jaffarConfig.configJs["Search Configuration"]["Max Local Database Size"].get<size_t>();
 
+ // Parsing hash DB information
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Hash Databases", "Database Count") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Hash Databases / Database Count' key.\n");
+ _hashDatabaseCount = _jaffarConfig.configJs["Search Configuration"]["Hash Databases"]["Database Count"].get<size_t>();
+ _hashDatabases.resize(_hashDatabaseCount);
+
+ if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Hash Databases", "Size Threshold") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Hash Tables / Size Threshold' key.\n");
+ _hashDatabaseSizeThreshold = _jaffarConfig.configJs["Search Configuration"]["Hash Databases"]["Size Threshold"].get<size_t>();
+
  // Initializing SDLPop
  _sdlPop = new SDLPopInstance;
 
@@ -636,7 +666,7 @@ Search::Search()
   _currentFrameDB->push_back(initialFrame);
 
   // Registering hash for initial frame
-  _hashes.insert(hash);
+  _hashDatabases[0].insert(hash);
 
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
@@ -668,8 +698,8 @@ void Search::printSearchStatus()
 
  if (_showDebuggingInformation)
  {
-  printf("[Jaffar] Hash Table Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash Table Entries: %lu\n", _hashes.size());
+  printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
+  printf("[Jaffar] Hash DB Entries: (%lu)\n", _globalHashEntries);
 
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
