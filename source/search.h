@@ -9,6 +9,7 @@
 #include "frame.h"
 #include <string>
 #include <vector>
+#include <memory>
 #include <mpi.h>
 
 class Search
@@ -42,12 +43,11 @@ private:
 
  // Step counter
  size_t _currentStep;
- size_t _maxSteps;
 
  // Frame databases
  size_t _maxLocalDatabaseSize;
- std::vector<Frame*>* _currentFrameDB;
- std::vector<Frame*>* _nextFrameDB;
+ std::vector<std::unique_ptr<Frame>> _currentFrameDB;
+ std::vector<std::unique_ptr<Frame>> _nextFrameDB;
 
  // Storage for the best frame
  Frame _bestFrame;
@@ -63,7 +63,7 @@ private:
  // Storage for the position of win rules, for win detection
  std::vector<size_t> _winRulePositions;
  bool _winFrameFound;
- Frame* _globalWinFrame;
+ Frame _globalWinFrame;
 
  // Storage for rule serialization size
  size_t _frameSerializedSize;
@@ -79,13 +79,13 @@ private:
  void runFrame();
 
  // Obtains the score of a given frame
- float getFrameScore(const Frame* frame);
+ float getFrameScore(const Frame& frame);
 
  // Evaluates the rule set on a given frame. Returns true if it is a fail.
- void evaluateRules(Frame* frame);
+ void evaluateRules(Frame& frame);
 
  // Print Rule information
- void printRuleStatus(const Frame* frame);
+ void printRuleStatus(const Frame& frame);
 
  // Profiling and Debugging
  bool _showProfilingInformation;
@@ -95,5 +95,3 @@ private:
  double _frameComputationTime;
  double _framePostprocessingTime;
 };
-
-extern size_t _ruleCount;

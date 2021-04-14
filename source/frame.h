@@ -9,6 +9,8 @@
 #include <vector>
 #include <string>
 
+const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
+
 struct Magnet
 {
  float intensityY;
@@ -20,11 +22,10 @@ class Frame
 {
 public:
 
- // Move executed by the frame
- std::string currentMove;
+ Frame();
 
  // Stores the entire move history of the frame
- std::string moveHistory;
+ std::vector<uint8_t> moveHistory;
 
  // The score calculated for this frame
  float score;
@@ -49,3 +50,6 @@ public:
 
  Frame& operator=(Frame sourceFrame);
 };
+
+extern size_t _ruleCount;
+extern size_t _maxSteps;

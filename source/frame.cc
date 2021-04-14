@@ -1,12 +1,20 @@
 #include "frame.h"
 #include "search.h"
 
+size_t _ruleCount;
+size_t _maxSteps;
+
+Frame::Frame()
+{
+ moveHistory.resize((_maxSteps+1));
+}
+
 size_t Frame::getSerializationSize()
 {
  size_t size = 0;
 
  // Adding current move
- size += _MAX_MOVE_SIZE * sizeof(char);
+ size += (_maxSteps+1) * sizeof(uint8_t);
 
  // Adding score size
  size += sizeof(float);
@@ -27,15 +35,9 @@ void Frame::serialize(char* output)
 {
    size_t currentPos = 0;
 
-   // Check that the size does not exceed limits
-   const size_t moveSize = currentMove.size();
-   if (moveSize >= _MAX_MOVE_SIZE) EXIT_WITH_ERROR("Move %s exceeds size limit of %d\n", currentMove.c_str(), _MAX_MOVE_SIZE);
-
-   // Copying move char by char
-   for (size_t i = 0; i < moveSize; i++) output[currentPos++] = currentMove[i];
-
-   // Filling with zeros until final position
-   while(currentPos < _MAX_MOVE_SIZE) output[currentPos++] = '\0';
+   // Adding move history
+   memcpy(&output[currentPos], moveHistory.data(), (_maxSteps+1) * sizeof(uint8_t));
+   currentPos += (_maxSteps+1) * sizeof(uint8_t);
 
    // Adding score
    memcpy(&output[currentPos], &score, sizeof(float));
@@ -58,9 +60,10 @@ void Frame::deserialize(const char* input)
 {
  size_t currentPos = 0;
 
- // Parsing input string
- currentMove = std::string(&input[currentPos]);
- currentPos = _MAX_MOVE_SIZE;
+ // Copying magnets information
+ moveHistory.resize((_maxSteps+1));
+ memcpy(moveHistory.data(), &input[currentPos],  (_maxSteps+1) * sizeof(uint8_t));
+ currentPos += (_maxSteps+1) * sizeof(uint8_t);
 
  // Adding score
  memcpy(&score, &input[currentPos], sizeof(float));
@@ -83,7 +86,6 @@ void Frame::deserialize(const char* input)
 
 Frame& Frame::operator=(Frame sourceFrame)
 {
- currentMove = sourceFrame.currentMove;
  moveHistory = sourceFrame.moveHistory;
  score = sourceFrame.score;
  frameStateData = sourceFrame.frameStateData;

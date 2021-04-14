@@ -4,9 +4,6 @@
 #include <unistd.h>
 #include <chrono>
 
-size_t _ruleCount;
-const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
-
 void Search::run()
 {
  auto searchTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -23,7 +20,7 @@ void Search::run()
    _state->loadBase(_baseStateData);
    _state->loadFrame(_bestFrame.frameStateData);
    _sdlPop->refreshEngine();
-   _sdlPop->_currentMove = _bestFrame.currentMove;
+   _sdlPop->_currentMove = _possibleMoves[_bestFrame.moveHistory[_currentStep]];
 
    // Drawing frame
    _sdlPop->draw();
@@ -72,11 +69,16 @@ void Search::run()
  {
   printf("[Jaffar] Win Frame Information:\n");
   _state->loadBase(_baseStateData);
-  _state->loadFrame(_globalWinFrame->frameStateData);
+  _state->loadFrame(_globalWinFrame.frameStateData);
   _sdlPop->refreshEngine();
   _sdlPop->printFrameInfo();
   printRuleStatus(_globalWinFrame);
-  printf("[Jaffar]  + Move List: %s\n", _globalWinFrame->moveHistory.c_str());
+
+  // Print Move History
+  printf("[Jaffar]  + Move List: ");
+  for (size_t i = 0; i <= _currentStep; i++)
+   printf("%s ", _possibleMoves[_globalWinFrame.moveHistory[i]].c_str());
+  printf("\n");
  }
 
  // Barrier to wait for all workers
@@ -92,7 +94,7 @@ void Search::runFrame()
  auto framePreprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Getting worker's own base frame count
- size_t localBaseFrameCount = _currentFrameDB->size();
+ size_t localBaseFrameCount = _currentFrameDB.size();
 
  // Gathering all of te worker's base frame counts
  std::vector<size_t> localBaseFrameCounts(_workerCount);
@@ -180,21 +182,19 @@ void Search::runFrame()
 
  // Serializing database into a contiguous buffer
  size_t currentPosition = 0;
- char* frameSendBuffer = (char*) malloc(_frameSerializedSize * _currentFrameDB->size());
- for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
+ char* frameSendBuffer = (char*) malloc(_frameSerializedSize * _currentFrameDB.size());
+ for (size_t frameId = 0; frameId < _currentFrameDB.size(); frameId++)
  {
   // Serializing frame
-  (*_currentFrameDB)[frameId]->serialize(&frameSendBuffer[currentPosition]);
+  _currentFrameDB[frameId]->serialize(&frameSendBuffer[currentPosition]);
 
   // Advancing send buffer pointer
   currentPosition += _frameSerializedSize;
-
-  // Freeing frame
-  delete (*_currentFrameDB)[frameId];
  }
 
- // Clearing database
- _currentFrameDB->clear();
+ // Clearing databases
+ _currentFrameDB.clear();
+ _nextFrameDB.clear();
 
  // Reserving receive buffer
  char* frameRecvBuffer = (char*) malloc(_frameSerializedSize * localNextFrameCount);
@@ -211,13 +211,13 @@ void Search::runFrame()
  for (size_t frameId = 0; frameId < localNextFrameCount; frameId++)
  {
   // Creating new frame
-  Frame* newFrame = new Frame;
+  auto newFrame = std::make_unique<Frame>();
 
   // Deserializing frame
   newFrame->deserialize(&frameRecvBuffer[currentPosition]);
 
-    // Adding new frame into the data base
-  _nextFrameDB->push_back(newFrame);
+  // Adding new frame into the data base
+  _currentFrameDB.push_back(std::move(newFrame));
 
   // Advancing send buffer pointer
   currentPosition += _frameSerializedSize;
@@ -225,16 +225,6 @@ void Search::runFrame()
 
  // Freeing send buffers
  free(frameRecvBuffer);
-
- // Swapping database pointers
- std::swap(_currentFrameDB, _nextFrameDB);
-
- // Clearing old base frames
- for (size_t frameId = 0; frameId < _nextFrameDB->size(); frameId++)
-  delete (*_nextFrameDB)[frameId];
-
- // Clearing next frame DB
- _nextFrameDB->clear();
 
  auto framePreprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
  _framePreprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePreprocessingTimeEnd - framePreprocessingTimeBegin).count();    // Profiling
@@ -250,19 +240,20 @@ void Search::runFrame()
  absl::flat_hash_set<uint64_t> newHashes;
  size_t newCollisionCounter = 0;
 
- // Storing win frame pointer
- Frame* localWinFrame = NULL;
+ // Storing win frame condition and data
+ bool localWinFound = false;
+ Frame localWinFrame;
 
  // Initializing processed frame counter
  size_t localStepFramesProcessedCounter = 0;
 
- for (size_t frameId = 0; frameId < _currentFrameDB->size(); frameId++)
-  for (size_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
+ for (size_t frameId = 0; frameId < _currentFrameDB.size(); frameId++)
+  for (uint8_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
   {
    std::string move = _possibleMoves[moveId].c_str();
 
    // Getting base frame pointer
-   Frame* baseFrame = (*_currentFrameDB)[frameId];
+   const auto& baseFrame = _currentFrameDB[frameId];
 
    // Loading frame state
    _state->loadBase(_baseStateData);
@@ -290,42 +281,36 @@ void Search::runFrame()
    if (collisionDetected) { newCollisionCounter++; continue; }
 
    // Creating new frame, mixing base frame information and the current sdlpop state
-   Frame* newFrame = new Frame;
+   auto newFrame = std::make_unique<Frame>();
    newFrame->isWin = false;
    newFrame->isFail = false;
-   newFrame->currentMove = move;
+   newFrame->moveHistory = baseFrame->moveHistory;
+   newFrame->moveHistory[_currentStep] = moveId;
    newFrame->rulesStatus = baseFrame->rulesStatus;
    newFrame->frameStateData = _state->saveFrame();
    newFrame->magnets = baseFrame->magnets;
 
    // Evaluating rules on the new frame
-   evaluateRules(newFrame);
+   evaluateRules(*newFrame);
 
    // Calculating score
-   newFrame->score = getFrameScore(newFrame);
+   newFrame->score = getFrameScore(*newFrame);
 
    // If frame has failed, then proceed to the next one
    if (newFrame->isFail == true) continue;
 
    // If frame has succeded, then flag it
-   if (newFrame->isWin == true) localWinFrame = newFrame;
+   if (newFrame->isWin == true) { localWinFound = true; localWinFrame = *newFrame; }
 
    // Adding novel frame in the next frame database
-   _nextFrameDB->push_back(newFrame);
+   _nextFrameDB.push_back(std::move(newFrame));
 
    // Adding hash into the new hashes table
    newHashes.insert(hash);
  }
 
  // Swapping database pointers
- std::swap(_currentFrameDB, _nextFrameDB);
-
- // Clearing old base frames
- for (size_t frameId = 0; frameId < _nextFrameDB->size(); frameId++)
-  delete (*_nextFrameDB)[frameId];
-
- // Clearing next frame DB
- _nextFrameDB->clear();
+ _currentFrameDB = std::move(_nextFrameDB);
 
  MPI_Barrier(MPI_COMM_WORLD);
 
@@ -339,22 +324,14 @@ void Search::runFrame()
  auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Sorting local DB frames by score
- std::sort(_currentFrameDB->begin(), _currentFrameDB->end(), [](const auto& a, const auto& b) { return a->score > b->score; });
+ std::sort(_currentFrameDB.begin(), _currentFrameDB.end(), [](const auto& a, const auto& b) { return a->score > b->score; });
 
  // Finding local best frame score
  float localBestFrameScore = -std::numeric_limits<float>::infinity();
- if (_currentFrameDB->empty() == false) localBestFrameScore = (*_currentFrameDB)[0]->score;
+ if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->score;
 
- // Clipping database to the maximum threshold
- if (_currentFrameDB->size() > _maxLocalDatabaseSize)
- {
-  // Manually freeing excess frames
-   for (size_t frameId = _maxLocalDatabaseSize; frameId < _currentFrameDB->size(); frameId++)
-    delete (*_currentFrameDB)[frameId];
-
-   // Resizing frame
-   _currentFrameDB->resize(_maxLocalDatabaseSize);
- }
+ // Clipping local database to the maximum threshold
+ if (_currentFrameDB.size() > _maxLocalDatabaseSize) _currentFrameDB.resize(_maxLocalDatabaseSize);
 
  // Finding best global frame score
  struct mpiLoc { float val; int loc; };
@@ -367,12 +344,12 @@ void Search::runFrame()
 
  // Serializing, broadcasting, and deserializing best frame
  char frameBcastBuffer[_frameSerializedSize];
- if (_workerId == (size_t)globalBestFrameRank) (*_currentFrameDB)[0]->serialize(frameBcastBuffer);
+ if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
  MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
  _bestFrame.deserialize(frameBcastBuffer);
 
  // Calculating global frame count
- size_t newLocalFrameDatabaseSize = _currentFrameDB->size();
+ size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
  MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
  // Gathering number of new hash entries
@@ -409,7 +386,7 @@ void Search::runFrame()
 
  // Exchanging the fact that a win frame has been found
  int winRank = -1;
- int localHasWinFrame = localWinFrame == NULL ? 0 : 1;
+ int localHasWinFrame = localWinFound == false ? 0 : 1;
  std::vector<int> globalHasWinFrameVector(_workerCount);
  MPI_Allgather(&localHasWinFrame, 1, MPI_INT, globalHasWinFrameVector.data(), 1, MPI_INT, MPI_COMM_WORLD);
  for (size_t i = 0; i < _workerCount; i++) if (globalHasWinFrameVector[i] == 1) winRank = i;
@@ -418,10 +395,9 @@ void Search::runFrame()
  if (winRank >= 0)
  {
   char winRankBuffer[_frameSerializedSize];
-  if ((size_t)winRank == _workerId) localWinFrame->serialize(winRankBuffer);
+  if ((size_t)winRank == _workerId) localWinFrame.serialize(winRankBuffer);
   MPI_Bcast(winRankBuffer, 1, _mpiFrameType, winRank, MPI_COMM_WORLD);
-  _globalWinFrame = new Frame;
-  _globalWinFrame->deserialize(winRankBuffer);
+  _globalWinFrame.deserialize(winRankBuffer);
   _winFrameFound = true;
  }
 
@@ -458,12 +434,12 @@ void Search::runFrame()
  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
 }
 
-void Search::evaluateRules(Frame* frame)
+void Search::evaluateRules(Frame& frame)
 {
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
  {
   // Evaluate rule only if it's active
-  if (frame->rulesStatus[ruleId] == st_active)
+  if (frame.rulesStatus[ruleId] == st_active)
   {
    bool isAchieved = _rules[ruleId]->evaluate();
 
@@ -471,7 +447,7 @@ void Search::evaluateRules(Frame* frame)
    if (isAchieved)
    {
     // Setting status to achieved
-    frame->rulesStatus[ruleId] = st_achieved;
+    frame.rulesStatus[ruleId] = st_achieved;
 
     // Perform actions
     for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
@@ -494,14 +470,14 @@ void Search::evaluateRules(Frame* frame)
      // Storing fail state
      if (actionType == "Trigger Fail")
      {
-      frame->isFail = true;
+      frame.isFail = true;
       recognizedActionType = true;
      }
 
      // Storing win state
      if (actionType == "Trigger Win")
      {
-      frame->isWin = true;
+      frame.isWin = true;
       recognizedActionType = true;
      }
 
@@ -516,7 +492,7 @@ void Search::evaluateRules(Frame* frame)
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float intensityX = actionJs["Value"].get<float>();
 
-      frame->magnets[room].intensityX = intensityX;
+      frame.magnets[room].intensityX = intensityX;
       recognizedActionType = true;
      }
 
@@ -526,7 +502,7 @@ void Search::evaluateRules(Frame* frame)
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float positionX = actionJs["Value"].get<float>();
 
-      frame->magnets[room].positionX = positionX;
+      frame.magnets[room].positionX = positionX;
       recognizedActionType = true;
      }
 
@@ -536,7 +512,7 @@ void Search::evaluateRules(Frame* frame)
       if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
       float intensityY = actionJs["Value"].get<float>();
 
-      frame->magnets[room].intensityY = intensityY;
+      frame.magnets[room].intensityY = intensityY;
       recognizedActionType = true;
      }
 
@@ -565,7 +541,7 @@ Search::Search()
  _workerCount = (size_t) _jaffarConfig.mpiSize;
 
  // Setting starting step
- _currentStep = 1;
+ _currentStep = 0;
 
  // Parsing profiling verbosity
  if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show Profiling Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Profiling Information' key.\n");
@@ -631,10 +607,6 @@ Search::Search()
  MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
  MPI_Type_commit(&_mpiFrameType);
 
- // Instanting frame database
- _currentFrameDB = new std::vector<Frame*>();
- _nextFrameDB = new std::vector<Frame*>();
-
  // Setting initial values
  _hasFinalized = false;
  _globalHashCollisions = 0;
@@ -644,7 +616,6 @@ Search::Search()
 
  // Setting win status
  _winFrameFound = false;
- _globalWinFrame = NULL;
 
  // Creating initial frame on the root rank
  if (_jaffarConfig.mpiRank == 0)
@@ -652,15 +623,14 @@ Search::Search()
   // Computing initial hash
   const auto hash = _state->computeHash();
 
-  Frame* initialFrame = new Frame;
-  initialFrame->currentMove = ".";
-  initialFrame->moveHistory = ".";
+  auto initialFrame = std::make_unique<Frame>();
+  initialFrame->moveHistory[0] = 0;
   initialFrame->frameStateData = _state->saveFrame();
   initialFrame->magnets = magnets;
   initialFrame->rulesStatus = rulesStatus;
 
   // Evaluating Rules on initial frame
-  evaluateRules(initialFrame);
+  evaluateRules(*initialFrame);
 
   // Storing which rules are win rules
   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
@@ -672,16 +642,16 @@ Search::Search()
    EXIT_WITH_ERROR("[ERROR] No win (Trigger Win) rules were defined in the config file.\n");
 
   // Evaluating Score on initial frame
-  initialFrame->score = getFrameScore(initialFrame);
-
-  // Adding frame to the current database
-  _currentFrameDB->push_back(initialFrame);
+  initialFrame->score = getFrameScore(*initialFrame);
 
   // Registering hash for initial frame
   _hashDatabases[0].insert(hash);
 
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
+
+  // Adding frame to the current database
+  _currentFrameDB.push_back(std::move(initialFrame));
  }
 
  // Starting global frame counter
@@ -717,7 +687,7 @@ void Search::printSearchStatus()
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
 
-  printRuleStatus(&_bestFrame);
+  printRuleStatus(_bestFrame);
 
   // Printing Magnet Status
   int currentRoom = _sdlPop->Kid->room;
@@ -725,21 +695,24 @@ void Search::printSearchStatus()
   printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensityX, magnet.positionX);
   printf("[Jaffar]  + Vertical Magnet Intensity: %.1f\n", magnet.intensityY);
 
-  // Printing Move List
-  printf("[Jaffar]  + Move List: %s\n", _bestFrame.moveHistory.c_str());
+  // Print Move History
+  printf("[Jaffar]  + Move List: ");
+  for (size_t i = 0; i <= _currentStep; i++)
+   printf("%s ", _possibleMoves[_bestFrame.moveHistory[i]].c_str());
+  printf("\n");
  }
 }
 
-void Search::printRuleStatus(const Frame* frame)
+void Search::printRuleStatus(const Frame& frame)
 {
- printf("[Jaffar]  + Rule Status: [ %d", (int)frame->rulesStatus[0]);
- for (size_t i = 1; i < frame->rulesStatus.size(); i++)
-  printf(", %d", (int) frame->rulesStatus[i]);
+ printf("[Jaffar]  + Rule Status: [ %d", (int)frame.rulesStatus[0]);
+ for (size_t i = 1; i < frame.rulesStatus.size(); i++)
+  printf(", %d", (int) frame.rulesStatus[i]);
  printf(" ]\n");
 
 }
 
-float Search::getFrameScore(const Frame* frame)
+float Search::getFrameScore(const Frame& frame)
 {
  // Accumulator for total score
  float score = 0.0f;
@@ -750,7 +723,7 @@ float Search::getFrameScore(const Frame* frame)
  // If room is outside visible rooms, do not apply magnet reward
  if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
  {
-  const auto &magnet = frame->magnets[currentRoom];
+  const auto &magnet = frame.magnets[currentRoom];
   const auto curFrame = _sdlPop->Kid->frame;
 
   // Evaluating magnet's score on the X axis
@@ -799,7 +772,7 @@ float Search::getFrameScore(const Frame* frame)
 
  // Now adding rule rewards
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
-  if (frame->rulesStatus[ruleId] == st_achieved)
+  if (frame.rulesStatus[ruleId] == st_achieved)
    score += _rules[ruleId]->_reward;
 
  // Returning score
