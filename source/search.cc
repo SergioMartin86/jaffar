@@ -20,11 +20,10 @@ void Search::run()
   if (_jaffarConfig.mpiRank == 0)
   {
    // Plotting current best frame
-   auto bestFrame = (*_currentFrameDB)[0];
    _state->loadBase(_baseStateData);
-   _state->loadFrame(bestFrame->frameStateData);
+   _state->loadFrame(_bestFrame.frameStateData);
    _sdlPop->refreshEngine();
-   _sdlPop->_currentMove = bestFrame->currentMove;
+   _sdlPop->_currentMove = _bestFrame.currentMove;
 
    // Drawing frame
    _sdlPop->draw();
@@ -346,6 +345,17 @@ void Search::runFrame()
  float localBestFrameScore = -std::numeric_limits<float>::infinity();
  if (_currentFrameDB->empty() == false) localBestFrameScore = (*_currentFrameDB)[0]->score;
 
+ // Clipping database to the maximum threshold
+ if (_currentFrameDB->size() > _maxLocalDatabaseSize)
+ {
+  // Manually freeing excess frames
+   for (size_t frameId = _maxLocalDatabaseSize; frameId < _currentFrameDB->size(); frameId++)
+    delete (*_currentFrameDB)[frameId];
+
+   // Resizing frame
+   _currentFrameDB->resize(_maxLocalDatabaseSize);
+ }
+
  // Finding best global frame score
  struct mpiLoc { float val; int loc; };
  mpiLoc mpiLocInput;
@@ -360,10 +370,6 @@ void Search::runFrame()
  if (_workerId == (size_t)globalBestFrameRank) (*_currentFrameDB)[0]->serialize(frameBcastBuffer);
  MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
  _bestFrame.deserialize(frameBcastBuffer);
-
- // Clipping database to the maximum threshold
- if (_currentFrameDB->size() > _maxLocalDatabaseSize)
-  _currentFrameDB->resize(_maxLocalDatabaseSize);
 
  // Calculating global frame count
  size_t newLocalFrameDatabaseSize = _currentFrameDB->size();
