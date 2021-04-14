@@ -705,8 +705,8 @@ void Search::printSearchStatus()
  if (_showDebuggingInformation)
  {
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash DB Entries: (%lu)\n", _globalHashEntries);
-  printf("[Jaffar] Hash DB Swaps: (%lu)\n", _hashDatabaseSwapCount);
+  printf("[Jaffar] Hash DB Entries: %lu\n", _globalHashEntries);
+  printf("[Jaffar] Hash DB Swaps: %lu\n", _hashDatabaseSwapCount);
 
   printf("[Jaffar] Best Frame Information:\n");
   _sdlPop->printFrameInfo();
