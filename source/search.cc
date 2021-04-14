@@ -46,7 +46,7 @@ void Search::run()
   // Terminate if a winning rule was found
   if (_winFrameFound == true)
   {
-   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Winning frame reached, finishing...\n");
+   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Winning frame reached after %lu steps, finishing...\n", _currentStep);
    terminate = true;
   }
 
@@ -60,7 +60,7 @@ void Search::run()
   // Broadcasting whether a winning frame was found
   MPI_Bcast(&terminate, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
 
-  // Advancing frame
+  // Advancing step
   _currentStep++;
  }
 

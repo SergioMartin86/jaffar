@@ -66,9 +66,7 @@ int main(int argc, char* argv[])
   {
    sdlpop.performMove(move);
    sdlpop.advanceFrame();
-   hash = state.computeHash();
    sdlpop.printFrameInfo();
-   printf("Hash: 0x%lX\n", hash);
    sdlpop.draw();
   }
  }

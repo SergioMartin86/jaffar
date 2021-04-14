@@ -60,20 +60,22 @@ deps = [
 metroHash64Lib = library('metroHash64Lib',
   metrohash64Files)
   
-sdlPopLib = library('sdlPopLib',
-  sdlPopFiles,
-  dependencies : deps)
-  
-linkFlags = [
-  '-ldl',
-  '-fopenmp'
-  ]
-  
 cppFlags = [
+  '-DDISABLE_ALL_FIXES',
   '-Wfatal-errors',
   '-O3',
   '-g'
   ]
+
+linkFlags = [
+  '-ldl',
+  '-fopenmp'
+  ]
+
+sdlPopLib = library('sdlPopLib',
+  sdlPopFiles,
+  c_args: cppFlags,
+  dependencies : deps)
 
 executable('jaffar',
   'source/jaffar.cc',
