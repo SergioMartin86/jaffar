@@ -1,4 +1,7 @@
 subprojects/abseil-cpp*
+subprojects/SDL2*
+subprojects/json-*
+subprojects/abseil-cpp*
 subprojects/packagecache
 build
 
