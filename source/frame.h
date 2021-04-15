@@ -4,8 +4,8 @@
 #define _MAX_MOVE_SIZE 4
 #define _VISIBLE_ROOM_COUNT 25
 
+#include "nlohmann/json.hpp"
 #include "rule.h"
-#include "json.hpp"
 #include <vector>
 #include <string>
 

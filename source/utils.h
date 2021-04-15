@@ -1,10 +1,10 @@
 #pragma once
 
+#include "nlohmann/json.hpp"
 #include <string>
 #include <sstream>
 #include <vector>
 #include <iterator>
-#include "json.hpp"
 
 // Function to split a string into a sub-strings delimited by a character
 // Taken from stack overflow answer to https://stackoverflow.com/questions/236129/how-do-i-iterate-over-the-words-of-a-string

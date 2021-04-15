@@ -2,9 +2,9 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include "nlohmann/json.hpp"
 #include "SDLPopInstance.h"
 #include "state.h"
-#include "json.hpp"
 #include "rule.h"
 #include "frame.h"
 #include <string>

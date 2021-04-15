@@ -53,22 +53,27 @@ int main(int argc, char* argv[])
   getchar();
 
   // Setting timer for a sane animation
-  sdlpop.set_timer_length(timer_1, 20);
+  sdlpop.set_timer_length(timer_1, 15);
 
   // Printing initial frame info
-  auto hash = state.computeHash();
   sdlpop.printFrameInfo();
-  printf("Hash: 0x%lX\n", hash);
   sdlpop.draw();
 
   // Iterating move list in the sequence
-  for (const auto move : moveList)
+  for (size_t i = 0; i < moveList.size(); i++)
   {
-   sdlpop.performMove(move);
+   printf("[Jaffar] ----------------------------------------------------------------\n");
+   printf("[Jaffar] Current Step #: %lu / %lu\n", i, moveList.size());
+
+   sdlpop.performMove(moveList[i]);
    sdlpop.advanceFrame();
    sdlpop.printFrameInfo();
    sdlpop.draw();
   }
+
+  printf("[Jaffar] Sequence Finished.\n");
+  printf("[Jaffar] Press any key to start...\n");
+  getchar();
  }
 
  // If this is to find a sequence, run the searcher

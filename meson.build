@@ -1,5 +1,5 @@
 project('jaffar', 'c', 'cpp',
-  default_options : ['cpp_std=c++1z', 'b_ndebug=if-release'],
+  default_options : ['cpp_std=c++1z', 'default_library=shared', 'buildtype=debugoptimized'],
 )
 
 cc = meson.get_compiler('c')
@@ -7,7 +7,6 @@ cc = meson.get_compiler('c')
 inc = include_directories([
  'extern/SDLPoP/src',
  'extern/metrohash64',
- 'extern/json',
  'extern/argparse'
   ])
 
@@ -47,12 +46,15 @@ jaffarFiles = [
   'source/search.cc'
 ]
 
+sdl2_dep = dependency('sdl2')
+sdl2_image_dep = dependency('sdl2_image')
+
 deps = [
+  dependency('mpi', required: false),
+  dependency('mpich', required: false),
   dependency('sdl2'),
-  dependency('SDL2_image'),
-  dependency('mpich', required : false),
-  dependency('mpi', required : false),
-  cc.find_library('m', required : false),
+  dependency('sdl2_image'),
+  subproject('json').get_variable('nlohmann_json_dep'),
   subproject('abseil').get_variable('absl_base_dep'),
   subproject('abseil').get_variable('absl_container_dep')
 ]
@@ -60,21 +62,9 @@ deps = [
 metroHash64Lib = library('metroHash64Lib',
   metrohash64Files)
   
-cppFlags = [
-  '-DDISABLE_ALL_FIXES',
-  '-Wfatal-errors',
-  '-O3',
-  '-g'
-  ]
-
-linkFlags = [
-  '-ldl',
-  '-fopenmp'
-  ]
-
 sdlPopLib = library('sdlPopLib',
   sdlPopFiles,
-  c_args: cppFlags,
+  c_args: [ '-DDISABLE_ALL_FIXES' ],
   dependencies : deps)
 
 executable('jaffar',
@@ -83,5 +73,6 @@ executable('jaffar',
   dependencies: deps,
   include_directories: inc,
   link_with: [ sdlPopLib, metroHash64Lib ],
-  link_args: linkFlags,
-  cpp_args: cppFlags)
+  link_args: [ '-ldl' ],
+  cpp_args: [ '-Wfatal-errors' ]
+  )
