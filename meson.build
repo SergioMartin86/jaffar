@@ -1,5 +1,5 @@
 project('jaffar', 'c', 'cpp',
-  default_options : ['cpp_std=c++1z', 'default_library=shared', 'buildtype=debugoptimized'],
+  default_options : ['cpp_std=c++1z', 'default_library=shared', 'buildtype=debugoptimized', 'c_args=-DSDL_VIDEO_DRIVER_DUMMY'],
 )
 
 cc = meson.get_compiler('c')
