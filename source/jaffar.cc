@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
   }
 
   printf("[Jaffar] Sequence Finished.\n");
-  printf("[Jaffar] Press any key to start...\n");
+  printf("[Jaffar] Press any key to exit...\n");
   getchar();
  }
 
