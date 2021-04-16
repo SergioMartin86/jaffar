@@ -123,8 +123,16 @@ State::State(SDLPopInstance *sdlPop)
  const bool overrideSeedEnabled = _jaffarConfig.configJs["Savefile Configuration"]["Random Seed"]["Override"].get<bool>();
  const dword overrideSeedValue = _jaffarConfig.configJs["Savefile Configuration"]["Random Seed"]["Value"].get<dword>();
 
- // Setting seed, if override was selected
+ // Parsing last loose tile sound
+ if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Last Loose Tile Sound", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound', 'Override' key.\n");
+ if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Last Loose Tile Sound", "Value") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound, 'Value' key.\n");
+
+ const bool overrideLastLooseTileSoundEnabled = _jaffarConfig.configJs["Savefile Configuration"]["Last Loose Tile Sound"]["Override"].get<bool>();
+ const word overrideLastLooseTileSoundValue = _jaffarConfig.configJs["Savefile Configuration"]["Last Loose Tile Sound"]["Value"].get<dword>();
+
+ // Setting values, if override was selected
  if (overrideSeedEnabled) _sdlPop->setSeed(overrideSeedValue);
+ if (overrideLastLooseTileSoundEnabled) *_sdlPop->last_loose_sound = overrideLastLooseTileSoundValue;
 }
 
 uint64_t State::kidHash() const {

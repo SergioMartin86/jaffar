@@ -1,4 +1,4 @@
-# jaffar
+# Jaffar
 
 High-performance fully scalable solver for Prince of Persia (DOS) tool-assisted speedrunning. 
 

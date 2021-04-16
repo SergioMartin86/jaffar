@@ -300,7 +300,7 @@ void SDLPopInstance::printFrameInfo()
  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, Sequence: %d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame), int(Kid->curr_seq));
  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, Sequence: %d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame), int(Guard->curr_seq));
  printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
- printf("[Jaffar]  + RNG State: 0x%08X\n", *random_seed);
+ printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", *random_seed, *last_loose_sound);
 }
 
 bool SDLPopInstance::isLevelExitDoorOpen()
@@ -497,6 +497,8 @@ SDLPopInstance::SDLPopInstance()
  is_cutscene = (word*) dlsym(_dllHandle, "is_cutscene");
  enable_quicksave_penalty = (byte*) dlsym(_dllHandle, "enable_quicksave_penalty");
  is_restart_level = (word*) dlsym(_dllHandle, "is_restart_level");
+ last_loose_sound = (word*) dlsym(_dllHandle, "last_loose_sound");
+
 }
 
 SDLPopInstance::~SDLPopInstance()
