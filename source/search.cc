@@ -775,7 +775,7 @@ float Search::getFrameScore(const Frame& frame)
 
  // Apply full magnet when kid is inside a non-visible room
  if (currentRoom == 0 || currentRoom >= _VISIBLE_ROOM_COUNT)
-  score += magnet.intensityX * 128.0f;
+  score += 128.0f;
 
  // Now adding rule rewards
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
