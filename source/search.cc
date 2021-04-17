@@ -180,6 +180,9 @@ void Search::runFrame()
  // Resizing next DB to receive the new frames
  size_t localNextFrameCount = localNextFrameCounts[_workerId];
 
+ // Shuffling database to distribute uniformly also in terms of score
+ std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
+
  // Serializing database into a contiguous buffer
  size_t currentPosition = 0;
  char* frameSendBuffer = (char*) malloc(_frameSerializedSize * _currentFrameDB.size());

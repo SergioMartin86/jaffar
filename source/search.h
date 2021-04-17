@@ -11,6 +11,8 @@
 #include <vector>
 #include <memory>
 #include <mpi.h>
+#include <random>
+#include <algorithm>
 
 class Search
 {
