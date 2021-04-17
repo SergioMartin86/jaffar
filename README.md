@@ -30,10 +30,12 @@ Jaffar has been tested using SDL2 2.0.14 and SDL2_image 2.0.5. If these librarie
 For use in environments without video output, set the following environment variable:
 
 export SDL_VIDEODRIVER=dummy
+export SDL_AUDIODRIVER=dummy
 
-To reactivate video output (on a x11 channel) set it to:
+To reactivate video/audio output set it to:
 
-export SDL_VIDEODRIVER=x11
+export SDL_VIDEODRIVER=
+export SDL_AUDIODRIVER=
 
 Usage
 -------------

@@ -723,7 +723,7 @@ float Search::getFrameScore(const Frame& frame)
  // Obtaining magnet corresponding to kid's room
  int currentRoom = _sdlPop->Kid->room;
 
- // If room is outside visible rooms, do not apply magnet reward
+ // Apply normal magnet if kid is inside visible rooms
  if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
  {
   const auto &magnet = frame.magnets[currentRoom];
@@ -772,6 +772,10 @@ float Search::getFrameScore(const Frame& frame)
    if (curFrame == 148) score += -2.0f + magnet.intensityY;
   }
  }
+
+ // Apply full magnet when kid is inside a non-visible room
+ if (currentRoom == 0 || currentRoom >= _VISIBLE_ROOM_COUNT)
+  score += magnet.intensityX * 128.0f;
 
  // Now adding rule rewards
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)

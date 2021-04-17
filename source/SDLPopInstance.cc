@@ -264,8 +264,6 @@ void SDLPopInstance::performMove(const std::string& move)
  (*key_states)[SDL_SCANCODE_LEFT] = 0;
  (*key_states)[SDL_SCANCODE_RIGHT] = 0;
  (*key_states)[SDL_SCANCODE_RSHIFT] = 0;
- (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 0;
- (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 0;
 
  bool recognizedMove = false;
 
