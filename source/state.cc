@@ -53,8 +53,8 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
   AddItem(&dest, *sdlPop->Opp, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->guardhp_curr, State::HASHABLE);
   AddItem(&dest, *sdlPop->guardhp_max, State::PER_FRAME_STATE);
-  AddItem(&dest, *sdlPop->demo_index, State::BASE_LAYER);
-  AddItem(&dest, *sdlPop->demo_time, State::BASE_LAYER);
+  AddItem(&dest, *sdlPop->demo_index, State::PER_FRAME_STATE);
+  AddItem(&dest, *sdlPop->demo_time, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->curr_guard_color, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->guard_notice_timer, State::HASHABLE);
   AddItem(&dest, *sdlPop->guard_skill, State::HASHABLE);
