@@ -89,6 +89,9 @@ private:
  // Print Rule information
  void printRuleStatus(const Frame& frame);
 
+ // Function to determine the current possible moves
+ std::vector<uint8_t> getPossibleMoveIds(const Frame& frame);
+
  // Profiling and Debugging
  bool _showProfilingInformation;
  bool _showDebuggingInformation;

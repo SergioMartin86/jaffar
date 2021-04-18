@@ -251,16 +251,29 @@ void Search::runFrame()
  size_t localStepFramesProcessedCounter = 0;
 
  for (size_t frameId = 0; frameId < _currentFrameDB.size(); frameId++)
-  for (uint8_t moveId = 0; moveId < _possibleMoves.size(); moveId++)
+ {
+  // Getting base frame pointer
+  const auto& baseFrame = _currentFrameDB[frameId];
+
+  // Loading base frame information
+  _state->loadBase(_baseStateData);
+
+  // Getting possible moves for the current frame
+  auto possibleMoveIds = getPossibleMoveIds(*baseFrame);
+
+  // Running possible moves
+  for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
   {
+   // Getting possible move id
+   auto moveId = possibleMoveIds[idx];
+
+   // Getting possible move string
    std::string move = _possibleMoves[moveId].c_str();
 
-   // Getting base frame pointer
-   const auto& baseFrame = _currentFrameDB[frameId];
-
    // Loading frame state
-   _state->loadBase(_baseStateData);
    _state->loadFrame(baseFrame->frameStateData);
+
+   // Refreshing engine
    _sdlPop->refreshEngine();
 
    // Perform the selected move
@@ -310,6 +323,7 @@ void Search::runFrame()
 
    // Adding hash into the new hashes table
    newHashes.insert(hash);
+  }
  }
 
  // Swapping database pointers
@@ -784,4 +798,63 @@ float Search::getFrameScore(const Frame& frame)
 
  // Returning score
  return score;
+}
+
+std::vector<uint8_t> Search::getPossibleMoveIds(const Frame& frame)
+{
+ // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13
+ //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
+
+ // Loading frame state
+ _state->loadFrame(frame.frameStateData);
+
+ // Getting Kid information
+ const auto& Kid = *_sdlPop->Kid;
+
+ // If dead, do nothing
+ if (Kid.alive >= 0)
+  return { 0 };
+
+ // If bumped, nothing to do
+ if (Kid.action == actions_5_bumped)
+  return { 0 };
+
+ // If in mid air or free fall, hope to grab on to something
+ if (Kid.action == actions_3_in_midair || Kid.action == actions_4_in_freefall)
+  return { 0, 1 };
+
+ // Move, sheath, attack, parry
+ if (Kid.sword == sword_2_drawn)
+  return { 0, 1, 2, 3, 4, 5 };
+
+ // Kid is standing or finishing a turn, try all possibilities
+ if ( Kid.frame == frame_15_stand ||  ( Kid.frame >= frame_50_turn && Kid.frame < 53 ) )
+  return { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+
+ // Turning frame, try all possibilities
+ if (Kid.frame == frame_48_turn)
+  return { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+
+ // Start running animation, all movement without shift
+ if (Kid.frame < 4)
+  return { 0, 2, 3, 4, 5, 6, 7, 8, 9, };
+
+ // Starting jump up, check directions, jump and shift
+ if (Kid.frame >= frame_67_start_jump_up_1 && Kid.frame < frame_70_jumphang)
+  return { 0, 1, 2, 3, 4, 5, 6, 8, 12};
+
+ // Running, all movement without shift
+ if (Kid.frame < 15)
+  return { 0, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+ // Hanging, up and shift are only options
+ if (Kid.frame >= frame_87_hanging_1 && Kid.frame < 100)
+  return { 0, 1, 2, 12 };
+
+ // Crouched, can only stand, drink, or hop
+ if (Kid.frame == frame_109_crouch)
+  return { 0, 1, 3, 4, 5, 7, 9, 13 };
+
+ // Default, no nothing
+ return { 0 };
 }
