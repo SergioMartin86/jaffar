@@ -44,6 +44,10 @@ int main(int argc, char* argv[])
   if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Produce Replay File") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Produce Replay File' key.\n");
   bool produceReplay = _jaffarConfig.configJs["Playback Configuration"]["Produce Replay File"].get<bool>();
 
+  // Parsing debugging verbosity
+  if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Frame Duration") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Frame Duration' key.\n");
+  size_t frameDuration = _jaffarConfig.configJs["Playback Configuration"]["Frame Duration"].get<size_t>();
+
   // Initializing SDLPop Instance
   SDLPopInstance sdlpop;
   sdlpop.initialize(1, true);
@@ -58,8 +62,8 @@ int main(int argc, char* argv[])
   printf("[Jaffar] Playing sequence file: %s\n", _jaffarConfig.inputSequenceFile.c_str());
   printf("[Jaffar] Sequence length: %lu frames\n", moveList.size());
 
-  // Setting timer for a sane animation
-  sdlpop.set_timer_length(timer_1, 15);
+  // Setting timer for a human-visible animation
+  sdlpop.set_timer_length(timer_1, frameDuration);
 
   // Printing initial frame info
   sdlpop.printFrameInfo();
