@@ -4,6 +4,7 @@ subprojects/json-*
 subprojects/abseil-cpp*
 subprojects/packagecache
 build
+*.p1r
 
 # Prerequisites
 *.d

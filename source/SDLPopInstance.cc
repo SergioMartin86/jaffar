@@ -72,7 +72,6 @@ void SDLPopInstance::initialize(const int startLevel, const bool useGUI)
  *demo_mode = 0;
 
  init_copyprot_dialog();
- init_record_replay();
 
  *play_demo_level = 0;
 
@@ -384,6 +383,9 @@ SDLPopInstance::SDLPopInstance()
  set_timer_length = (set_timer_length_t) dlsym(_dllHandle, "set_timer_length");
  draw_level_first = (draw_level_first_t) dlsym(_dllHandle, "draw_level_first");
  play_level = (play_level_t) dlsym(_dllHandle, "play_level");
+ save_recorded_replay = (save_recorded_replay_t) dlsym(_dllHandle, "save_recorded_replay");
+ start_recording = (start_recording_t) dlsym(_dllHandle, "start_recording");
+ add_replay_move = (add_replay_move_t) dlsym(_dllHandle, "add_replay_move");
 
  // State variables
  Kid = (char_type*) dlsym(_dllHandle, "Kid");

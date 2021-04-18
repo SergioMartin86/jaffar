@@ -36,6 +36,14 @@ int main(int argc, char* argv[])
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.mpiRank == 0 && _jaffarConfig.opMode == m_play)
  {
+  // Parsing profiling verbosity
+  if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Pause After Every Frame") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Pause After Every Frame' key.\n");
+  bool pauseAfterFrame = _jaffarConfig.configJs["Playback Configuration"]["Pause After Every Frame"].get<bool>();
+
+  // Parsing debugging verbosity
+  if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Produce Replay File") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Produce Replay File' key.\n");
+  bool produceReplay = _jaffarConfig.configJs["Playback Configuration"]["Produce Replay File"].get<bool>();
+
   // Initializing SDLPop Instance
   SDLPopInstance sdlpop;
   sdlpop.initialize(1, true);
@@ -49,8 +57,6 @@ int main(int argc, char* argv[])
   // Printing info
   printf("[Jaffar] Playing sequence file: %s\n", _jaffarConfig.inputSequenceFile.c_str());
   printf("[Jaffar] Sequence length: %lu frames\n", moveList.size());
-  printf("[Jaffar] Press any key to start...\n");
-  getchar();
 
   // Setting timer for a sane animation
   sdlpop.set_timer_length(timer_1, 15);
@@ -59,9 +65,23 @@ int main(int argc, char* argv[])
   sdlpop.printFrameInfo();
   sdlpop.draw();
 
+  // If replay is requested, start process
+  if (produceReplay)
+  {
+   sdlpop.init_record_replay();
+   sdlpop.start_recording();
+  }
+
   // Iterating move list in the sequence
   for (size_t i = 0; i < moveList.size(); i++)
   {
+   // Pause if user requested it
+   if (pauseAfterFrame)
+   {
+    printf("[Jaffar] Playback paused. Press any key to continue...\n");
+    getchar();
+   }
+
    printf("[Jaffar] ----------------------------------------------------------------\n");
    printf("[Jaffar] Current Step #: %lu / %lu\n", i, moveList.size());
 
@@ -69,9 +89,19 @@ int main(int argc, char* argv[])
    sdlpop.advanceFrame();
    sdlpop.printFrameInfo();
    sdlpop.draw();
+
+   if (produceReplay) sdlpop.add_replay_move();
   }
 
   printf("[Jaffar] Sequence Finished.\n");
+
+  if (produceReplay == true)
+  {
+   std::string replayFileName = "jaffar.p1r";
+   sdlpop.save_recorded_replay(replayFileName.c_str());
+   printf("[Jaffar] Replay saved in '%s'.\n", replayFileName.c_str());
+  }
+
   printf("[Jaffar] Press any key to exit...\n");
   getchar();
  }
