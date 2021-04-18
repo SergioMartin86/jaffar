@@ -49,6 +49,9 @@ public:
  // Here, the json is stored, and the parsing is handled on runtime
  std::vector<nlohmann::json> _actions;
 
+ // Stores dependencies with other rules
+ std::vector<size_t> _dependencies;
+
 private:
 
  // Conditions are evaluated frequently, so this optimized for performance

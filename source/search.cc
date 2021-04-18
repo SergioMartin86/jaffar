@@ -458,6 +458,16 @@ void Search::evaluateRules(Frame& frame)
   // Evaluate rule only if it's active
   if (frame.rulesStatus[ruleId] == st_active)
   {
+   // Checking dependencies first. If not met, continue to the next rule
+   bool dependenciesMet = true;
+   for (size_t i = 0; i < _rules[ruleId]->_dependencies.size(); i++)
+    if (frame.rulesStatus[_rules[ruleId]->_dependencies[i]] != st_achieved)
+     dependenciesMet = false;
+
+   // If dependencies aren't met, then continue to next rule
+   if (dependenciesMet == false) continue;
+
+   // Checking if conditions are met
    bool isAchieved = _rules[ruleId]->evaluate();
 
    // If it's achieved, update its status and run its actions
