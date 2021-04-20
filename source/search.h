@@ -20,8 +20,6 @@ class Search
 public:
 
   Search();
-  ~Search();
-
   void run();
 
 private:
@@ -62,6 +60,7 @@ private:
  size_t _globalHashCollisions;
  size_t _globalHashEntries;
  size_t _hashDatabaseSwapCount;
+ size_t _localStepSwapCounter;
 
  // Per-step local hash collision counter
  size_t _newCollisionCounter;
@@ -106,6 +105,9 @@ private:
 
  // Sharing hash entries among workers and cut hash tables databases to size
  void updateHashDatabases();
+
+ // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
+ void addHashEntry(uint64_t hash);
 
  // Function to determine the current possible moves
  std::vector<uint8_t> getPossibleMoveIds(const Frame& frame);

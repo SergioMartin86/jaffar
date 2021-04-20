@@ -284,12 +284,15 @@ void Search::computeFrames()
    auto hash = _state->computeHash();
 
    // Inserting and checking for the existence of the hash in the hash databases
-   bool collisionDetected = !_hashDatabases[0].insert(hash).second;
-   for (size_t i = 1; i < _hashDatabaseCount; i++)
+   bool collisionDetected = false;
+   for (size_t i = 0; i < _hashDatabaseCount; i++)
     collisionDetected |= _hashDatabases[i].contains(hash);
 
    // If collision detected locally, discard this frame
    if (collisionDetected) { _newCollisionCounter++; continue; }
+
+   // If not previously observed add new hash to the database
+   addHashEntry(hash);
 
    // Creating new frame, mixing base frame information and the current sdlpop state
    auto newFrame = std::make_unique<Frame>();
@@ -421,27 +424,12 @@ void Search::updateHashDatabases()
 
  // Adding new hash entries
  for (size_t i = 0; i < globalNewHashEntryCount; i++)
-  _hashDatabases[0].insert(globalNewHashVector[i]);
+  addHashEntry(globalNewHashVector[i]);
 
- // If the current initial hash database reached critical mass, cycle it around
- size_t localStepSwapCounter = 0;
- if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
- {
-  // Cycling databases, discarding the oldest hashes
-  for (int i = _hashDatabaseCount-1; i > 0; i--)
-   _hashDatabases[i] = std::move(_hashDatabases[i-1]);
-
-  // Cleaning primary hash DB
-  _hashDatabases[0].clear();
-
-  // Increasing swapping counter
-  localStepSwapCounter = 1;
- }
-
- // Gathering global swap conunter for the current step
+ // Gathering global swap counter
  size_t globalStepSwapCounter;
- MPI_Allreduce(&localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
- _hashDatabaseSwapCount += globalStepSwapCounter;
+ MPI_Allreduce(&_localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _hashDatabaseSwapCount = globalStepSwapCounter;
 
  // Finding global collision counter
  size_t globalNewCollisionCounter;
@@ -568,6 +556,7 @@ Search::Search()
  _stepFramesProcessedCounter = 0;
  _totalFramesProcessedCounter = 0;
  _hashDatabaseSwapCount = 0;
+ _localStepSwapCounter = 0;
  _newCollisionCounter = 0;
  _localStepFramesProcessedCounter = 0;
 
@@ -694,8 +683,24 @@ Search::Search()
  _globalFrameCounter = 1;
 }
 
-Search::~Search()
+void Search::addHashEntry(uint64_t hash)
 {
+ // Inserting hash
+ _hashDatabases[0].insert(hash);
+
+ // If the current initial hash database reached critical mass, cycle it around
+ if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
+ {
+  // Cycling databases, discarding the oldest hashes
+  for (int i = _hashDatabaseCount-1; i > 0; i--)
+   _hashDatabases[i] = std::move(_hashDatabases[i-1]);
+
+  // Cleaning primary hash DB
+  _hashDatabases[0].clear();
+
+  // Increasing swapping counter
+  _localStepSwapCounter++;
+ }
 }
 
 void Search::printSearchStatus()
