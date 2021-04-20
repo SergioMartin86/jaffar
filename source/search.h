@@ -56,16 +56,25 @@ private:
 
  // Hash information
  std::vector<absl::flat_hash_set<uint64_t>> _hashDatabases;
+ absl::flat_hash_set<uint64_t> _newHashes;
  size_t _hashDatabaseCount;
  size_t _hashDatabaseSizeThreshold;
  size_t _globalHashCollisions;
  size_t _globalHashEntries;
  size_t _hashDatabaseSwapCount;
 
+ // Per-step local hash collision counter
+ size_t _newCollisionCounter;
+
+  // Per-step frame processed counter
+ size_t _localStepFramesProcessedCounter;
+
  // Storage for the position of win rules, for win detection
  std::vector<size_t> _winRulePositions;
  bool _winFrameFound;
  Frame _globalWinFrame;
+ Frame _localWinFrame;
+ bool _localWinFound;
 
  // Storage for rule serialization size
  size_t _frameSerializedSize;
@@ -77,8 +86,11 @@ private:
  // Printing stats
  void printSearchStatus();
 
- // Runs the search for a single frame
- void runFrame();
+ // Each worker processes their own unique base frames to produce new frames
+ void computeFrames();
+
+ // Workers sorts their databases and communicates partial results
+ void framePostprocessing();
 
  // Obtains the score of a given frame
  float getFrameScore(const Frame& frame);
@@ -89,6 +101,12 @@ private:
  // Print Rule information
  void printRuleStatus(const Frame& frame);
 
+ // Redistribute frames uniformly among workers
+ void distributeFrames();
+
+ // Sharing hash entries among workers and cut hash tables databases to size
+ void updateHashDatabases();
+
  // Function to determine the current possible moves
  std::vector<uint8_t> getPossibleMoveIds(const Frame& frame);
 
@@ -96,7 +114,8 @@ private:
  bool _showProfilingInformation;
  bool _showDebuggingInformation;
  double _searchTotalTime;
- double _framePreprocessingTime;
+ double _frameDistributionTime;
  double _frameComputationTime;
  double _framePostprocessingTime;
+ double _hashExchangeTime;
 };

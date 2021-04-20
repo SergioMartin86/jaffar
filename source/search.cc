@@ -33,8 +33,25 @@ void Search::run()
    printSearchStatus();
   }
 
-  // All workers: running a single frame search
-  runFrame();
+  /////////////////////////////////////////////////////////////////
+  /// Main frame processing cycle begin
+  /////////////////////////////////////////////////////////////////
+
+  // 1) Workers exchange new base frames uniformly
+  distributeFrames();
+
+  // 2) Workers process their own base frames
+  computeFrames();
+
+  // 3) Workers sorts their databases and communicates partial results
+  framePostprocessing();
+
+  // 4) Workers exchange hash information and update hash databases
+  updateHashDatabases();
+
+  /////////////////////////////////////////////////////////////////
+  /// Main frame processing cycle end
+  /////////////////////////////////////////////////////////////////
 
   // Terminate if DB is depleted and no winning rule was found
   if (_globalFrameCounter == 0)
@@ -85,170 +102,148 @@ void Search::run()
  MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Search::runFrame()
+void Search::distributeFrames()
 {
- ////////////////////////////////////////////////////////////////////////////////////////////////////
- // [Preprocessing] Redistribute base frames all-to-all among workers
- ////////////////////////////////////////////////////////////////////////////////////////////////////
+ auto frameDistributionTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
- auto framePreprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
+  // Getting worker's own base frame count
+  size_t localBaseFrameCount = _currentFrameDB.size();
 
- // Getting worker's own base frame count
- size_t localBaseFrameCount = _currentFrameDB.size();
+  // Gathering all of te worker's base frame counts
+  std::vector<size_t> localBaseFrameCounts(_workerCount);
+  MPI_Allgather(&localBaseFrameCount, 1, MPI_UNSIGNED_LONG, localBaseFrameCounts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
 
- // Gathering all of te worker's base frame counts
- std::vector<size_t> localBaseFrameCounts(_workerCount);
- MPI_Allgather(&localBaseFrameCount, 1, MPI_UNSIGNED_LONG, localBaseFrameCounts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+  // Figuring out work distribution
+  std::vector<size_t> localNextFrameCounts = splitVector(_globalFrameCounter, _workerCount);
 
- // Figuring out work distribution
- std::vector<size_t> localNextFrameCounts = splitVector(_globalFrameCounter, _workerCount);
-
- // Figuring out frame offsets
- size_t currentOffset = 0;
- std::vector<size_t> localNextFrameStart(_workerCount);
- std::vector<size_t> localNextFrameEnd(_workerCount);
- for (size_t i = 0; i < _workerCount; i++)
- {
-  localNextFrameStart[i] = currentOffset;
-  localNextFrameEnd[i] = currentOffset + localNextFrameCounts[i] - 1;
-  currentOffset += localNextFrameCounts[i];
- }
-
- // Determining all-to-all send/recv counts
- std::vector<std::vector<int>> allToAllSendCounts(_workerCount);
- std::vector<std::vector<int>> allToAllRecvCounts(_workerCount);
- for (size_t i = 0; i < _workerCount; i++) allToAllSendCounts[i].resize(_workerCount, 0);
- for (size_t i = 0; i < _workerCount; i++) allToAllRecvCounts[i].resize(_workerCount, 0);
-
- // Iterating over sending ranks
- size_t recvWorkerId = 0;
- auto recvFramesCount = localNextFrameCounts[0];
-
- for (size_t sendWorkerId = 0; sendWorkerId < _workerCount; sendWorkerId++)
- {
-  auto sendFramesCount = localBaseFrameCounts[sendWorkerId];
-
-  while (sendFramesCount > 0)
+  // Figuring out frame offsets
+  size_t currentOffset = 0;
+  std::vector<size_t> localNextFrameStart(_workerCount);
+  std::vector<size_t> localNextFrameEnd(_workerCount);
+  for (size_t i = 0; i < _workerCount; i++)
   {
-   if (sendFramesCount <= recvFramesCount)
+   localNextFrameStart[i] = currentOffset;
+   localNextFrameEnd[i] = currentOffset + localNextFrameCounts[i] - 1;
+   currentOffset += localNextFrameCounts[i];
+  }
+
+  // Determining all-to-all send/recv counts
+  std::vector<std::vector<int>> allToAllSendCounts(_workerCount);
+  std::vector<std::vector<int>> allToAllRecvCounts(_workerCount);
+  for (size_t i = 0; i < _workerCount; i++) allToAllSendCounts[i].resize(_workerCount, 0);
+  for (size_t i = 0; i < _workerCount; i++) allToAllRecvCounts[i].resize(_workerCount, 0);
+
+  // Iterating over sending ranks
+  size_t recvWorkerId = 0;
+  auto recvFramesCount = localNextFrameCounts[0];
+
+  for (size_t sendWorkerId = 0; sendWorkerId < _workerCount; sendWorkerId++)
+  {
+   auto sendFramesCount = localBaseFrameCounts[sendWorkerId];
+
+   while (sendFramesCount > 0)
    {
-    allToAllSendCounts[sendWorkerId][recvWorkerId] += sendFramesCount;
-    allToAllRecvCounts[recvWorkerId][sendWorkerId] += sendFramesCount;
-    recvFramesCount -= sendFramesCount;
-    sendFramesCount = 0;
-   }
-   else
-   {
-    allToAllSendCounts[sendWorkerId][recvWorkerId] += recvFramesCount;
-    allToAllRecvCounts[recvWorkerId][sendWorkerId] += recvFramesCount;
-    sendFramesCount -= recvFramesCount;
-    recvFramesCount = 0;
-    recvWorkerId++;
-    recvFramesCount = localNextFrameCounts[recvWorkerId];
+    if (sendFramesCount <= recvFramesCount)
+    {
+     allToAllSendCounts[sendWorkerId][recvWorkerId] += sendFramesCount;
+     allToAllRecvCounts[recvWorkerId][sendWorkerId] += sendFramesCount;
+     recvFramesCount -= sendFramesCount;
+     sendFramesCount = 0;
+    }
+    else
+    {
+     allToAllSendCounts[sendWorkerId][recvWorkerId] += recvFramesCount;
+     allToAllRecvCounts[recvWorkerId][sendWorkerId] += recvFramesCount;
+     sendFramesCount -= recvFramesCount;
+     recvFramesCount = 0;
+     recvWorkerId++;
+     recvFramesCount = localNextFrameCounts[recvWorkerId];
+    }
    }
   }
- }
 
- // Determining all-to-all send/recv displacements
- std::vector<std::vector<int>> allToAllSendDispls(_workerCount);
- std::vector<std::vector<int>> allToAllRecvDispls(_workerCount);
- for (size_t i = 0; i < _workerCount; i++) allToAllSendDispls[i].resize(_workerCount, 0);
- for (size_t i = 0; i < _workerCount; i++) allToAllRecvDispls[i].resize(_workerCount, 0);
+  // Shuffling database to distribute uniformly also in terms of score
+  std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
 
- // Send displacements
- for (size_t i = 0; i < _workerCount; i++)
- {
-  size_t curSendDispl = 0;
-  for (size_t j = 0; j < _workerCount; j++)
+  // Exchanging frames with all other workers at a one by one basis
+  // This could be done more efficiently in terms of message traffic and performance by using an MPI_AlltoAllv operation
+  // However, this operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
+  // Given this bot needs as much memory as possible, the more memory efficient 1-to-1 communication is used
+  for (size_t neighborId = 0; neighborId < _workerCount; neighborId++)
   {
-   allToAllSendDispls[i][j] = curSendDispl;
-   curSendDispl += allToAllSendCounts[i][j];
+   // Getting counts for the current worker
+   int recvCount = allToAllRecvCounts[_workerId][neighborId];
+   int sendCount = allToAllSendCounts[_workerId][neighborId];
+
+   // Calculating buffer size as the max between the frames we send and receive
+   size_t bufferSize = std::max(recvCount, sendCount);
+
+   // Reserving exchange buffer
+   char* frameExchangeBuffer = (char*) malloc(_frameSerializedSize * bufferSize);
+
+   // Serializing always the last frame and reducing vector size to minimize memory usage
+   size_t currentSendPosition = 0;
+   for (int i = 0; i < sendCount; i++)
+   {
+    // Getting current frame count
+    const size_t count = _currentFrameDB.size();
+
+    // Getting last frame
+    const auto& frame = _currentFrameDB[count-1];
+
+    // Serializing frame
+    frame->serialize(&frameExchangeBuffer[currentSendPosition]);
+
+    // Advancing send buffer pointer
+    currentSendPosition += _frameSerializedSize;
+
+    // Removing last frame by resizing
+    _currentFrameDB.resize(count-1);
+   }
+
+   // Exchanging frames with neighbor
+   MPI_Sendrecv_replace(frameExchangeBuffer, bufferSize, _mpiFrameType, neighborId, 0, neighborId, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+   // Deserializing contiguous buffer into the new frame database
+   size_t currentRecvPosition = 0;
+   for (int frameId = 0; frameId < recvCount; frameId++)
+   {
+    // Creating new frame
+    auto newFrame = std::make_unique<Frame>();
+
+    // Deserializing frame
+    newFrame->deserialize(&frameExchangeBuffer[currentRecvPosition]);
+
+    // Adding new frame into the data base
+    _nextFrameDB.push_back(std::move(newFrame));
+
+    // Advancing send buffer pointer
+    currentRecvPosition += _frameSerializedSize;
+   }
+
+   // Freeing exchange buffer
+   free(frameExchangeBuffer);
   }
- }
 
- // Receive displacements
- for (size_t i = 0; i < _workerCount; i++)
- {
-  size_t curRecvDispl = 0;
-  for (size_t j = 0; j < _workerCount; j++)
-  {
-   allToAllRecvDispls[i][j] = curRecvDispl;
-   curRecvDispl += allToAllRecvCounts[i][j];
-  }
- }
+  // Swapping database pointers
+  _currentFrameDB = std::move(_nextFrameDB);
 
- // Resizing next DB to receive the new frames
- size_t localNextFrameCount = localNextFrameCounts[_workerId];
+  // Clearing next frame database
+  _nextFrameDB.clear();
 
- // Shuffling database to distribute uniformly also in terms of score
- std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
+  auto frameDistributionTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _frameDistributionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDistributionTimeEnd - frameDistributionTimeBegin).count();    // Profiling
 
- // Serializing database into a contiguous buffer
- size_t currentPosition = 0;
- char* frameSendBuffer = (char*) malloc(_frameSerializedSize * _currentFrameDB.size());
- for (size_t frameId = 0; frameId < _currentFrameDB.size(); frameId++)
- {
-  // Serializing frame
-  _currentFrameDB[frameId]->serialize(&frameSendBuffer[currentPosition]);
+}
 
-  // Advancing send buffer pointer
-  currentPosition += _frameSerializedSize;
- }
-
- // Clearing databases
- _currentFrameDB.clear();
- _nextFrameDB.clear();
-
- // Reserving receive buffer
- char* frameRecvBuffer = (char*) malloc(_frameSerializedSize * localNextFrameCount);
-
- // Exchanging frames
- MPI_Alltoallv(frameSendBuffer, allToAllSendCounts[_workerId].data(), allToAllSendDispls[_workerId].data(), _mpiFrameType,
-               frameRecvBuffer, allToAllRecvCounts[_workerId].data(), allToAllRecvDispls[_workerId].data(), _mpiFrameType, MPI_COMM_WORLD);
-
- // Freeing send buffer
- free(frameSendBuffer);
-
- // Deserializing contiguous buffer into the new frame database
- currentPosition = 0;
- for (size_t frameId = 0; frameId < localNextFrameCount; frameId++)
- {
-  // Creating new frame
-  auto newFrame = std::make_unique<Frame>();
-
-  // Deserializing frame
-  newFrame->deserialize(&frameRecvBuffer[currentPosition]);
-
-  // Adding new frame into the data base
-  _currentFrameDB.push_back(std::move(newFrame));
-
-  // Advancing send buffer pointer
-  currentPosition += _frameSerializedSize;
- }
-
- // Freeing send buffers
- free(frameRecvBuffer);
-
- auto framePreprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _framePreprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePreprocessingTimeEnd - framePreprocessingTimeBegin).count();    // Profiling
-
- ////////////////////////////////////////////////////////////////////////////////////////////////////
- // [Computation - Parallel] Each worker processes its own unique base frames
- ////////////////////////////////////////////////////////////////////////////////////////////////////
-
+void Search::computeFrames()
+{
  MPI_Barrier(MPI_COMM_WORLD);
  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
- // Storing new hashes to broadcast to other workers
- absl::flat_hash_set<uint64_t> newHashes;
- size_t newCollisionCounter = 0;
-
- // Storing win frame condition and data
- bool localWinFound = false;
- Frame localWinFrame;
-
- // Initializing processed frame counter
- size_t localStepFramesProcessedCounter = 0;
+ // Initializing counters
+ _localStepFramesProcessedCounter = 0;
+ _newCollisionCounter = 0;
 
  for (size_t frameId = 0; frameId < _currentFrameDB.size(); frameId++)
  {
@@ -283,7 +278,7 @@ void Search::runFrame()
    _sdlPop->advanceFrame();
 
    // Increasing  frames processed counter
-   localStepFramesProcessedCounter++;
+   _localStepFramesProcessedCounter++;
 
    // Compute hash value
    auto hash = _state->computeHash();
@@ -294,7 +289,7 @@ void Search::runFrame()
     collisionDetected |= _hashDatabases[i].contains(hash);
 
    // If collision detected locally, discard this frame
-   if (collisionDetected) { newCollisionCounter++; continue; }
+   if (collisionDetected) { _newCollisionCounter++; continue; }
 
    // Creating new frame, mixing base frame information and the current sdlpop state
    auto newFrame = std::make_unique<Frame>();
@@ -316,29 +311,29 @@ void Search::runFrame()
    if (newFrame->isFail == true) continue;
 
    // If frame has succeded, then flag it
-   if (newFrame->isWin == true) { localWinFound = true; localWinFrame = *newFrame; }
+   if (newFrame->isWin == true) { _localWinFound = true; _localWinFrame = *newFrame; }
 
    // Adding novel frame in the next frame database
    _nextFrameDB.push_back(std::move(newFrame));
 
    // Adding hash into the new hashes table
-   newHashes.insert(hash);
+   _newHashes.insert(hash);
   }
  }
+
+ auto frameComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count();    // Profiling
+}
+
+void Search::framePostprocessing()
+{
+ auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Swapping database pointers
  _currentFrameDB = std::move(_nextFrameDB);
 
- MPI_Barrier(MPI_COMM_WORLD);
-
- auto frameComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count();    // Profiling
-
- /////////////////////////////////////////////////////////////////////////////////////////////////////
- // [Postprocessing] Each worker processes its own unique base frames and communicates partial results
- /////////////////////////////////////////////////////////////////////////////////////////////////////
-
- auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
+ // Clearing next frame database
+ _nextFrameDB.clear();
 
  // Sorting local DB frames by score
  std::sort(_currentFrameDB.begin(), _currentFrameDB.end(), [](const auto& a, const auto& b) { return a->score > b->score; });
@@ -369,8 +364,37 @@ void Search::runFrame()
  size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
  MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
+ // Exchanging the fact that a win frame has been found
+ int winRank = -1;
+ int localHasWinFrame = _localWinFound == false ? 0 : 1;
+ std::vector<int> globalHasWinFrameVector(_workerCount);
+ MPI_Allgather(&localHasWinFrame, 1, MPI_INT, globalHasWinFrameVector.data(), 1, MPI_INT, MPI_COMM_WORLD);
+ for (size_t i = 0; i < _workerCount; i++) if (globalHasWinFrameVector[i] == 1) winRank = i;
+
+ // If win frame found, broadcast it
+ if (winRank >= 0)
+ {
+  char winRankBuffer[_frameSerializedSize];
+  if ((size_t)winRank == _workerId) _localWinFrame.serialize(winRankBuffer);
+  MPI_Bcast(winRankBuffer, 1, _mpiFrameType, winRank, MPI_COMM_WORLD);
+  _globalWinFrame.deserialize(winRankBuffer);
+  _winFrameFound = true;
+ }
+
+ // Summing frame processing counters
+ MPI_Allreduce(&_localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _totalFramesProcessedCounter += _stepFramesProcessedCounter;
+
+ auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
+}
+
+void Search::updateHashDatabases()
+{
+ auto hashExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
  // Gathering number of new hash entries
- int localNewHashEntryCount = (int)newHashes.size();
+ int localNewHashEntryCount = (int)_newHashes.size();
  std::vector<int> globalNewHashEntryCounts(_workerCount);
  MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
@@ -385,7 +409,10 @@ void Search::runFrame()
 
  // Serializing new hash entries
  std::vector<uint64_t> localNewHashVector;
- for (const auto& key : newHashes) localNewHashVector.push_back(key);
+ for (const auto& key : _newHashes) localNewHashVector.push_back(key);
+
+ // Freeing new hashes vector
+  _newHashes.clear();
 
  // Gathering new hash entries
  size_t globalNewHashEntryCount = currentDispl;
@@ -396,37 +423,11 @@ void Search::runFrame()
  for (size_t i = 0; i < globalNewHashEntryCount; i++)
   _hashDatabases[0].insert(globalNewHashVector[i]);
 
- // Finding global collision counter
- size_t globalNewCollisionCounter;
- MPI_Allreduce(&newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
- _globalHashCollisions += globalNewCollisionCounter;
-
- // Exchanging the fact that a win frame has been found
- int winRank = -1;
- int localHasWinFrame = localWinFound == false ? 0 : 1;
- std::vector<int> globalHasWinFrameVector(_workerCount);
- MPI_Allgather(&localHasWinFrame, 1, MPI_INT, globalHasWinFrameVector.data(), 1, MPI_INT, MPI_COMM_WORLD);
- for (size_t i = 0; i < _workerCount; i++) if (globalHasWinFrameVector[i] == 1) winRank = i;
-
- // If win frame found, broadcast it
- if (winRank >= 0)
- {
-  char winRankBuffer[_frameSerializedSize];
-  if ((size_t)winRank == _workerId) localWinFrame.serialize(winRankBuffer);
-  MPI_Bcast(winRankBuffer, 1, _mpiFrameType, winRank, MPI_COMM_WORLD);
-  _globalWinFrame.deserialize(winRankBuffer);
-  _winFrameFound = true;
- }
-
- // Summing frame processing counters
- MPI_Allreduce(&localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
- _totalFramesProcessedCounter += _stepFramesProcessedCounter;
-
- // If the primary database reached critical mass, perform swap
+ // If the current initial hash database reached critical mass, cycle it around
  size_t localStepSwapCounter = 0;
  if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
  {
-  // Swapping primary into secondary
+  // Cycling databases, discarding the oldest hashes
   for (int i = _hashDatabaseCount-1; i > 0; i--)
    _hashDatabases[i] = std::move(_hashDatabases[i-1]);
 
@@ -442,13 +443,18 @@ void Search::runFrame()
  MPI_Allreduce(&localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
  _hashDatabaseSwapCount += globalStepSwapCounter;
 
+ // Finding global collision counter
+ size_t globalNewCollisionCounter;
+ MPI_Allreduce(&_newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _globalHashCollisions += globalNewCollisionCounter;
+
  // Calculating global hash entry count
  size_t localHashDBSize = 0;
  for (size_t i = 0; i < _hashDatabaseCount; i++) localHashDBSize += _hashDatabases[i].size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
- auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
+ auto hashExchangeTimeEnd = std::chrono::steady_clock::now(); // Profiling
+ _hashExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count();    // Profiling
 }
 
 void Search::evaluateRules(Frame& frame)
@@ -554,7 +560,7 @@ Search::Search()
 {
  // Profiling information
  _searchTotalTime = 0.0;
- _framePreprocessingTime = 0.0;
+ _frameDistributionTime = 0.0;
  _frameComputationTime = 0.0;
  _framePostprocessingTime = 0.0;
 
@@ -562,6 +568,8 @@ Search::Search()
  _stepFramesProcessedCounter = 0;
  _totalFramesProcessedCounter = 0;
  _hashDatabaseSwapCount = 0;
+ _newCollisionCounter = 0;
+ _localStepFramesProcessedCounter = 0;
 
  // Getting worker count
  _workerId = (size_t) _jaffarConfig.mpiRank;
@@ -643,6 +651,7 @@ Search::Search()
 
  // Setting win status
  _winFrameFound = false;
+ _localWinFound = false;
 
  // Creating initial frame on the root rank
  if (_jaffarConfig.mpiRank == 0)
@@ -696,12 +705,13 @@ void Search::printSearchStatus()
  printf("[Jaffar] Best Score: %f\n", _bestFrame.score);
  printf("[Jaffar] Database Size: %lu / %lu\n", _globalFrameCounter, _maxLocalDatabaseSize*_workerCount);
  printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
- printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", (_framePreprocessingTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
+ printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", (_frameDistributionTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
 
  if (_showProfilingInformation)
  {
-  printf("[Jaffar] Frame Preprocessing Time:  %3.3fs\n", _framePreprocessingTime / 1.0e+9);
+  printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
   printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
+  printf("[Jaffar] Hash Exchange Time:        %3.3fs\n", _hashExchangeTime / 1.0e+9);
   printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
  }
 

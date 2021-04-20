@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
 
    printf("[Jaffar] ----------------------------------------------------------------\n");
    printf("[Jaffar] Current Step #: %lu / %lu\n", i, moveList.size());
+   printf("[Jaffar]  + Move: %s\n", i < moveList.size() - 1 ? moveList[i+1].c_str() : ".");
 
    sdlpop.performMove(moveList[i]);
    sdlpop.advanceFrame();
@@ -135,9 +136,8 @@ void parseArgs(int argc, char* argv[])
 {
  ArgumentParser program("jaffar", "1.0.0");
 
- program.add_argument("--config", "-c")
+ program.add_argument("configFile")
    .help("path to the Jaffar configuration (.config) file to run.")
-   .default_value(std::string("jaffar.config"))
    .required();
 
  program.add_argument("--play", "-p")
@@ -155,7 +155,7 @@ void parseArgs(int argc, char* argv[])
    exit(-1);
  }
 
- _jaffarConfig.inputConfigFile = program.get<std::string>("--config");
+ _jaffarConfig.inputConfigFile = program.get<std::string>("configFile");
  _jaffarConfig.inputSequenceFile = program.get<std::string>("--play");
 
  // By default do train
