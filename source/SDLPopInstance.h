@@ -83,7 +83,7 @@ class SDLPopInstance {
   ~SDLPopInstance();
 
  // Initializes the sdlPop instance
- void initialize(const int startLevel, const bool useGUI);
+ void initialize(const bool useGUI);
 
  // Set seed
  void setSeed(const dword randomSeed);

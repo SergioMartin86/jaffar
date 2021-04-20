@@ -43,7 +43,8 @@ jaffarFiles = [
   'source/rule.cc',
   'source/frame.cc',
   'source/utils.cc',
-  'source/search.cc'
+  'source/search.cc',
+  'source/playback.cc'
 ]
 
 sdl2_dep = dependency('sdl2')
@@ -73,6 +74,6 @@ executable('jaffar',
   dependencies: deps,
   include_directories: inc,
   link_with: [ sdlPopLib, metroHash64Lib ],
-  link_args: [ '-ldl' ],
+  link_args: [ '-ldl', '-lncurses' ],
   cpp_args: [ '-Wfatal-errors' ]
   )

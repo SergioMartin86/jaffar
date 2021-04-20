@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <ncurses.h>
+#include <unistd.h>
 
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
@@ -63,4 +65,40 @@ bool loadStringFromFile(std::string &dst, const char *fileName)
     return true;
   }
   return false;
+}
+
+// Function to check for keypress taken from https://github.com/ajpaulson/learning-ncurses/blob/master/kbhit.c
+int kbhit()
+{
+ int ch, r;
+
+ // turn off getch() blocking and echo
+ nodelay(stdscr, TRUE);
+ noecho();
+
+ // check for input
+ ch = getch();
+ if( ch == ERR)      // no input
+   r = FALSE;
+ else                // input
+ {
+  r = TRUE;
+  ungetch(ch);
+ }
+
+ // restore block and echo
+ echo();
+ nodelay(stdscr, FALSE);
+
+ return(r);
+}
+
+int getKeyPress()
+{
+ while(!kbhit())
+ {
+  usleep(100000ul);
+  refresh();
+ }
+ return getch();
 }

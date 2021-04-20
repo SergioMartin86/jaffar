@@ -43,7 +43,7 @@ void Search::run()
   // 2) Workers process their own base frames
   computeFrames();
 
-  // 3) Workers sorts their databases and communicates partial results
+  // 3) Workers sort their databases and communicate partial results
   framePostprocessing();
 
   // 4) Workers exchange hash information and update hash databases
@@ -162,7 +162,7 @@ void Search::distributeFrames()
    }
   }
 
-  // Shuffling database to distribute uniformly also in terms of score
+  // Shuffling database to remove bias in the score distribution
   std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
 
   // Exchanging frames with all other workers at a one by one basis
@@ -228,12 +228,8 @@ void Search::distributeFrames()
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
 
-  // Clearing next frame database
-  _nextFrameDB.clear();
-
   auto frameDistributionTimeEnd = std::chrono::steady_clock::now(); // Profiling
   _frameDistributionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDistributionTimeEnd - frameDistributionTimeBegin).count();    // Profiling
-
 }
 
 void Search::computeFrames()
@@ -245,10 +241,14 @@ void Search::computeFrames()
  _localStepFramesProcessedCounter = 0;
  _newCollisionCounter = 0;
 
- for (size_t frameId = 0; frameId < _currentFrameDB.size(); frameId++)
+ // Computing always the last frame while resizing the database to reduce memory footprint
+ while (_currentFrameDB.empty() == false)
  {
+  // Getting current frame count
+  const size_t count = _currentFrameDB.size();
+
   // Getting base frame pointer
-  const auto& baseFrame = _currentFrameDB[frameId];
+  const auto& baseFrame = _currentFrameDB[count-1];
 
   // Loading base frame information
   _state->loadBase(_baseStateData);
@@ -322,6 +322,9 @@ void Search::computeFrames()
    // Adding hash into the new hashes table
    _newHashes.insert(hash);
   }
+
+  // Reducing base database size
+  _currentFrameDB.resize(count-1);
  }
 
  auto frameComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
@@ -600,7 +603,7 @@ Search::Search()
 
  bool showSDLPopPreview = false;
  if (_workerId == 0) showSDLPopPreview = _showSDLPopPreview;
- _sdlPop->initialize(1, showSDLPopPreview);
+ _sdlPop->initialize(showSDLPopPreview);
 
  // Initializing State Handler
  _state = new State(_sdlPop);
@@ -723,7 +726,7 @@ void Search::printSearchStatus()
  if (_showDebuggingInformation)
  {
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash DB Entries: %lu\n", _globalHashEntries);
+  printf("[Jaffar] Hash DB Entries: %lu / %lu\n", _globalHashEntries, _hashDatabaseCount * _hashDatabaseSizeThreshold * _workerCount);
   printf("[Jaffar] Hash DB Swaps: %lu\n", _hashDatabaseSwapCount);
 
   printf("[Jaffar] Best Frame Information:\n");

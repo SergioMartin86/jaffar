@@ -3,6 +3,7 @@
 #include "jaffar.h"
 #include "utils.h"
 #include "state.h"
+#include "playback.h"
 #include "search.h"
 #include "argparse.hpp"
 #include <mpi.h>
@@ -26,8 +27,8 @@ int main(int argc, char* argv[])
  if (_jaffarConfig.mpiRank == 0)
  {
   printf("[Jaffar] ----------------------------------------------------------------\n");
+  printf("[Jaffar] Launching Jaffar Version 1.0...\n");
   printf("[Jaffar] Using configuration file: %s.\n", _jaffarConfig.inputConfigFile.c_str());
-  printf("[Jaffar] Opening SDLPop...\n");
  }
 
  // Wait for all workers to be ready
@@ -36,79 +37,11 @@ int main(int argc, char* argv[])
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.mpiRank == 0 && _jaffarConfig.opMode == m_play)
  {
-  // Parsing profiling verbosity
-  if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Pause After Every Frame") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Pause After Every Frame' key.\n");
-  bool pauseAfterFrame = _jaffarConfig.configJs["Playback Configuration"]["Pause After Every Frame"].get<bool>();
+  // Initializing playback module
+  Playback playback;
 
-  // Parsing debugging verbosity
-  if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Produce Replay File") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Produce Replay File' key.\n");
-  bool produceReplay = _jaffarConfig.configJs["Playback Configuration"]["Produce Replay File"].get<bool>();
-
-  // Parsing debugging verbosity
-  if (isDefined(_jaffarConfig.configJs["Playback Configuration"], "Frame Duration") == false) EXIT_WITH_ERROR("[ERROR] Playback configuration missing 'Frame Duration' key.\n");
-  size_t frameDuration = _jaffarConfig.configJs["Playback Configuration"]["Frame Duration"].get<size_t>();
-
-  // Initializing SDLPop Instance
-  SDLPopInstance sdlpop;
-  sdlpop.initialize(1, true);
-
-  // Initializing State Handler
-  State state(&sdlpop);
-
-  // Creating move list
-  const auto moveList = split(_jaffarConfig.moveSequence, ' ');
-
-  // Printing info
-  printf("[Jaffar] Playing sequence file: %s\n", _jaffarConfig.inputSequenceFile.c_str());
-  printf("[Jaffar] Sequence length: %lu frames\n", moveList.size());
-
-  // Setting timer for a human-visible animation
-  sdlpop.set_timer_length(timer_1, frameDuration);
-
-  // Printing initial frame info
-  sdlpop.printFrameInfo();
-  sdlpop.draw();
-
-  // If replay is requested, start process
-  if (produceReplay)
-  {
-   sdlpop.init_record_replay();
-   sdlpop.start_recording();
-  }
-
-  // Iterating move list in the sequence
-  for (size_t i = 0; i < moveList.size(); i++)
-  {
-   // Pause if user requested it
-   if (pauseAfterFrame)
-   {
-    printf("[Jaffar] Playback paused. Press any key to continue...\n");
-    getchar();
-   }
-
-   printf("[Jaffar] ----------------------------------------------------------------\n");
-   printf("[Jaffar] Current Step #: %lu / %lu\n", i, moveList.size());
-   printf("[Jaffar]  + Move: %s\n", i < moveList.size() - 1 ? moveList[i+1].c_str() : ".");
-
-   sdlpop.performMove(moveList[i]);
-   sdlpop.advanceFrame();
-   sdlpop.printFrameInfo();
-   sdlpop.draw();
-
-   if (produceReplay) sdlpop.add_replay_move();
-  }
-
-  printf("[Jaffar] Sequence Finished.\n");
-
-  if (produceReplay == true)
-  {
-   std::string replayFileName = "jaffar.p1r";
-   sdlpop.save_recorded_replay(replayFileName.c_str());
-   printf("[Jaffar] Replay saved in '%s'.\n", replayFileName.c_str());
-  }
-
-  printf("[Jaffar] Press any key to exit...\n");
-  getchar();
+  // Running playback
+  playback.play();
  }
 
  // If this is to find a sequence, run the searcher

@@ -58,3 +58,7 @@ std::vector<T> splitVector(const T size, const T n)
 
   return subSizes;
 }
+
+// Functions to capture single key presses for commands in playback
+int kbhit();
+int getKeyPress();
