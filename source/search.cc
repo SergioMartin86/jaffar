@@ -570,14 +570,6 @@ Search::Search()
  // Setting starting step
  _currentStep = 0;
 
- // Parsing profiling verbosity
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show Profiling Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Profiling Information' key.\n");
- _showProfilingInformation = _jaffarConfig.configJs["Search Configuration"]["Show Profiling Information"].get<bool>();
-
- // Parsing debugging verbosity
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show Debugging Information") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show Debugging Information' key.\n");
- _showDebuggingInformation = _jaffarConfig.configJs["Search Configuration"]["Show Debugging Information"].get<bool>();
-
  // Parsing preview display
  if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show SDLPop Display") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show SDLPop Display' key.\n");
  _showSDLPopPreview = _jaffarConfig.configJs["Search Configuration"]["Show SDLPop Display"].get<bool>();
@@ -586,17 +578,27 @@ Search::Search()
  if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Steps") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Steps' key.\n");
  _maxSteps = _jaffarConfig.configJs["Search Configuration"]["Max Steps"].get<size_t>();
 
- // Parsing search width from configuration file
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Local Database Size") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Local Database Size' key.\n");
- _maxLocalDatabaseSize = _jaffarConfig.configJs["Search Configuration"]["Max Local Database Size"].get<size_t>();
+ // Parsing max hash DB entries
+ _hashDatabases.resize(HASH_DATABASE_COUNT);
+ size_t hashDBMaxMBytes = 50;
+ if(const char* hashDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB"))
+  hashDBMaxMBytes = std::stol(hashDBMaxMBytesEnv);
+ else
+  if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
 
- // Parsing hash DB information
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Hash Databases", "Database Count") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Hash Databases / Database Count' key.\n");
- _hashDatabaseCount = _jaffarConfig.configJs["Search Configuration"]["Hash Databases"]["Database Count"].get<size_t>();
- _hashDatabases.resize(_hashDatabaseCount);
+ _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
+ if (_workerId == 0) printf("[Jaffar] Using %d hash databases of %lu entries each per worker.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
 
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Hash Databases", "Size Threshold") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Hash Tables / Size Threshold' key.\n");
- _hashDatabaseSizeThreshold = _jaffarConfig.configJs["Search Configuration"]["Hash Databases"]["Size Threshold"].get<size_t>();
+ // Parsing max frame DB entries
+ size_t frameDBMaxMBytes = 300;
+ if(const char* frameDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB"))
+  frameDBMaxMBytes = std::stol(frameDBMaxMBytesEnv);
+ else
+  if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
+
+ // Twice the size of frames to allow for communication
+ _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
+ if (_workerId == 0) printf("[Jaffar] Using a frame database of %lu entries each per worker.\n", _maxLocalDatabaseSize);
 
  // Initializing SDLPop
  _sdlPop = new SDLPopInstance;
@@ -695,7 +697,7 @@ void Search::addHashEntry(uint64_t hash)
  if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
  {
   // Cycling databases, discarding the oldest hashes
-  for (int i = _hashDatabaseCount-1; i > 0; i--)
+  for (int i = HASH_DATABASE_COUNT-1; i > 0; i--)
    _hashDatabases[i] = std::move(_hashDatabases[i-1]);
 
   // Cleaning primary hash DB
@@ -715,18 +717,13 @@ void Search::printSearchStatus()
  printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
  printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", (_frameDistributionTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
 
- if (_showProfilingInformation)
- {
-  printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
-  printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
-  printf("[Jaffar] Hash Exchange Time:        %3.3fs\n", _hashExchangeTime / 1.0e+9);
-  printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
- }
+ printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
+ printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
+ printf("[Jaffar] Hash Exchange Time:        %3.3fs\n", _hashExchangeTime / 1.0e+9);
+ printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
- if (_showDebuggingInformation)
- {
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash DB Entries: %lu / %lu\n", _globalHashEntries, _hashDatabaseCount * _hashDatabaseSizeThreshold * _workerCount);
+  printf("[Jaffar] Hash DB Entries: %lu / %lu\n", _globalHashEntries, (size_t)HASH_DATABASE_COUNT * _hashDatabaseSizeThreshold * _workerCount);
   printf("[Jaffar] Hash DB Swaps: %lu\n", _hashDatabaseSwapCount);
 
   printf("[Jaffar] Best Frame Information:\n");
@@ -745,7 +742,6 @@ void Search::printSearchStatus()
   for (size_t i = 0; i <= _currentStep; i++)
    printf("%s ", _possibleMoves[_bestFrame.moveHistory[i]].c_str());
   printf("\n");
- }
 }
 
 void Search::printRuleStatus(const Frame& frame)

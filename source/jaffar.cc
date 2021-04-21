@@ -78,7 +78,7 @@ void parseArgs(int argc, char* argv[])
  }
  catch (const std::runtime_error& err)
  {
-   fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
+   if (_jaffarConfig.mpiRank == 0) fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
    exit(-1);
  }
 

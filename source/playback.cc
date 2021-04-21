@@ -50,9 +50,6 @@ Playback::Playback()
 
   // Storing new frame
   frameSequence.push_back(genState.saveFrame());
-
-  // Adding frame to replay
-  genSDLPop.add_replay_move();
  }
 
  printw("[Jaffar] Opening SDLPop window...\n");

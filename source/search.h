@@ -14,6 +14,9 @@
 #include <random>
 #include <algorithm>
 
+// Number of local databases for cyclic discarding of old hashes
+#define HASH_DATABASE_COUNT 10
+
 class Search
 {
 
@@ -113,8 +116,6 @@ private:
  std::vector<uint8_t> getPossibleMoveIds(const Frame& frame);
 
  // Profiling and Debugging
- bool _showProfilingInformation;
- bool _showDebuggingInformation;
  double _searchTotalTime;
  double _frameDistributionTime;
  double _frameComputationTime;
