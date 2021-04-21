@@ -12,12 +12,5 @@ class Playback
 public:
 
  Playback();
- void play();
-
-private:
-
- bool _pauseAfterFrame;
- bool _produceReplay;
- size_t _frameDuration;
 };
 

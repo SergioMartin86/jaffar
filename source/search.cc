@@ -614,8 +614,8 @@ Search::Search()
  for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
  {
   magnets[i].intensityY = 0.0f;
-  magnets[i].intensityX = -1.0f;
-  magnets[i].positionX = 128.0f;
+  magnets[i].intensityX = 0.0f;
+  magnets[i].positionX = 0.0f;
  }
 
  // Processing user-specified rules

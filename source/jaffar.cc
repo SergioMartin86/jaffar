@@ -36,13 +36,7 @@ int main(int argc, char* argv[])
 
  // If this is to play a sequence, simply play it
  if (_jaffarConfig.mpiRank == 0 && _jaffarConfig.opMode == m_play)
- {
-  // Initializing playback module
   Playback playback;
-
-  // Running playback
-  playback.play();
- }
 
  // If this is to find a sequence, run the searcher
  if (_jaffarConfig.opMode == m_train)
