@@ -285,7 +285,7 @@ void Search::computeFrames()
 
    // Inserting and checking for the existence of the hash in the hash databases
    bool collisionDetected = false;
-   for (size_t i = 0; i < _hashDatabaseCount; i++)
+   for (size_t i = 0; i < HASH_DATABASE_COUNT; i++)
     collisionDetected |= _hashDatabases[i].contains(hash);
 
    // If collision detected locally, discard this frame
@@ -441,7 +441,7 @@ void Search::updateHashDatabases()
 
  // Calculating global hash entry count
  size_t localHashDBSize = 0;
- for (size_t i = 0; i < _hashDatabaseCount; i++) localHashDBSize += _hashDatabases[i].size();
+ for (size_t i = 0; i < HASH_DATABASE_COUNT; i++) localHashDBSize += _hashDatabases[i].size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
  auto hashExchangeTimeEnd = std::chrono::steady_clock::now(); // Profiling
