@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
  int currentStep = 1;
 
  // Print command list
- printw("[Jaffar] Available commands: n: -1 m: +1 | h: -10 | j: +10 | y: -100 | u: +100 | r: create replay | q: quit  \n");
+ printw("[Jaffar] Available commands: n: -1 m: +1 | h: -10 | j: +10 | y: -100 | u: +100 | s: quicksave | r: create replay | q: quit  \n");
 
  // Flag to display frame information
  bool showFrameInfo = true;
@@ -184,6 +184,18 @@ int main(int argc, char* argv[])
     std::string replayFileName = "jaffar.p1r";
     genSDLPop.save_recorded_replay(replayFileName.c_str());
     printw("[Jaffar] Replay saved in '%s'.\n", replayFileName.c_str());
+
+    // Do no show frame info again after this action
+    showFrameInfo = false;
+  }
+
+  // Quicksave creation command
+  if (command == 's')
+  {
+    // Storing replay file
+    std::string saveFileName = "jaffar.sav";
+    showState.quickSave(saveFileName);
+    printw("[Jaffar] State saved in '%s'.\n", saveFileName.c_str());
 
     // Do no show frame info again after this action
     showFrameInfo = false;
