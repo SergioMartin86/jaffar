@@ -13,6 +13,7 @@
 #include <mpi.h>
 #include <random>
 #include <algorithm>
+#include <chrono>
 
 // Number of local databases for cyclic discarding of old hashes
 #define HASH_DATABASE_COUNT 10
@@ -33,6 +34,10 @@ private:
  // Jaffar script file contents (JSON)
  nlohmann::json _scriptJs;
 
+ // File output config
+ size_t _outputSaveBestFrequency;
+ double _outputSaveCurrentSeconds;
+
  // Worker id and count
  size_t _workerId;
  size_t _workerCount;
@@ -42,6 +47,8 @@ private:
  std::string _baseStateData;
  bool _showSDLPopPreview;
 
+ // Timer for saving current frame
+ std::chrono::time_point<std::chrono::steady_clock> _currentFrameSaveTimer;
 
  // Rule vector
  std::vector<Rule*> _rules;

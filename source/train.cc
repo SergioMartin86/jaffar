@@ -1,7 +1,6 @@
 #include "train.h"
 #include "utils.h"
 #include <unistd.h>
-#include <chrono>
 #include "argparse.hpp"
 
 void Train::run()
@@ -39,6 +38,11 @@ void Train::run()
    // Profiling information
    auto searchTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _searchTotalTime = std::chrono::duration_cast<std::chrono::nanoseconds>(searchTimeEnd - searchTimeBegin).count();    // Profiling
+
+   // If requested also saving best frame
+   if (_outputSaveBestFrequency > 0)
+    if (_currentStep % _outputSaveBestFrequency == 0)
+     _state->quickSave("jaffar.best.sav");
 
    // Printing search status
    printTrainStatus();
@@ -333,6 +337,19 @@ void Train::computeFrames()
    // Adding hash into the new hashes table
    _newHashes.insert(hash);
   }
+
+  // Checking if we need to save current frame
+  double currentFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - _currentFrameSaveTimer).count();
+  if (_workerId == 0)
+  if (_outputSaveCurrentSeconds > 0.0)
+   if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
+   {
+    // Saving state
+    _state->quickSave("jaffar.current.sav");
+
+    // Resetting timer
+    _currentFrameSaveTimer = std::chrono::steady_clock::now();
+   }
 
   // Reducing base database size
   _currentFrameDB.resize(count-1);
@@ -819,6 +836,9 @@ Train::Train(int argc, char* argv[])
  _newCollisionCounter = 0;
  _localStepFramesProcessedCounter = 0;
 
+ // Timer for saving current frame
+ _currentFrameSaveTimer = std::chrono::steady_clock::now();
+
  // Setting starting step
  _currentStep = 0;
 
@@ -843,6 +863,12 @@ Train::Train(int argc, char* argv[])
   frameDBMaxMBytes = std::stol(frameDBMaxMBytesEnv);
  else
   if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
+
+ // Parsing file output config
+ _outputSaveBestFrequency = 0;
+ if(const char* outputSaveBestFrequencyEnv = std::getenv("JAFFAR_SAVE_BEST_EVERY_FRAMES")) _outputSaveBestFrequency = std::stol(outputSaveBestFrequencyEnv);
+ _outputSaveCurrentSeconds = -1.0;
+ if(const char* outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_CURRENT_EVERY_SECONDS")) _outputSaveCurrentSeconds  = std::stof(outputSaveCurrentSecondsEnv);
 
  // Twice the size of frames to allow for communication
  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
