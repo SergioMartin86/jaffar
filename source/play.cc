@@ -1,10 +1,58 @@
-#include "playback.h"
+#include "common.h"
 #include "state.h"
 #include "utils.h"
 #include <ncurses.h>
+#include "argparse.hpp"
+#include "nlohmann/json.hpp"
 
-Playback::Playback()
+int main(int argc, char* argv[])
 {
+ // Defining arguments
+ argparse::ArgumentParser program("jaffar-play", JAFFAR_VERSION);
+
+ program.add_argument("jaffarFile")
+   .help("path to the Jaffar script (.jaffar) file to run.")
+   .required();
+
+ program.add_argument("sequenceFile")
+   .help("path to the Jaffar move sequence (.seq) file to run.")
+   .required();
+
+ // Parsing command line
+ try
+ {
+  program.parse_args(argc, argv);
+ }
+ catch (const std::runtime_error& err)
+ {
+   fprintf(stderr, "[Jaffar] Error parsing command line arguments: %s\n%s", err.what(), program.help().str().c_str());
+   exit(-1);
+ }
+
+ // Reading config file
+ std::string scriptFile = program.get<std::string>("jaffarFile");
+ std::string scriptString;
+ bool status = loadStringFromFile(scriptString, scriptFile.c_str());
+ if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", scriptFile.c_str(), program.help().str().c_str());
+
+ // Parsing JSON from config file
+ nlohmann::json scriptJs;
+ try
+ {
+  scriptJs = nlohmann::json::parse(scriptString);
+ }
+ catch (const std::exception& err)
+ {
+   fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", scriptFile.c_str(), err.what());
+   exit(-1);
+ }
+
+ // If sequence file defined, load it and play it
+ std::string moveSequence;
+ std::string sequenceFile = program.get<std::string>("sequenceFile");
+ status = loadStringFromFile(moveSequence, sequenceFile.c_str());
+ if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from sequence input file: %s\n%s \n", sequenceFile.c_str(), program.help().str().c_str());
+
  // Initializing ncurses screen
  initscr();
  cbreak();
@@ -13,13 +61,13 @@ Playback::Playback()
  scrollok(stdscr, TRUE);
 
  // Getting move list
- const auto moveList = split(_jaffarConfig.moveSequence, ' ');
+ const auto moveList = split(moveSequence, ' ');
 
  // Getting sequence size
  const int sequenceLength = moveList.size();
 
  // Printing info
- printw("[Jaffar] Playing sequence file: %s\n", _jaffarConfig.inputSequenceFile.c_str());
+ printw("[Jaffar] Playing sequence file: %s\n", sequenceFile.c_str());
  printw("[Jaffar] Sequence length: %d frames\n", sequenceLength);
  printw("[Jaffar] Generating frame sequence...\n");
 
@@ -30,7 +78,7 @@ Playback::Playback()
  genSDLPop.initialize(false);
 
  // Initializing generating State Handler
- State genState(&genSDLPop);
+ State genState(&genSDLPop, scriptJs);
 
  // Storage for sequence frames
  std::vector<std::string> frameSequence;
@@ -59,7 +107,7 @@ Playback::Playback()
  showSDLPop.initialize(true);
 
  // Initializing State Handler
- State showState(&showSDLPop);
+ State showState(&showSDLPop, scriptJs);
 
  // Setting timer for a human-visible animation
  showSDLPop.set_timer_length(timer_1, 16);

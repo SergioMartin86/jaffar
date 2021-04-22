@@ -1,9 +1,10 @@
 #include "state.h"
 #include "utils.h"
 #include "frame.h"
-#include "jaffar.h"
 #include <fstream>
 #include "metrohash64.h"
+
+extern nlohmann::json _scriptJs;
 
 namespace {
 
@@ -106,33 +107,27 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
 
 }  // namespace
 
-State::State(SDLPopInstance *sdlPop)
+State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
 {
  _sdlPop = sdlPop;
  _items = GenerateItemsMap(sdlPop);
 
  // Loading save file
- if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
- const std::string saveFile = _jaffarConfig.configJs["Savefile Configuration"]["Path"].get<std::string>();
+ if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
+ const std::string saveFile = stateConfig["Path"].get<std::string>();
  quickLoad(saveFile);
 
  // Parsing random seed information
- if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Random Seed", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed', 'Override' key.\n");
- if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Random Seed", "Value") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed, 'Value' key.\n");
-
- const bool overrideSeedEnabled = _jaffarConfig.configJs["Savefile Configuration"]["Random Seed"]["Override"].get<bool>();
- const dword overrideSeedValue = _jaffarConfig.configJs["Savefile Configuration"]["Random Seed"]["Value"].get<dword>();
+ if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
+ const dword configSeed = stateConfig["Random Seed"].get<dword>();
 
  // Parsing last loose tile sound
- if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Last Loose Tile Sound", "Override") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound', 'Override' key.\n");
- if (isDefined(_jaffarConfig.configJs["Savefile Configuration"], "Last Loose Tile Sound", "Value") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound, 'Value' key.\n");
+ if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
+ const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
 
- const bool overrideLastLooseTileSoundEnabled = _jaffarConfig.configJs["Savefile Configuration"]["Last Loose Tile Sound"]["Override"].get<bool>();
- const word overrideLastLooseTileSoundValue = _jaffarConfig.configJs["Savefile Configuration"]["Last Loose Tile Sound"]["Value"].get<dword>();
-
- // Setting values, if override was selected
- if (overrideSeedEnabled) _sdlPop->setSeed(overrideSeedValue);
- if (overrideLastLooseTileSoundEnabled) *_sdlPop->last_loose_sound = overrideLastLooseTileSoundValue;
+ // Setting values, overriding if value > 0 was passed
+ if (configSeed != 0) _sdlPop->setSeed(configSeed);
+ if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
 }
 
 uint64_t State::kidHash() const {

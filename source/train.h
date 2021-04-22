@@ -1,12 +1,12 @@
 #pragma once
 
-#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include "nlohmann/json.hpp"
 #include "SDLPopInstance.h"
 #include "state.h"
 #include "rule.h"
 #include "frame.h"
+#include "common.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -17,24 +17,31 @@
 // Number of local databases for cyclic discarding of old hashes
 #define HASH_DATABASE_COUNT 10
 
-class Search
+class Train
 {
 
 public:
 
-  Search();
-  void run();
+ Train(int argc, char* argv[]);
+ void run();
 
 private:
+
+ // Jaffar script file to load
+ std::string _scriptFile;
+
+ // Jaffar script file contents (JSON)
+ nlohmann::json _scriptJs;
+
+ // Worker id and count
+ size_t _workerId;
+ size_t _workerCount;
 
  SDLPopInstance* _sdlPop;
  State* _state;
  std::string _baseStateData;
  bool _showSDLPopPreview;
 
- // Worker id and count
- size_t _workerId;
- size_t _workerCount;
 
  // Rule vector
  std::vector<Rule*> _rules;
@@ -85,7 +92,7 @@ private:
  bool _hasFinalized;
 
  // Printing stats
- void printSearchStatus();
+ void printTrainStatus();
 
  // Each worker processes their own unique base frames to produce new frames
  void computeFrames();
@@ -110,6 +117,9 @@ private:
 
  // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
  void addHashEntry(uint64_t hash);
+
+ // Argument parser
+ void parseArgs(int argc, char* argv[]);
 
  // Function to determine the current possible moves
  std::vector<uint8_t> getPossibleMoveIds(const Frame& frame);

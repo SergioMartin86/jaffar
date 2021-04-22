@@ -42,9 +42,7 @@ jaffarFiles = [
   'source/state.cc',
   'source/rule.cc',
   'source/frame.cc',
-  'source/utils.cc',
-  'source/search.cc',
-  'source/playback.cc'
+  'source/utils.cc'
 ]
 
 sdl2_dep = dependency('sdl2')
@@ -68,8 +66,18 @@ sdlPopLib = library('sdlPopLib',
   c_args: [ '-DDISABLE_ALL_FIXES' ],
   dependencies : deps)
 
-executable('jaffar',
-  'source/jaffar.cc',
+executable('jaffar-train',
+  'source/train.cc',
+  jaffarFiles,
+  dependencies: deps,
+  include_directories: inc,
+  link_with: [ sdlPopLib, metroHash64Lib ],
+  link_args: [ '-ldl', '-lncurses' ],
+  cpp_args: [ '-Wfatal-errors' ]
+  )
+  
+executable('jaffar-play',
+  'source/play.cc',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,

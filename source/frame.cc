@@ -1,5 +1,5 @@
 #include "frame.h"
-#include "search.h"
+#include "train.h"
 
 size_t _ruleCount;
 size_t _maxSteps;

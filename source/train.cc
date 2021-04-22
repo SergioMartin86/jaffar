@@ -1,11 +1,22 @@
-#include "search.h"
+#include "train.h"
 #include "utils.h"
-#include "jaffar.h"
 #include <unistd.h>
 #include <chrono>
+#include "argparse.hpp"
 
-void Search::run()
+void Train::run()
 {
+ if (_workerId== 0)
+ {
+  printf("[Jaffar] ----------------------------------------------------------------\n");
+  printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
+  printf("[Jaffar] Using configuration file: %s.\n", _scriptFile.c_str());
+  printf("[Jaffar] Starting search with %lu workers.\n", _workerCount);
+ }
+
+ // Wait for all workers to be ready
+ MPI_Barrier(MPI_COMM_WORLD);
+
  auto searchTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Storage for termination trigger
@@ -14,7 +25,7 @@ void Search::run()
  while(terminate == false)
  {
   // If this is the root rank, plot the best frame and print information
-  if (_jaffarConfig.mpiRank == 0)
+  if (_workerId == 0)
   {
    // Plotting current best frame
    _state->loadBase(_baseStateData);
@@ -30,7 +41,7 @@ void Search::run()
    _searchTotalTime = std::chrono::duration_cast<std::chrono::nanoseconds>(searchTimeEnd - searchTimeBegin).count();    // Profiling
 
    // Printing search status
-   printSearchStatus();
+   printTrainStatus();
   }
 
   /////////////////////////////////////////////////////////////////
@@ -56,21 +67,21 @@ void Search::run()
   // Terminate if DB is depleted and no winning rule was found
   if (_globalFrameCounter == 0)
   {
-   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
+   if (_workerId == 0) printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
    terminate = true;
   }
 
   // Terminate if a winning rule was found
   if (_winFrameFound == true)
   {
-   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Winning frame reached after %lu steps, finishing...\n", _currentStep);
+   if (_workerId == 0) printf("[Jaffar] Winning frame reached after %lu steps, finishing...\n", _currentStep);
    terminate = true;
   }
 
   // Terminate if maximum number of frames was reached
   if (_currentStep > _maxSteps)
   {
-   if (_jaffarConfig.mpiRank == 0) printf("[Jaffar] Maximum frame number reached, finishing...\n");
+   if (_workerId == 0) printf("[Jaffar] Maximum frame number reached, finishing...\n");
    terminate = true;
   }
 
@@ -82,7 +93,7 @@ void Search::run()
  }
 
  // Print winning frame if found
- if (_jaffarConfig.mpiRank == 0 && _winFrameFound == true)
+ if (_workerId == 0 && _winFrameFound == true)
  {
   printf("[Jaffar] Win Frame Information:\n");
   _state->loadBase(_baseStateData);
@@ -102,7 +113,7 @@ void Search::run()
  MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Search::distributeFrames()
+void Train::distributeFrames()
 {
  auto frameDistributionTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
@@ -232,7 +243,7 @@ void Search::distributeFrames()
   _frameDistributionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDistributionTimeEnd - frameDistributionTimeBegin).count();    // Profiling
 }
 
-void Search::computeFrames()
+void Train::computeFrames()
 {
  MPI_Barrier(MPI_COMM_WORLD);
  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -331,7 +342,7 @@ void Search::computeFrames()
  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count();    // Profiling
 }
 
-void Search::framePostprocessing()
+void Train::framePostprocessing()
 {
  auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
@@ -395,7 +406,7 @@ void Search::framePostprocessing()
  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
 }
 
-void Search::updateHashDatabases()
+void Train::updateHashDatabases()
 {
  auto hashExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
@@ -448,7 +459,7 @@ void Search::updateHashDatabases()
  _hashExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count();    // Profiling
 }
 
-void Search::evaluateRules(Frame& frame)
+void Train::evaluateRules(Frame& frame)
 {
  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
  {
@@ -547,148 +558,9 @@ void Search::evaluateRules(Frame& frame)
  }
 }
 
-Search::Search()
-{
- // Profiling information
- _searchTotalTime = 0.0;
- _frameDistributionTime = 0.0;
- _frameComputationTime = 0.0;
- _framePostprocessingTime = 0.0;
 
- // Initializing counters
- _stepFramesProcessedCounter = 0;
- _totalFramesProcessedCounter = 0;
- _hashDatabaseSwapCount = 0;
- _localStepSwapCounter = 0;
- _newCollisionCounter = 0;
- _localStepFramesProcessedCounter = 0;
 
- // Getting worker count
- _workerId = (size_t) _jaffarConfig.mpiRank;
- _workerCount = (size_t) _jaffarConfig.mpiSize;
-
- // Setting starting step
- _currentStep = 0;
-
- // Parsing preview display
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Show SDLPop Display") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Show SDLPop Display' key.\n");
- _showSDLPopPreview = _jaffarConfig.configJs["Search Configuration"]["Show SDLPop Display"].get<bool>();
-
- // Parsing max frames from configuration file
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Max Steps") == false) EXIT_WITH_ERROR("[ERROR] Search configuration missing 'Max Steps' key.\n");
- _maxSteps = _jaffarConfig.configJs["Search Configuration"]["Max Steps"].get<size_t>();
-
- // Parsing max hash DB entries
- _hashDatabases.resize(HASH_DATABASE_COUNT);
- size_t hashDBMaxMBytes = 50;
- if(const char* hashDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB"))
-  hashDBMaxMBytes = std::stol(hashDBMaxMBytesEnv);
- else
-  if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
-
- _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
- if (_workerId == 0) printf("[Jaffar] Using %d hash databases of %lu entries each per worker.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
-
- // Parsing max frame DB entries
- size_t frameDBMaxMBytes = 300;
- if(const char* frameDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB"))
-  frameDBMaxMBytes = std::stol(frameDBMaxMBytesEnv);
- else
-  if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
-
- // Twice the size of frames to allow for communication
- _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
- if (_workerId == 0) printf("[Jaffar] Using a frame database of %lu entries each per worker.\n", _maxLocalDatabaseSize);
-
- // Initializing SDLPop
- _sdlPop = new SDLPopInstance;
-
- bool showSDLPopPreview = false;
- if (_workerId == 0) showSDLPopPreview = _showSDLPopPreview;
- _sdlPop->initialize(showSDLPopPreview);
-
- // Initializing State Handler
- _state = new State(_sdlPop);
-
- // Setting magnet default values. This default repels unspecified rooms.
- std::vector<Magnet> magnets(_VISIBLE_ROOM_COUNT);
-
- for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
- {
-  magnets[i].intensityY = 0.0f;
-  magnets[i].intensityX = 0.0f;
-  magnets[i].positionX = 0.0f;
- }
-
- // Processing user-specified rules
- if (isDefined(_jaffarConfig.configJs["Search Configuration"], "Rules") == false) EXIT_WITH_ERROR("[ERROR] Search configuration file missing 'Rules' key.\n");
- for (size_t i = 0; i < _jaffarConfig.configJs["Search Configuration"]["Rules"].size(); i++)
-  _rules.push_back(new Rule(_jaffarConfig.configJs["Search Configuration"]["Rules"][i], _sdlPop));
-
- // Setting global for rule count
- _ruleCount = _rules.size();
-
- // Setting initial status for each rule
- std::vector<status_t> rulesStatus(_ruleCount);
- for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = st_active;
-
- _frameSerializedSize = Frame::getSerializationSize();
- MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
- MPI_Type_commit(&_mpiFrameType);
-
- // Setting initial values
- _hasFinalized = false;
- _globalHashCollisions = 0;
-
- // Storing base frame data to be used by all frames
- _baseStateData = _state->saveBase();
-
- // Setting win status
- _winFrameFound = false;
- _localWinFound = false;
-
- // Creating initial frame on the root rank
- if (_jaffarConfig.mpiRank == 0)
- {
-  // Computing initial hash
-  const auto hash = _state->computeHash();
-
-  auto initialFrame = std::make_unique<Frame>();
-  initialFrame->moveHistory[0] = 0;
-  initialFrame->frameStateData = _state->saveFrame();
-  initialFrame->magnets = magnets;
-  initialFrame->rulesStatus = rulesStatus;
-
-  // Evaluating Rules on initial frame
-  evaluateRules(*initialFrame);
-
-  // Storing which rules are win rules
-  for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-   for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
-    if (_rules[ruleId]->_actions[actionId]["Type"] == "Trigger Win")
-     _winRulePositions.push_back(ruleId);
-
-  if (_winRulePositions.size() == 0)
-   EXIT_WITH_ERROR("[ERROR] No win (Trigger Win) rules were defined in the config file.\n");
-
-  // Evaluating Score on initial frame
-  initialFrame->score = getFrameScore(*initialFrame);
-
-  // Registering hash for initial frame
-  _hashDatabases[0].insert(hash);
-
-  // Copying initial frame into the best frame
-  _bestFrame = *initialFrame;
-
-  // Adding frame to the current database
-  _currentFrameDB.push_back(std::move(initialFrame));
- }
-
- // Starting global frame counter
- _globalFrameCounter = 1;
-}
-
-void Search::addHashEntry(uint64_t hash)
+void Train::addHashEntry(uint64_t hash)
 {
  // Inserting hash
  _hashDatabases[0].insert(hash);
@@ -708,7 +580,7 @@ void Search::addHashEntry(uint64_t hash)
  }
 }
 
-void Search::printSearchStatus()
+void Train::printTrainStatus()
 {
  printf("[Jaffar] ----------------------------------------------------------------\n");
  printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
@@ -744,7 +616,7 @@ void Search::printSearchStatus()
   printf("\n");
 }
 
-void Search::printRuleStatus(const Frame& frame)
+void Train::printRuleStatus(const Frame& frame)
 {
  printf("[Jaffar]  + Rule Status: [ %d", (int)frame.rulesStatus[0]);
  for (size_t i = 1; i < frame.rulesStatus.size(); i++)
@@ -753,7 +625,7 @@ void Search::printRuleStatus(const Frame& frame)
 
 }
 
-float Search::getFrameScore(const Frame& frame)
+float Train::getFrameScore(const Frame& frame)
 {
  // Accumulator for total score
  float score = 0.0f;
@@ -824,7 +696,7 @@ float Search::getFrameScore(const Frame& frame)
  return score;
 }
 
-std::vector<uint8_t> Search::getPossibleMoveIds(const Frame& frame)
+std::vector<uint8_t> Train::getPossibleMoveIds(const Frame& frame)
 {
  // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13
  //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
@@ -882,3 +754,194 @@ std::vector<uint8_t> Search::getPossibleMoveIds(const Frame& frame)
  // Default, no nothing
  return { 0 };
 }
+
+Train::Train(int argc, char* argv[])
+{
+ // Initialize the MPI environment
+ MPI_Init(&argc, &argv);
+
+ // Get the number of processes
+ int mpiSize;
+ MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
+ _workerCount = (size_t) mpiSize;
+
+ // Get the rank of the process
+ int mpiRank;
+ MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+ _workerId = (size_t) mpiRank;
+
+ // Parsing command line arguments
+ argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
+
+ program.add_argument("jaffarFile")
+   .help("path to the Jaffar script (.jaffar) file to run.")
+   .required();
+
+ // Try to parse arguments
+ try
+ {
+   program.parse_args(argc, argv);
+ }
+ catch (const std::runtime_error& err)
+ {
+   if (_workerId== 0) fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
+   exit(-1);
+ }
+
+ // Reading config file
+ _scriptFile = program.get<std::string>("jaffarFile");
+ std::string scriptString;
+ bool status = loadStringFromFile(scriptString, _scriptFile.c_str());
+ if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", _scriptFile.c_str(), program.help().str().c_str());
+
+ // Parsing JSON from config file
+ try
+ {
+  _scriptJs = nlohmann::json::parse(scriptString);
+ }
+ catch (const std::exception& err)
+ {
+   if (_workerId== 0) fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _scriptFile.c_str(), err.what());
+   exit(-1);
+ }
+
+ // Profiling information
+ _searchTotalTime = 0.0;
+ _frameDistributionTime = 0.0;
+ _frameComputationTime = 0.0;
+ _framePostprocessingTime = 0.0;
+
+ // Initializing counters
+ _stepFramesProcessedCounter = 0;
+ _totalFramesProcessedCounter = 0;
+ _hashDatabaseSwapCount = 0;
+ _localStepSwapCounter = 0;
+ _newCollisionCounter = 0;
+ _localStepFramesProcessedCounter = 0;
+
+ // Setting starting step
+ _currentStep = 0;
+
+ // Parsing max frames from configuration file
+ if (isDefined(_scriptJs, "Max Steps") == false) EXIT_WITH_ERROR("[ERROR] Train configuration missing 'Max Steps' key.\n");
+ _maxSteps = _scriptJs["Max Steps"].get<size_t>();
+
+ // Parsing max hash DB entries
+ _hashDatabases.resize(HASH_DATABASE_COUNT);
+ size_t hashDBMaxMBytes = 50;
+ if(const char* hashDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB"))
+  hashDBMaxMBytes = std::stol(hashDBMaxMBytesEnv);
+ else
+  if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
+
+ _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
+ if (_workerId == 0) printf("[Jaffar] Using %d hash databases of %lu entries each per worker.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
+
+ // Parsing max frame DB entries
+ size_t frameDBMaxMBytes = 300;
+ if(const char* frameDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB"))
+  frameDBMaxMBytes = std::stol(frameDBMaxMBytesEnv);
+ else
+  if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
+
+ // Twice the size of frames to allow for communication
+ _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
+ if (_workerId == 0) printf("[Jaffar] Using a frame database of %lu entries each per worker.\n", _maxLocalDatabaseSize);
+
+ // Initializing SDLPop
+ _sdlPop = new SDLPopInstance;
+
+ // Dont show GUI
+ _sdlPop->initialize(false);
+
+ // Initializing State Handler
+ _state = new State(_sdlPop, _scriptJs);
+
+ // Setting magnet default values. This default repels unspecified rooms.
+ std::vector<Magnet> magnets(_VISIBLE_ROOM_COUNT);
+
+ for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
+ {
+  magnets[i].intensityY = 0.0f;
+  magnets[i].intensityX = 0.0f;
+  magnets[i].positionX = 0.0f;
+ }
+
+ // Processing user-specified rules
+ if (isDefined(_scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file missing 'Rules' key.\n");
+ for (size_t i = 0; i < _scriptJs["Rules"].size(); i++)
+  _rules.push_back(new Rule(_scriptJs["Rules"][i], _sdlPop));
+
+ // Setting global for rule count
+ _ruleCount = _rules.size();
+
+ // Setting initial status for each rule
+ std::vector<status_t> rulesStatus(_ruleCount);
+ for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = st_active;
+
+ _frameSerializedSize = Frame::getSerializationSize();
+ MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
+ MPI_Type_commit(&_mpiFrameType);
+
+ // Setting initial values
+ _hasFinalized = false;
+ _globalHashCollisions = 0;
+
+ // Storing base frame data to be used by all frames
+ _baseStateData = _state->saveBase();
+
+ // Setting win status
+ _winFrameFound = false;
+ _localWinFound = false;
+
+ // Creating initial frame on the root rank
+ if (_workerId == 0)
+ {
+  // Computing initial hash
+  const auto hash = _state->computeHash();
+
+  auto initialFrame = std::make_unique<Frame>();
+  initialFrame->moveHistory[0] = 0;
+  initialFrame->frameStateData = _state->saveFrame();
+  initialFrame->magnets = magnets;
+  initialFrame->rulesStatus = rulesStatus;
+
+  // Evaluating Rules on initial frame
+  evaluateRules(*initialFrame);
+
+  // Storing which rules are win rules
+  for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
+   for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
+    if (_rules[ruleId]->_actions[actionId]["Type"] == "Trigger Win")
+     _winRulePositions.push_back(ruleId);
+
+  if (_winRulePositions.size() == 0)
+   EXIT_WITH_ERROR("[ERROR] No win (Trigger Win) rules were defined in the config file.\n");
+
+  // Evaluating Score on initial frame
+  initialFrame->score = getFrameScore(*initialFrame);
+
+  // Registering hash for initial frame
+  _hashDatabases[0].insert(hash);
+
+  // Copying initial frame into the best frame
+  _bestFrame = *initialFrame;
+
+  // Adding frame to the current database
+  _currentFrameDB.push_back(std::move(initialFrame));
+ }
+
+ // Starting global frame counter
+ _globalFrameCounter = 1;
+}
+
+int main(int argc, char* argv[])
+{
+ Train train(argc, argv);
+
+ // Running Search
+ train.run();
+
+ return MPI_Finalize();
+}
+
