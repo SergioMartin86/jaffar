@@ -219,6 +219,7 @@ void State::quickLoad(const std::string& filename) {
       fi.read(reinterpret_cast<char*>(item.ptr), item.size);
     }
   }
+
   _sdlPop->restore_room_after_quick_load();
   // update_screen();
 }

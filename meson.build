@@ -72,7 +72,7 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_with: [ sdlPopLib, metroHash64Lib ],
-  link_args: [ '-ldl', '-lncurses' ],
+  link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
   
@@ -83,5 +83,15 @@ executable('jaffar-play',
   include_directories: inc,
   link_with: [ sdlPopLib, metroHash64Lib ],
   link_args: [ '-ldl', '-lncurses' ],
+  cpp_args: [ '-Wfatal-errors' ]
+  )
+  
+executable('jaffar-show',
+  'source/show.cc',
+  jaffarFiles,
+  dependencies: deps,
+  include_directories: inc,
+  link_with: [ sdlPopLib, metroHash64Lib ],
+  link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )

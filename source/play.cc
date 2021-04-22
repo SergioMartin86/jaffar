@@ -4,6 +4,44 @@
 #include <ncurses.h>
 #include "argparse.hpp"
 #include "nlohmann/json.hpp"
+#include <ncurses.h>
+#include <unistd.h>
+
+// Function to check for keypress taken from https://github.com/ajpaulson/learning-ncurses/blob/master/kbhit.c
+int kbhit()
+{
+ int ch, r;
+
+ // turn off getch() blocking and echo
+ nodelay(stdscr, TRUE);
+ noecho();
+
+ // check for input
+ ch = getch();
+ if( ch == ERR)      // no input
+   r = FALSE;
+ else                // input
+ {
+  r = TRUE;
+  ungetch(ch);
+ }
+
+ // restore block and echo
+ echo();
+ nodelay(stdscr, FALSE);
+
+ return(r);
+}
+
+int getKeyPress()
+{
+ while(!kbhit())
+ {
+  usleep(100000ul);
+  refresh();
+ }
+ return getch();
+}
 
 int main(int argc, char* argv[])
 {
