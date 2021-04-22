@@ -1,0 +1,14 @@
+Jaffar is a hobby project started in 2021, mainly developed by:
+
+Sergio Martin
+Alexander Lyashuk
+
+Collaborators:
+
+Feel free to submit a pull request with your contributions and your named will be added here.
+
+Thanks:
+
++ We acknowledge the authors of SDLPop (https://github.com/NagyD/SDLPoP) for their great port of Prince of Persia that made this project possible.
++ The developers of Argparse (http://github.com/p-ranav/argparse)
++ J. Andrew Rogers for the MetroHash64 library.

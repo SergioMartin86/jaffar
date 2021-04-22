@@ -4,8 +4,9 @@
 #include <string>
 #include <vector>
 #include "nlohmann/json.hpp"
-
 #include "SDLPopInstance.h"
+
+#define SAVESTATE_SIZE 2708
 
 class State {
  public:
@@ -26,7 +27,7 @@ class State {
 
   State(SDLPopInstance *sdlPop, nlohmann::json stateConfig);
 
-  void quickLoad(const std::string& filename);
+  bool quickLoad(const std::string& filename);
   void quickSave(const std::string& filename);
   uint64_t computeHash() const;
   uint64_t kidHash() const;

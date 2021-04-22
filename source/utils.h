@@ -5,6 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
+#include <fstream>
 
 // Function to split a string into a sub-strings delimited by a character
 // Taken from stack overflow answer to https://stackoverflow.com/questions/236129/how-do-i-iterate-over-the-words-of-a-string
@@ -59,3 +60,5 @@ std::vector<T> splitVector(const T size, const T n)
   return subSizes;
 }
 
+// Taken from https://stackoverflow.com/questions/116038/how-do-i-read-an-entire-file-into-a-stdstring-in-c/116220#116220
+std::string slurp(std::ifstream& in);

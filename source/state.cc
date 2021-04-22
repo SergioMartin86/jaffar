@@ -1,7 +1,6 @@
 #include "state.h"
 #include "utils.h"
 #include "frame.h"
-#include <fstream>
 #include "metrohash64.h"
 
 extern nlohmann::json _scriptJs;
@@ -115,7 +114,8 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
  // Loading save file
  if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
  const std::string saveFile = stateConfig["Path"].get<std::string>();
- quickLoad(saveFile);
+ bool status = quickLoad(saveFile);
+ if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state %s\n", saveFile.c_str());
 
  // Parsing random seed information
  if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
@@ -207,21 +207,34 @@ uint64_t State::computeHash() const {
   return result;
 }
 
-
-void State::quickLoad(const std::string& filename) {
+bool State::quickLoad(const std::string& filename)
+{
   std::ifstream fi(filename.c_str());
 
-  if (fi.good() == false)
-     EXIT_WITH_ERROR("Error reading from or opening input save file: %s\n", filename.c_str());
+  // If file not found or open, return false
+  if (fi.good() == false) return false;
 
+  // Reading entire file
+  std::string saveString = slurp(fi);
+
+  // Closing file
+  fi.close();
+
+  // If size of file is not what expected, returning false
+  if (saveString.size() != SAVESTATE_SIZE) return false;
+
+  size_t curPos = 0;
   for (const auto& item : _items) {
     if (item.type != ONLY_STATE) {
-      fi.read(reinterpret_cast<char*>(item.ptr), item.size);
+      memcpy(item.ptr, &saveString.c_str()[curPos], item.size);
+      curPos += item.size;
     }
   }
 
   _sdlPop->restore_room_after_quick_load();
-  // update_screen();
+  //update_screen();
+
+  return true;
 }
 
 void State::quickSave(const std::string& filename) {

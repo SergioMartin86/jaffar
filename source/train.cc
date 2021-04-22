@@ -5,7 +5,7 @@
 
 void Train::run()
 {
- if (_workerId== 0)
+ if (_workerId == 0)
  {
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
@@ -38,11 +38,6 @@ void Train::run()
    // Profiling information
    auto searchTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _searchTotalTime = std::chrono::duration_cast<std::chrono::nanoseconds>(searchTimeEnd - searchTimeBegin).count();    // Profiling
-
-   // If requested also saving best frame
-   if (_outputSaveBestFrequency > 0)
-    if (_currentStep % _outputSaveBestFrequency == 0)
-     _state->quickSave("jaffar.best.sav");
 
    // Printing search status
    printTrainStatus();
@@ -94,6 +89,12 @@ void Train::run()
 
   // Advancing step
   _currentStep++;
+
+  // If requested also saving best frame
+  if (_workerId == 0)
+   if (_outputSaveBestFrequency > 0)
+    if (_currentStep % _outputSaveBestFrequency == 0)
+     _state->quickSave("jaffar.best.sav");
  }
 
  // Print winning frame if found

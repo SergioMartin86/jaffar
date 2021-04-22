@@ -65,3 +65,10 @@ bool loadStringFromFile(std::string &dst, const char *fileName)
   return false;
 }
 
+
+// Taken from https://stackoverflow.com/questions/116038/how-do-i-read-an-entire-file-into-a-stdstring-in-c/116220#116220
+std::string slurp(std::ifstream& in) {
+    std::ostringstream sstr;
+    sstr << in.rdbuf();
+    return sstr.str();
+}
