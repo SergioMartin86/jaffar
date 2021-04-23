@@ -441,6 +441,7 @@ SDLPopInstance::SDLPopInstance()
  is_feather_fall = (word*) dlsym(_dllHandle, "is_feather_fall");
  last_loose_sound = (word*) dlsym(_dllHandle, "last_loose_sound");
  random_seed = (dword*) dlsym(_dllHandle, "random_seed");
+ preserved_seed = (dword*) dlsym(_dllHandle, "preserved_seed");
  rem_min = (short*) dlsym(_dllHandle, "rem_min");
  rem_tick = (word*) dlsym(_dllHandle, "rem_tick");
  control_x = (sbyte*) dlsym(_dllHandle, "control_x");

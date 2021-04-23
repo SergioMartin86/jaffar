@@ -115,15 +115,16 @@ int main(int argc, char* argv[])
  SDLPopInstance genSDLPop;
  genSDLPop.initialize(false);
 
- // Initializing generating State Handler
- State genState(&genSDLPop, scriptJs);
 
  // Storage for sequence frames
  std::vector<std::string> frameSequence;
 
  // Starting replay creation
-  genSDLPop.init_record_replay();
-  genSDLPop.start_recording();
+ genSDLPop.init_record_replay();
+ genSDLPop.start_recording();
+
+ // Initializing generating State Handler
+ State genState(&genSDLPop, scriptJs);
 
  // Saving initial frame
  frameSequence.push_back(genState.saveFrame());

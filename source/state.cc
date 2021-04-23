@@ -125,8 +125,13 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
  if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
  const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
 
+ // Playing a frame to initialize all SDLPop internals
+ _sdlPop->performMove(".");
+ _sdlPop->advanceFrame();
+ _sdlPop->prandom(2);
+
  // Setting values, overriding if value > 0 was passed
- if (configSeed != 0) _sdlPop->setSeed(configSeed);
+ if (configSeed != 0) { printf("Setting seed\n"); _sdlPop->setSeed(configSeed); }
  if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
 }
 
@@ -232,7 +237,6 @@ bool State::quickLoad(const std::string& filename)
   }
 
   _sdlPop->restore_room_after_quick_load();
-  //update_screen();
 
   return true;
 }
