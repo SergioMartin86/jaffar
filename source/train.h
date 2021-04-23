@@ -37,6 +37,8 @@ private:
  // File output config
  size_t _outputSaveBestFrequency;
  double _outputSaveCurrentSeconds;
+ std::string _outputSaveBestPath;
+ std::string _outputSaveCurrentPath;
 
  // Worker id and count
  size_t _workerId;

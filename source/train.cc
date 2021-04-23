@@ -11,6 +11,23 @@ void Train::run()
   printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
   printf("[Jaffar] Using configuration file: %s.\n", _scriptFile.c_str());
   printf("[Jaffar] Starting search with %lu workers.\n", _workerCount);
+  printf("[Jaffar] Frame DB entries per worker: %lu\n", _maxLocalDatabaseSize);
+  printf("[Jaffar] Hash DBs per worker: %d x %lu.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
+
+  if (_outputSaveBestFrequency > 0)
+  {
+   printf("[Jaffar] Saving best frame every: %lu steps.\n",  _outputSaveBestFrequency);
+   printf("[Jaffar]  + Path: %s\n",  _outputSaveBestPath.c_str());
+  }
+
+  if (_outputSaveCurrentSeconds > 0)
+  {
+   printf("[Jaffar] Saving current frame every: %f seconds.\n",  _outputSaveCurrentSeconds / 1.0e+9);
+   printf("[Jaffar]  + Path: %s\n",  _outputSaveCurrentPath.c_str());
+  }
+
+  // Sleep for a second to show this message
+  sleep(2);
  }
 
  // Wait for all workers to be ready
@@ -119,7 +136,7 @@ void Train::run()
   if (_workerId == 0)
    if (_outputSaveBestFrequency > 0)
     if (_currentStep % _outputSaveBestFrequency == 0)
-     _state->quickSave("jaffar.best.sav");
+     _state->quickSave(_outputSaveBestPath);
  }
 
  // Print winning frame if found
@@ -363,7 +380,7 @@ void Train::computeFrames()
    if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
    {
     // Saving state
-    _state->quickSave("jaffar.current.sav");
+    _state->quickSave(_outputSaveCurrentPath);
 
     // Resetting timer
     _currentFrameSaveTimer = std::chrono::steady_clock::now();
@@ -793,6 +810,10 @@ Train::Train(int argc, char* argv[])
  MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
  _workerId = (size_t) mpiRank;
 
+ // Setting SDL env variables to use the dummy renderer
+ setenv("SDL_VIDEODRIVER", "dummy", 1);
+ setenv("SDL_AUDIODRIVER", "dummy", 1);
+
  // Parsing command line arguments
  argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
 
@@ -862,7 +883,6 @@ Train::Train(int argc, char* argv[])
   if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
 
  _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
- if (_workerId == 0) printf("[Jaffar] Using %d hash databases of %lu entries each per worker.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
 
  // Parsing max frame DB entries
  size_t frameDBMaxMBytes = 300;
@@ -871,15 +891,21 @@ Train::Train(int argc, char* argv[])
  else
   if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
 
- // Parsing file output config
+ // Parsing file output frequency
  _outputSaveBestFrequency = 0;
  if(const char* outputSaveBestFrequencyEnv = std::getenv("JAFFAR_SAVE_BEST_EVERY_FRAMES")) _outputSaveBestFrequency = std::stol(outputSaveBestFrequencyEnv);
  _outputSaveCurrentSeconds = -1.0;
  if(const char* outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_CURRENT_EVERY_SECONDS")) _outputSaveCurrentSeconds  = std::stof(outputSaveCurrentSecondsEnv);
 
+ // Parsing file output path
+ _outputSaveBestPath = "jaffar.best.sav";
+ if(const char* outputSaveBestFrequencyEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestFrequencyEnv);
+ _outputSaveCurrentPath = "jaffar.current.sav";
+ if(const char* outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentSecondsEnv);
+
+
  // Twice the size of frames to allow for communication
  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
- if (_workerId == 0) printf("[Jaffar] Using a frame database of %lu entries each per worker.\n", _maxLocalDatabaseSize);
 
  // Initializing SDLPop
  _sdlPop = new SDLPopInstance;

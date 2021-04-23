@@ -22,20 +22,10 @@ Installation
   meson ..
   ninja
   
-Notes on SDL2
+Requisites
 ---------------
 
-Jaffar has been tested using SDL2 2.0.14 and SDL2_image 2.0.5. If these libraries are not present at the moment of installation, Jaffar will install them automatically. However, these pre-packaged versions have shown some problems on some systems when running on the x11 driver (dummy driver works).
-
-For use in environments without video output, set the following environment variable:
-
-export SDL_VIDEODRIVER=dummy
-export SDL_AUDIODRIVER=dummy
-
-To reactivate video/audio output set it to:
-
-export SDL_VIDEODRIVER=
-export SDL_AUDIODRIVER=
+- SDL2: Jaffar has been tested using SDL2 2.0.14 and SDL2_image 2.0.5. If these libraries are not present at the moment of installation, Jaffar will install them automatically. However, these pre-packaged versions have shown some problems on some systems when running on the x11 driver (dummy driver works).
 
 Usage
 -------------
