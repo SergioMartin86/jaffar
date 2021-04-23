@@ -890,7 +890,7 @@ Train::Train(int argc, char* argv[])
  _outputSaveBestPath = "/tmp/jaffar.best.sav";
  if(const char* outputSaveBestPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestPathEnv);
  _outputSaveCurrentPath = "/tmp/jaffar.current.sav";
- if(const char* outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
+ if(const char* outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_CURRENT_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
 
  // Twice the size of frames to allow for communication
  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
