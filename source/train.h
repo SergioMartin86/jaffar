@@ -133,6 +133,7 @@ private:
 
  // Profiling and Debugging
  double _searchTotalTime;
+ double _currentStepTime;
  double _frameDistributionTime;
  double _frameComputationTime;
  double _framePostprocessingTime;

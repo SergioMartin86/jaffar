@@ -17,6 +17,7 @@ void Train::run()
  MPI_Barrier(MPI_COMM_WORLD);
 
  auto searchTimeBegin = std::chrono::steady_clock::now(); // Profiling
+ auto currentStepTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
  // Storage for termination trigger
  bool terminate = false;
@@ -39,6 +40,10 @@ void Train::run()
    auto searchTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _searchTotalTime = std::chrono::duration_cast<std::chrono::nanoseconds>(searchTimeEnd - searchTimeBegin).count();    // Profiling
 
+   auto currentStepTimeEnd = std::chrono::steady_clock::now(); // Profiling
+   _currentStepTime = std::chrono::duration_cast<std::chrono::nanoseconds>(currentStepTimeEnd - currentStepTimeBegin).count();    // Profiling
+   currentStepTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
    // Printing search status
    printTrainStatus();
   }
@@ -48,16 +53,36 @@ void Train::run()
   /////////////////////////////////////////////////////////////////
 
   // 1) Workers exchange new base frames uniformly
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto frameDistributionTimeBegin = std::chrono::steady_clock::now(); // Profiling
   distributeFrames();
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto frameDistributionTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _frameDistributionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDistributionTimeEnd - frameDistributionTimeBegin).count();    // Profiling
 
   // 2) Workers process their own base frames
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   computeFrames();
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto frameComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count();    // Profiling
 
   // 3) Workers sort their databases and communicate partial results
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
   framePostprocessing();
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
 
   // 4) Workers exchange hash information and update hash databases
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto hashExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
   updateHashDatabases();
+  MPI_Barrier(MPI_COMM_WORLD); // Profiling
+  auto hashExchangeTimeEnd = std::chrono::steady_clock::now(); // Profiling
+  _hashExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count();    // Profiling
 
   /////////////////////////////////////////////////////////////////
   /// Main frame processing cycle end
@@ -120,8 +145,6 @@ void Train::run()
 
 void Train::distributeFrames()
 {
- auto frameDistributionTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
   // Getting worker's own base frame count
   size_t localBaseFrameCount = _currentFrameDB.size();
 
@@ -243,16 +266,10 @@ void Train::distributeFrames()
 
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
-
-  auto frameDistributionTimeEnd = std::chrono::steady_clock::now(); // Profiling
-  _frameDistributionTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameDistributionTimeEnd - frameDistributionTimeBegin).count();    // Profiling
 }
 
 void Train::computeFrames()
 {
- MPI_Barrier(MPI_COMM_WORLD);
- auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
  // Initializing counters
  _localStepFramesProcessedCounter = 0;
  _newCollisionCounter = 0;
@@ -355,15 +372,10 @@ void Train::computeFrames()
   // Reducing base database size
   _currentFrameDB.resize(count-1);
  }
-
- auto frameComputationTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count();    // Profiling
 }
 
 void Train::framePostprocessing()
 {
- auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
  // Swapping database pointers
  _currentFrameDB = std::move(_nextFrameDB);
 
@@ -419,15 +431,10 @@ void Train::framePostprocessing()
  // Summing frame processing counters
  MPI_Allreduce(&_localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
  _totalFramesProcessedCounter += _stepFramesProcessedCounter;
-
- auto framePostprocessingTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count();    // Profiling
 }
 
 void Train::updateHashDatabases()
 {
- auto hashExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();
  std::vector<int> globalNewHashEntryCounts(_workerCount);
@@ -472,9 +479,6 @@ void Train::updateHashDatabases()
  size_t localHashDBSize = 0;
  for (size_t i = 0; i < HASH_DATABASE_COUNT; i++) localHashDBSize += _hashDatabases[i].size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
-
- auto hashExchangeTimeEnd = std::chrono::steady_clock::now(); // Profiling
- _hashExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count();    // Profiling
 }
 
 void Train::evaluateRules(Frame& frame)
@@ -605,7 +609,8 @@ void Train::printTrainStatus()
  printf("[Jaffar] Best Score: %f\n", _bestFrame.score);
  printf("[Jaffar] Database Size: %lu / %lu\n", _globalFrameCounter, _maxLocalDatabaseSize*_workerCount);
  printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
- printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", (_frameDistributionTime + _frameComputationTime + _framePostprocessingTime) / 1.0e+9, _searchTotalTime / 1.0e+9);
+ printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
+ printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
 
  printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
  printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
@@ -825,6 +830,7 @@ Train::Train(int argc, char* argv[])
 
  // Profiling information
  _searchTotalTime = 0.0;
+ _currentStepTime = 0.0;
  _frameDistributionTime = 0.0;
  _frameComputationTime = 0.0;
  _framePostprocessingTime = 0.0;
