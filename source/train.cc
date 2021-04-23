@@ -30,6 +30,7 @@ void Train::run()
   sleep(2);
  }
 
+
  // Wait for all workers to be ready
  MPI_Barrier(MPI_COMM_WORLD);
 
@@ -63,6 +64,10 @@ void Train::run()
 
    // Printing search status
    printTrainStatus();
+
+   // Updating show frames
+   for (size_t i = 0; i < SHOW_FRAME_COUNT; i++)
+    _showFrameDB[i] = *_currentFrameDB[i % _currentFrameDB.size()];
   }
 
   /////////////////////////////////////////////////////////////////
@@ -131,19 +136,6 @@ void Train::run()
 
   // Advancing step
   _currentStep++;
-
-  // Checking if we need to save best frame
-  double bestFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - _bestFrameSaveTimer).count();
-  if (_workerId == 0)
-  if (_outputSaveBestSeconds > 0.0)
-   if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
-   {
-    // Saving state
-    _state->quickSave(_outputSaveBestPath);
-
-    // Resetting timer
-    _bestFrameSaveTimer = std::chrono::steady_clock::now();
-   }
  }
 
  // Print winning frame if found
@@ -163,8 +155,14 @@ void Train::run()
   printf("\n");
  }
 
+ // Stopping show thread
+ if (_workerId == 0) pthread_join(_showThreadId, NULL);
+
  // Barrier to wait for all workers
  MPI_Barrier(MPI_COMM_WORLD);
+
+ // Finishing MPI
+ MPI_Finalize();
 }
 
 void Train::distributeFrames()
@@ -229,7 +227,7 @@ void Train::distributeFrames()
   std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
 
   // Exchanging frames with all other workers at a one by one basis
-  // This could be done more efficiently in terms of message traffic and performance by using an MPI_AlltoAllv operation
+  // This could be done more efficiently in terms of message traffic and performance by using an MPI_Alltoallv operation
   // However, this operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
   // Given this bot needs as much memory as possible, the more memory efficient 1-to-1 communication is used
   for (size_t neighborId = 0; neighborId < _workerCount; neighborId++)
@@ -307,9 +305,6 @@ void Train::computeFrames()
   // Getting base frame pointer
   const auto& baseFrame = _currentFrameDB[count-1];
 
-  // Loading base frame information
-  _state->loadBase(_baseStateData);
-
   // Getting possible moves for the current frame
   auto possibleMoveIds = getPossibleMoveIds(*baseFrame);
 
@@ -321,6 +316,9 @@ void Train::computeFrames()
 
    // Getting possible move string
    std::string move = _possibleMoves[moveId].c_str();
+
+   // Loading base frame information
+   _state->loadBase(_baseStateData);
 
    // Loading frame state
    _state->loadFrame(baseFrame->frameStateData);
@@ -379,19 +377,6 @@ void Train::computeFrames()
    // Adding hash into the new hashes table
    _newHashes.insert(hash);
   }
-
-  // Checking if we need to save current frame
-  double currentFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - _currentFrameSaveTimer).count();
-  if (_workerId == 0)
-  if (_outputSaveCurrentSeconds > 0.0)
-   if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
-   {
-    // Saving state
-    _state->quickSave(_outputSaveCurrentPath);
-
-    // Resetting timer
-    _currentFrameSaveTimer = std::chrono::steady_clock::now();
-   }
 
   // Reducing base database size
   _currentFrameDB.resize(count-1);
@@ -871,10 +856,6 @@ Train::Train(int argc, char* argv[])
  _newCollisionCounter = 0;
  _localStepFramesProcessedCounter = 0;
 
- // Timer for saving current frame
- _bestFrameSaveTimer = std::chrono::steady_clock::now();
- _currentFrameSaveTimer = std::chrono::steady_clock::now();
-
  // Setting starting step
  _currentStep = 0;
 
@@ -907,9 +888,9 @@ Train::Train(int argc, char* argv[])
 
  // Parsing file output path
  _outputSaveBestPath = "/tmp/jaffar.best.sav";
- if(const char* outputSaveBestFrequencyEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestFrequencyEnv);
+ if(const char* outputSaveBestPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestPathEnv);
  _outputSaveCurrentPath = "/tmp/jaffar.current.sav";
- if(const char* outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentSecondsEnv);
+ if(const char* outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
 
  // Twice the size of frames to allow for communication
  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
@@ -993,13 +974,88 @@ Train::Train(int argc, char* argv[])
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
 
+  // Filling show database
+  _showFrameDB.resize(SHOW_FRAME_COUNT);
+  for (size_t i = 0; i < SHOW_FRAME_COUNT; i++) _showFrameDB[i] = *initialFrame;
+
   // Adding frame to the current database
   _currentFrameDB.push_back(std::move(initialFrame));
+
+  // Initializing show thread
+  if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)
+   EXIT_WITH_ERROR("[ERROR] Could not create show thread.\n");
  }
 
  // Starting global frame counter
  _globalFrameCounter = 1;
 }
+
+// Functions for the show thread
+void* Train::showThreadFunction(void* trainPtr) { ((Train*)trainPtr)->showSavingLoop(); return NULL; }
+void Train::showSavingLoop()
+{
+ // Timer for saving frames
+ auto bestFrameSaveTimer = std::chrono::steady_clock::now();
+ auto currentFrameSaveTimer = std::chrono::steady_clock::now();
+
+ // Counter for the current best frame id
+ size_t currentFrameId = 0;
+
+ // Independent instance of sdlpop
+ SDLPopInstance showSdlPop;
+
+ // Initializing State Handler
+ State showState(_sdlPop, _scriptJs);
+
+ while (_hasFinalized == false)
+ {
+   // Sleeping for one second to prevent excessive overheads
+   sleep(1);
+
+   // Checking if we need to save best frame
+   if (_outputSaveBestSeconds > 0.0)
+   {
+
+    double bestFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - bestFrameSaveTimer).count();
+    if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
+    {
+     // Loading base state and best frame data
+     showState.loadBase(_baseStateData);
+     showState.loadFrame(_bestFrame.frameStateData);
+
+     // Saving state
+     showState.quickSave(_outputSaveBestPath);
+
+     // Resetting timer
+     bestFrameSaveTimer = std::chrono::steady_clock::now();
+    }
+   }
+
+   // Checking if we need to save current frame
+   if (_outputSaveCurrentSeconds > 0.0)
+   {
+    double currentFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - currentFrameSaveTimer).count();
+    if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
+    {
+     // Loading base state and best frame data
+     showState.loadBase(_baseStateData);
+     showState.loadFrame(_showFrameDB[currentFrameId].frameStateData);
+
+     // Saving state
+     showState.quickSave(_outputSaveCurrentPath);
+
+     // Resetting timer
+     currentFrameSaveTimer = std::chrono::steady_clock::now();
+
+     // Increasing counter
+     currentFrameId = (currentFrameId+1) % SHOW_FRAME_COUNT;
+    }
+   }
+ }
+
+ printf("Exiting\n");
+}
+
 
 int main(int argc, char* argv[])
 {

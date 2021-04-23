@@ -14,9 +14,13 @@
 #include <random>
 #include <algorithm>
 #include <chrono>
+#include <pthread.h>
 
 // Number of local databases for cyclic discarding of old hashes
 #define HASH_DATABASE_COUNT 10
+
+// Number of frames to cache for showing purposes
+#define SHOW_FRAME_COUNT 1000
 
 class Train
 {
@@ -49,10 +53,6 @@ private:
  std::string _baseStateData;
  bool _showSDLPopPreview;
 
- // Timer for saving current and best frame
- std::chrono::time_point<std::chrono::steady_clock> _currentFrameSaveTimer;
- std::chrono::time_point<std::chrono::steady_clock> _bestFrameSaveTimer;
-
  // Rule vector
  std::vector<Rule*> _rules;
 
@@ -68,6 +68,9 @@ private:
  size_t _maxLocalDatabaseSize;
  std::vector<std::unique_ptr<Frame>> _currentFrameDB;
  std::vector<std::unique_ptr<Frame>> _nextFrameDB;
+
+ // Frame database for showing
+ std::vector<Frame> _showFrameDB;
 
  // Storage for the best frame
  Frame _bestFrame;
@@ -97,6 +100,9 @@ private:
  // Storage for rule serialization size
  size_t _frameSerializedSize;
  MPI_Datatype _mpiFrameType;
+
+ // Id for the show thread
+ pthread_t _showThreadId;
 
  // Flag to indicate finalization
  bool _hasFinalized;
@@ -133,6 +139,10 @@ private:
 
  // Function to determine the current possible moves
  std::vector<uint8_t> getPossibleMoveIds(const Frame& frame);
+
+ // Function for the show thread (saves states from time to time to display progress)
+ static void* showThreadFunction(void* trainPtr);
+ void showSavingLoop();
 
  // Profiling and Debugging
  double _searchTotalTime;

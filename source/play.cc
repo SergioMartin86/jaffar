@@ -150,6 +150,9 @@ int main(int argc, char* argv[])
  // Setting timer for a human-visible animation
  showSDLPop.set_timer_length(timer_1, 16);
 
+ // Setting window title
+ SDL_SetWindowTitle(*showSDLPop.window_, "Jaffar Play");
+
  // Printing initial frame info
  showSDLPop.draw();
 

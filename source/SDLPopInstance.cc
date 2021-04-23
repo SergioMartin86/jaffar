@@ -27,7 +27,10 @@ void SDLPopInstance::initialize(const bool useGUI)
  }
 
  if (*found_exe_dir == false)
-  fprintf(stderr, "[Warning] Could not find the root folder for SDLPoP. Please set the SDLPOP_ROOT environment variable to the path where SDLPop is installed.\n");
+ {
+  fprintf(stderr, "[ERROR] Could not find the root folder for SDLPoP. Please set the SDLPOP_ROOT environment variable to the path where SDLPop is installed.\n");
+  exit(-1);
+ }
 
  // Setting argument config
 
@@ -497,7 +500,7 @@ SDLPopInstance::SDLPopInstance()
  enable_quicksave_penalty = (byte*) dlsym(_dllHandle, "enable_quicksave_penalty");
  is_restart_level = (word*) dlsym(_dllHandle, "is_restart_level");
  last_loose_sound = (word*) dlsym(_dllHandle, "last_loose_sound");
-
+ window_ = (SDL_Window**) dlsym(_dllHandle, "window_");
 }
 
 SDLPopInstance::~SDLPopInstance()

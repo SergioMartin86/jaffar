@@ -50,6 +50,10 @@ int main(int argc, char* argv[])
  // Setting timer for a human-visible animation
  showSDLPop.set_timer_length(timer_1, 16);
 
+ // Setting window title
+ std::string windowTitle = "Jaffar Show: " + saveFile;
+ SDL_SetWindowTitle(*showSDLPop.window_, windowTitle.c_str());
+
  // Constant loop of updates
  while(true)
  {
