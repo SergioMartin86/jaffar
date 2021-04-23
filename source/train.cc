@@ -66,8 +66,9 @@ void Train::run()
    printTrainStatus();
 
    // Updating show frames
-   for (size_t i = 0; i < SHOW_FRAME_COUNT; i++)
-    _showFrameDB[i] = *_currentFrameDB[i % _currentFrameDB.size()];
+   if (_currentFrameDB.size() > 0)
+    for (size_t i = 0; i < SHOW_FRAME_COUNT; i++)
+     _showFrameDB[i] = *_currentFrameDB[i % _currentFrameDB.size()];
   }
 
   /////////////////////////////////////////////////////////////////

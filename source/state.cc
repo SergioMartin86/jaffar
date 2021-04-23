@@ -131,7 +131,7 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
  _sdlPop->prandom(2);
 
  // Setting values, overriding if value > 0 was passed
- if (configSeed != 0) { printf("Setting seed\n"); _sdlPop->setSeed(configSeed); }
+ if (configSeed != 0) _sdlPop->setSeed(configSeed);
  if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
 }
 
