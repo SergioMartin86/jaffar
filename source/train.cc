@@ -14,15 +14,15 @@ void Train::run()
   printf("[Jaffar] Frame DB entries per worker: %lu\n", _maxLocalDatabaseSize);
   printf("[Jaffar] Hash DBs per worker: %d x %lu.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
 
-  if (_outputSaveBestFrequency > 0)
+  if (_outputSaveBestSeconds > 0)
   {
-   printf("[Jaffar] Saving best frame every: %lu steps.\n",  _outputSaveBestFrequency);
+   printf("[Jaffar] Saving best frame every: %.3f seconds.\n",  _outputSaveBestSeconds);
    printf("[Jaffar]  + Path: %s\n",  _outputSaveBestPath.c_str());
   }
 
   if (_outputSaveCurrentSeconds > 0)
   {
-   printf("[Jaffar] Saving current frame every: %f seconds.\n",  _outputSaveCurrentSeconds / 1.0e+9);
+   printf("[Jaffar] Saving current frame every: %.3f seconds.\n",  _outputSaveCurrentSeconds);
    printf("[Jaffar]  + Path: %s\n",  _outputSaveCurrentPath.c_str());
   }
 
@@ -132,11 +132,18 @@ void Train::run()
   // Advancing step
   _currentStep++;
 
-  // If requested also saving best frame
+  // Checking if we need to save best frame
+  double bestFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - _bestFrameSaveTimer).count();
   if (_workerId == 0)
-   if (_outputSaveBestFrequency > 0)
-    if (_currentStep % _outputSaveBestFrequency == 0)
-     _state->quickSave(_outputSaveBestPath);
+  if (_outputSaveBestSeconds > 0.0)
+   if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
+   {
+    // Saving state
+    _state->quickSave(_outputSaveBestPath);
+
+    // Resetting timer
+    _bestFrameSaveTimer = std::chrono::steady_clock::now();
+   }
  }
 
  // Print winning frame if found
@@ -865,6 +872,7 @@ Train::Train(int argc, char* argv[])
  _localStepFramesProcessedCounter = 0;
 
  // Timer for saving current frame
+ _bestFrameSaveTimer = std::chrono::steady_clock::now();
  _currentFrameSaveTimer = std::chrono::steady_clock::now();
 
  // Setting starting step
@@ -892,17 +900,16 @@ Train::Train(int argc, char* argv[])
   if (_workerId == 0) printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
 
  // Parsing file output frequency
- _outputSaveBestFrequency = 0;
- if(const char* outputSaveBestFrequencyEnv = std::getenv("JAFFAR_SAVE_BEST_EVERY_FRAMES")) _outputSaveBestFrequency = std::stol(outputSaveBestFrequencyEnv);
+ _outputSaveBestSeconds = -1.0;
+ if(const char* outputSaveBestSecondsEnv = std::getenv("JAFFAR_SAVE_BEST_EVERY_SECONDS")) _outputSaveBestSeconds = std::stof(outputSaveBestSecondsEnv);
  _outputSaveCurrentSeconds = -1.0;
  if(const char* outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_CURRENT_EVERY_SECONDS")) _outputSaveCurrentSeconds  = std::stof(outputSaveCurrentSecondsEnv);
 
  // Parsing file output path
- _outputSaveBestPath = "jaffar.best.sav";
+ _outputSaveBestPath = "/tmp/jaffar.best.sav";
  if(const char* outputSaveBestFrequencyEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestFrequencyEnv);
- _outputSaveCurrentPath = "jaffar.current.sav";
+ _outputSaveCurrentPath = "/tmp/jaffar.current.sav";
  if(const char* outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentSecondsEnv);
-
 
  // Twice the size of frames to allow for communication
  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));

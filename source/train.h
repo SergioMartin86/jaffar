@@ -35,7 +35,7 @@ private:
  nlohmann::json _scriptJs;
 
  // File output config
- size_t _outputSaveBestFrequency;
+ double _outputSaveBestSeconds;
  double _outputSaveCurrentSeconds;
  std::string _outputSaveBestPath;
  std::string _outputSaveCurrentPath;
@@ -49,8 +49,9 @@ private:
  std::string _baseStateData;
  bool _showSDLPopPreview;
 
- // Timer for saving current frame
+ // Timer for saving current and best frame
  std::chrono::time_point<std::chrono::steady_clock> _currentFrameSaveTimer;
+ std::chrono::time_point<std::chrono::steady_clock> _bestFrameSaveTimer;
 
  // Rule vector
  std::vector<Rule*> _rules;
