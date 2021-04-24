@@ -111,8 +111,11 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
  // Loading save file
  if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
  const std::string saveFile = stateConfig["Path"].get<std::string>();
- bool status = quickLoad(saveFile);
+ std::string saveString;
+ bool status = loadStringFromFile(saveString, saveFile.c_str());
  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state %s\n", saveFile.c_str());
+ loadState(saveString);
+ _sdlPop->restore_room_after_quick_load();
 
  // Parsing random seed information
  if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
@@ -209,34 +212,10 @@ uint64_t State::computeHash() const {
   return result;
 }
 
-bool State::quickLoad(const std::string& filename)
-{
-  std::string saveString;
-  loadStringFromFile(saveString, filename.c_str());
-
-  size_t curPos = 0;
-  for (const auto& item : _items) {
-      memcpy(item.ptr, &saveString.c_str()[curPos], item.size);
-      curPos += item.size;
-  }
-
-  _sdlPop->restore_room_after_quick_load();
-
-  return true;
-}
-
-void State::quickSave(const std::string& filename) {
-  std::ofstream fo(filename.c_str());
-
-  if (fo.good() == false)
-   EXIT_WITH_ERROR("Error writing to or opening output save file: %s\n", filename.c_str());
-
-  for (const auto& item : _items) {
-      fo.write(reinterpret_cast<char*>(item.ptr), item.size);
-  }
-}
-
 void State::loadState(const std::string& data) {
+
+ if (data.size() != _FRAME_DATA_SIZE)
+  EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, data.size());
 
  size_t curPos = 0;
  for (const auto& item : _items) {
@@ -246,13 +225,15 @@ void State::loadState(const std::string& data) {
 }
 
 std::string State::saveState() const {
-  constexpr size_t kExpectedSize = _FRAME_DATA_SIZE;
+
   std::string res;
-  res.reserve(kExpectedSize);
+  res.reserve(_FRAME_DATA_SIZE);
   for (const auto& item : _items) {
       res.append(reinterpret_cast<const char*>(item.ptr), item.size);
   }
-  if (res.size() != kExpectedSize)
-   EXIT_WITH_ERROR("Expected %lu, got: %lu\n", kExpectedSize, res.size());
+
+  if (res.size() != _FRAME_DATA_SIZE)
+   EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, res.size());
+
   return res;
 }

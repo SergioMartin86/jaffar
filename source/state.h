@@ -22,8 +22,6 @@ class State {
 
   State(SDLPopInstance *sdlPop, nlohmann::json stateConfig);
 
-  bool quickLoad(const std::string& filename);
-  void quickSave(const std::string& filename);
   uint64_t computeHash() const;
   uint64_t kidHash() const;
 
