@@ -34,6 +34,9 @@ bool dirExists(const std::string dirPath);
 // Loads a string from a given file
 bool loadStringFromFile(std::string &dst, const char *fileName);
 
+// Save string to a file
+bool saveStringToFile(const std::string &dst, const char *fileName);
+
 // Checks whether a given key is present in the JSON object.
 template <typename T, typename... Key>
 bool isDefined(T &js, const Key &... key)

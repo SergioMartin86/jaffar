@@ -8,9 +8,6 @@ char* __prince_argv[] = { (char*)"prince" };
 
 void SDLPopInstance::initialize(const bool useGUI)
 {
- // Resetting frame counter
- _currentMove = ".";
-
  // Looking for sdlpop in default folders when running examples
  if (dirExists("extern/SDLPoP/")) { sprintf(*exe_dir, "extern/SDLPoP/"); *found_exe_dir = true;}
  if (dirExists("../extern/SDLPoP/")) { sprintf(*exe_dir, "../extern/SDLPoP/"); *found_exe_dir = true; }
@@ -259,8 +256,6 @@ void SDLPopInstance::refreshEngine()
 
 void SDLPopInstance::performMove(const std::string& move)
 {
- _currentMove = move;
-
  (*key_states)[SDL_SCANCODE_UP] = 0;
  (*key_states)[SDL_SCANCODE_DOWN] = 0;
  (*key_states)[SDL_SCANCODE_LEFT] = 0;

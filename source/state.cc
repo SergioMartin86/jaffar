@@ -274,7 +274,7 @@ std::string State::saveBase() const {
   return res;
 }
 
-void State::loadFrame(const std::string& data) {
+void State::loadState(const std::string& data) {
   const char* ptr = data.data();
   for (const auto& item : _items) {
     if (item.type > BASE_LAYER) {
@@ -285,7 +285,7 @@ void State::loadFrame(const std::string& data) {
   // restore_room_after_quick_load();
 }
 
-std::string State::saveFrame() const {
+std::string State::saveState() const {
   constexpr size_t kExpectedSize = _FRAME_DATA_SIZE;
   std::string res;
   res.reserve(kExpectedSize);

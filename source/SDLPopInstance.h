@@ -106,9 +106,6 @@ class SDLPopInstance {
  // Check if exit door is open
  bool isLevelExitDoorOpen();
 
- // String to store current move
- std::string _currentMove;
-
  // Storing previously drawn room
  word _prevDrawnRoom;
 

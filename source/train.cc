@@ -45,15 +45,6 @@ void Train::run()
   // If this is the root rank, plot the best frame and print information
   if (_workerId == 0)
   {
-   // Plotting current best frame
-   _state->loadBase(_baseStateData);
-   _state->loadFrame(_bestFrame.frameStateData);
-   _sdlPop->refreshEngine();
-   _sdlPop->_currentMove = _possibleMoves[_bestFrame.moveHistory[_currentStep]];
-
-   // Drawing frame
-   _sdlPop->draw();
-
    // Profiling information
    auto searchTimeEnd = std::chrono::steady_clock::now(); // Profiling
    _searchTotalTime = std::chrono::duration_cast<std::chrono::nanoseconds>(searchTimeEnd - searchTimeBegin).count();    // Profiling
@@ -144,7 +135,7 @@ void Train::run()
  {
   printf("[Jaffar] Win Frame Information:\n");
   _state->loadBase(_baseStateData);
-  _state->loadFrame(_globalWinFrame.frameStateData);
+  _state->loadState(_globalWinFrame.frameStateData);
   _sdlPop->refreshEngine();
   _sdlPop->printFrameInfo();
   printRuleStatus(_globalWinFrame);
@@ -155,6 +146,9 @@ void Train::run()
    printf("%s ", _possibleMoves[_globalWinFrame.moveHistory[i]].c_str());
   printf("\n");
  }
+
+ // Marking the end of the run
+ _hasFinalized = true;
 
  // Stopping show thread
  if (_workerId == 0) pthread_join(_showThreadId, NULL);
@@ -227,25 +221,64 @@ void Train::distributeFrames()
   // Shuffling database to remove bias in the score distribution
   std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
 
+  // Passing own part of experiences to itself
+  size_t ownExperienceCount = allToAllSendCounts[_workerId][_workerId];
+  for (size_t i = 0; i < ownExperienceCount; i++)
+  {
+   // Getting current frame count
+   const size_t count = _currentFrameDB.size();
+
+   // Getting last frame
+   const auto& frame = _currentFrameDB[count-1];
+
+   // Creating new frame
+   auto newFrame = std::make_unique<Frame>();
+
+   // Copying frame contents
+   *newFrame = *frame;
+
+   // Adding new frame into the data base
+   _nextFrameDB.push_back(std::move(newFrame));
+
+   // Removing last frame by resizing
+   _currentFrameDB.resize(count-1);
+  }
+
   // Exchanging frames with all other workers at a one by one basis
   // This could be done more efficiently in terms of message traffic and performance by using an MPI_Alltoallv operation
   // However, this operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
-  // Given this bot needs as much memory as possible, the more memory efficient 1-to-1 communication is used
-  for (size_t neighborId = 0; neighborId < _workerCount; neighborId++)
+  // Given this bot needs as much memory as possible, the more memory efficient pair-wise communication is used
+  size_t nSteps = _workerCount/2;
+  size_t leftNeighborId = _workerId == 0 ? _workerCount - 1 : _workerId - 1;
+  size_t rightNeighborId = _workerId == _workerCount - 1 ? 0 : _workerId + 1;
+  for (size_t step = 0; step < nSteps; step++)
   {
+   // Variables to keep track of current send and recv positions
+   size_t currentSendPosition;
+   size_t currentRecvPosition;
+
    // Getting counts for the current worker
-   int recvCount = allToAllRecvCounts[_workerId][neighborId];
-   int sendCount = allToAllSendCounts[_workerId][neighborId];
+   int leftRecvCount = allToAllRecvCounts[_workerId][leftNeighborId];
+   int leftSendCount = allToAllSendCounts[_workerId][leftNeighborId];
+
+   int rightRecvCount = allToAllRecvCounts[_workerId][rightNeighborId];
+   int rightSendCount = allToAllSendCounts[_workerId][rightNeighborId];
 
    // Calculating buffer size as the max between the frames we send and receive
-   size_t bufferSize = std::max(recvCount, sendCount);
+   size_t bufferSize = std::max( { rightSendCount, leftRecvCount, leftSendCount, rightRecvCount });
+
+   // Getting all workers to agree in a possible max buffer size
+   MPI_Allreduce(MPI_IN_PLACE, &bufferSize, 1, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
 
    // Reserving exchange buffer
-   char* frameExchangeBuffer = (char*) malloc(_frameSerializedSize * bufferSize);
+   char* rightwiseFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * bufferSize);
+   char* leftwiseFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * bufferSize);
 
    // Serializing always the last frame and reducing vector size to minimize memory usage
-   size_t currentSendPosition = 0;
-   for (int i = 0; i < sendCount; i++)
+
+   currentSendPosition = 0;
+   if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
+   for (int i = 0; i < rightSendCount; i++)
    {
     // Getting current frame count
     const size_t count = _currentFrameDB.size();
@@ -254,7 +287,7 @@ void Train::distributeFrames()
     const auto& frame = _currentFrameDB[count-1];
 
     // Serializing frame
-    frame->serialize(&frameExchangeBuffer[currentSendPosition]);
+    frame->serialize(&rightwiseFrameExchangeBuffer[currentSendPosition]);
 
     // Advancing send buffer pointer
     currentSendPosition += _frameSerializedSize;
@@ -263,28 +296,78 @@ void Train::distributeFrames()
     _currentFrameDB.resize(count-1);
    }
 
-   // Exchanging frames with neighbor
-   MPI_Sendrecv_replace(frameExchangeBuffer, bufferSize, _mpiFrameType, neighborId, 0, neighborId, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-   // Deserializing contiguous buffer into the new frame database
-   size_t currentRecvPosition = 0;
-   for (int frameId = 0; frameId < recvCount; frameId++)
+   currentSendPosition = 0;
+   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
+   for (int i = 0; i < leftSendCount; i++)
    {
-    // Creating new frame
-    auto newFrame = std::make_unique<Frame>();
+    // Getting current frame count
+    const size_t count = _currentFrameDB.size();
 
-    // Deserializing frame
-    newFrame->deserialize(&frameExchangeBuffer[currentRecvPosition]);
+    // Getting last frame
+    const auto& frame = _currentFrameDB[count-1];
 
-    // Adding new frame into the data base
-    _nextFrameDB.push_back(std::move(newFrame));
+    // Serializing frame
+    frame->serialize(&leftwiseFrameExchangeBuffer[currentSendPosition]);
 
     // Advancing send buffer pointer
-    currentRecvPosition += _frameSerializedSize;
+    currentSendPosition += _frameSerializedSize;
+
+    // Removing last frame by resizing
+    _currentFrameDB.resize(count-1);
    }
 
+   // Exchanging frames with neighbors
+   if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
+    MPI_Sendrecv_replace(rightwiseFrameExchangeBuffer, bufferSize, _mpiFrameType, rightNeighborId, 0, leftNeighborId,  0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
+    MPI_Sendrecv_replace(leftwiseFrameExchangeBuffer,  bufferSize,  _mpiFrameType, leftNeighborId,  0, rightNeighborId, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+   // Deserializing contiguous buffer into the new frame database
+   currentRecvPosition = 0;
+   if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
+    for (int frameId = 0; frameId < leftRecvCount; frameId++)
+    {
+     // Creating new frame
+     auto newFrame = std::make_unique<Frame>();
+
+     // Deserializing frame
+     newFrame->deserialize(&rightwiseFrameExchangeBuffer[currentRecvPosition]);
+
+     // Adding new frame into the data base
+     _nextFrameDB.push_back(std::move(newFrame));
+
+     // Advancing send buffer pointer
+     currentRecvPosition += _frameSerializedSize;
+    }
+
+   currentRecvPosition = 0;
+   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
+    for (int frameId = 0; frameId < rightRecvCount; frameId++)
+    {
+     // Creating new frame
+     auto newFrame = std::make_unique<Frame>();
+
+     // Deserializing frame
+     newFrame->deserialize(&leftwiseFrameExchangeBuffer[currentRecvPosition]);
+
+     // Adding new frame into the data base
+     _nextFrameDB.push_back(std::move(newFrame));
+
+     // Advancing send buffer pointer
+     currentRecvPosition += _frameSerializedSize;
+    }
+
    // Freeing exchange buffer
-   free(frameExchangeBuffer);
+   free(rightwiseFrameExchangeBuffer);
+   free(leftwiseFrameExchangeBuffer);
+
+   // Shifting neighbors by one
+   if (leftNeighborId == 0) leftNeighborId = _workerCount-1;
+   else leftNeighborId = leftNeighborId - 1;
+
+   if (rightNeighborId == _workerCount-1) rightNeighborId = 0;
+   else rightNeighborId = rightNeighborId + 1;
   }
 
   // Swapping database pointers
@@ -322,7 +405,7 @@ void Train::computeFrames()
    _state->loadBase(_baseStateData);
 
    // Loading frame state
-   _state->loadFrame(baseFrame->frameStateData);
+   _state->loadState(baseFrame->frameStateData);
 
    // Refreshing engine
    _sdlPop->refreshEngine();
@@ -357,7 +440,7 @@ void Train::computeFrames()
    newFrame->moveHistory = baseFrame->moveHistory;
    newFrame->moveHistory[_currentStep] = moveId;
    newFrame->rulesStatus = baseFrame->rulesStatus;
-   newFrame->frameStateData = _state->saveFrame();
+   newFrame->frameStateData = _state->saveState();
    newFrame->magnets = baseFrame->magnets;
 
    // Evaluating rules on the new frame
@@ -399,9 +482,6 @@ void Train::framePostprocessing()
  float localBestFrameScore = -std::numeric_limits<float>::infinity();
  if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->score;
 
- // Clipping local database to the maximum threshold
- if (_currentFrameDB.size() > _maxLocalDatabaseSize) _currentFrameDB.resize(_maxLocalDatabaseSize);
-
  // Finding best global frame score
  struct mpiLoc { float val; int loc; };
  mpiLoc mpiLocInput;
@@ -416,6 +496,9 @@ void Train::framePostprocessing()
  if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
  MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
  _bestFrame.deserialize(frameBcastBuffer);
+
+ // Clipping local database to the maximum threshold
+ if (_currentFrameDB.size() > _maxLocalDatabaseSize) _currentFrameDB.resize(_maxLocalDatabaseSize);
 
  // Calculating global frame count
  size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
@@ -735,7 +818,7 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame& frame)
  //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
 
  // Loading frame state
- _state->loadFrame(frame.frameStateData);
+ _state->loadState(frame.frameStateData);
 
  // Getting Kid information
  const auto& Kid = *_sdlPop->Kid;
@@ -950,7 +1033,7 @@ Train::Train(int argc, char* argv[])
 
   auto initialFrame = std::make_unique<Frame>();
   initialFrame->moveHistory[0] = 0;
-  initialFrame->frameStateData = _state->saveFrame();
+  initialFrame->frameStateData = _state->saveState();
   initialFrame->magnets = magnets;
   initialFrame->rulesStatus = rulesStatus;
 
@@ -1006,7 +1089,7 @@ void Train::showSavingLoop()
  SDLPopInstance showSdlPop;
 
  // Initializing State Handler
- State showState(_sdlPop, _scriptJs);
+ State showState(&showSdlPop, _scriptJs);
 
  while (_hasFinalized == false)
  {
@@ -1022,7 +1105,7 @@ void Train::showSavingLoop()
     {
      // Loading base state and best frame data
      showState.loadBase(_baseStateData);
-     showState.loadFrame(_bestFrame.frameStateData);
+     showState.loadState(_bestFrame.frameStateData);
 
      // Saving state
      showState.quickSave(_outputSaveBestPath);
@@ -1040,7 +1123,7 @@ void Train::showSavingLoop()
     {
      // Loading base state and best frame data
      showState.loadBase(_baseStateData);
-     showState.loadFrame(_showFrameDB[currentFrameId].frameStateData);
+     showState.loadState(_showFrameDB[currentFrameId].frameStateData);
 
      // Saving state
      showState.quickSave(_outputSaveCurrentPath);
@@ -1053,10 +1136,7 @@ void Train::showSavingLoop()
     }
    }
  }
-
- printf("Exiting\n");
 }
-
 
 int main(int argc, char* argv[])
 {

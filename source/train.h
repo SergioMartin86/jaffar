@@ -48,6 +48,9 @@ private:
  size_t _workerId;
  size_t _workerCount;
 
+ // Communication schedule for frame exchange
+ std::vector<size_t> _communicationSchedule;
+
  SDLPopInstance* _sdlPop;
  State* _state;
  std::string _baseStateData;

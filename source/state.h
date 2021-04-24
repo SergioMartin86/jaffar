@@ -35,8 +35,8 @@ class State {
   void loadBase(const std::string& data);
   std::string saveBase() const;
 
-  void loadFrame(const std::string& data);
-  std::string saveFrame() const;
+  void loadState(const std::string& data);
+  std::string saveState() const;
 
  private:
   SDLPopInstance* _sdlPop;

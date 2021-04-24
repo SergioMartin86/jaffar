@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
  State genState(&genSDLPop, scriptJs);
 
  // Saving initial frame
- frameSequence.push_back(genState.saveFrame());
+ frameSequence.push_back(genState.saveState());
 
  // Iterating move list in the sequence
  for (int i = 0; i < sequenceLength; i++)
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
   genSDLPop.advanceFrame();
 
   // Storing new frame
-  frameSequence.push_back(genState.saveFrame());
+  frameSequence.push_back(genState.saveState());
  }
 
  printw("[Jaffar] Opening SDLPop window...\n");
@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
  do
  {
   // Loading requested step
-  showState.loadFrame(frameSequence[currentStep-1]);
+  showState.loadState(frameSequence[currentStep-1]);
 
   // Draw requested step
   showSDLPop.draw();
@@ -236,8 +236,11 @@ int main(int argc, char* argv[])
   {
     // Storing replay file
     std::string saveFileName = "jaffar.sav";
-    showState.quickSave(saveFileName);
-    printw("[Jaffar] State saved in '%s'.\n", saveFileName.c_str());
+
+    // Saving frame info to file
+    bool status = saveStringToFile(frameSequence[currentStep-1], saveFileName.c_str());
+    if (status == true)  printw("[Jaffar] State saved in '%s'.\n", saveFileName.c_str());
+    if (status == false) printw("[Jaffar] Error saving file '%s'.\n", saveFileName.c_str());
 
     // Do no show frame info again after this action
     showFrameInfo = false;

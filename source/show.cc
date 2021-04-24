@@ -58,10 +58,20 @@ int main(int argc, char* argv[])
  while(true)
  {
   // Reloading save file
-  showState.quickLoad(saveFile);
+  std::string saveData;
+  bool status = loadStringFromFile(saveData, saveFile.c_str());
 
-  // Printing initial frame info
-  showSDLPop.draw();
+  if (status == true)
+  {
+   // Loading data into state
+   showState.loadState(saveData);
+
+   // Refreshing engine
+   showSDLPop.refreshEngine();
+
+   // Drawing frame
+   showSDLPop.draw();
+  }
 
   // Adding sanity pause
   useconds_t waitLength = std::floor(updateEverySeconds * 1000000.0);
