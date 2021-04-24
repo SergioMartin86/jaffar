@@ -6,12 +6,9 @@
 #include "nlohmann/json.hpp"
 #include "SDLPopInstance.h"
 
-#define SAVESTATE_SIZE 2708
-
 class State {
  public:
   enum ItemType {
-    ONLY_quickSave,
     PER_FRAME_STATE,
     HASHABLE,
     HASHABLE_MANUAL,

@@ -16,7 +16,7 @@ void AddItem(std::vector<State::Item>* dest, T& val, State::ItemType type) {
 
 std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
   std::vector<State::Item> dest;
-  AddItem(&dest, quick_control, State::ONLY_quickSave);
+  AddItem(&dest, quick_control, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->level, State::HASHABLE_MANUAL);
   AddItem(&dest, *sdlPop->checkpoint, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->upside_down, State::PER_FRAME_STATE);
@@ -211,19 +211,8 @@ uint64_t State::computeHash() const {
 
 bool State::quickLoad(const std::string& filename)
 {
-  std::ifstream fi(filename.c_str());
-
-  // If file not found or open, return false
-  if (fi.good() == false) return false;
-
-  // Reading entire file
-  std::string saveString = slurp(fi);
-
-  // Closing file
-  fi.close();
-
-  // If size of file is not what expected, returning false
-  if (saveString.size() != SAVESTATE_SIZE) return false;
+  std::string saveString;
+  loadStringFromFile(saveString, filename.c_str());
 
   size_t curPos = 0;
   for (const auto& item : _items) {
@@ -248,11 +237,12 @@ void State::quickSave(const std::string& filename) {
 }
 
 void State::loadState(const std::string& data) {
-  const char* ptr = data.data();
-  for (const auto& item : _items) {
-      memcpy(item.ptr, ptr, item.size);
-      ptr += item.size;
-  }
+
+ size_t curPos = 0;
+ for (const auto& item : _items) {
+     memcpy(item.ptr, &data.c_str()[curPos], item.size);
+     curPos += item.size;
+ }
 }
 
 std::string State::saveState() const {

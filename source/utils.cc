@@ -44,25 +44,18 @@ bool dirExists(const std::string dirPath)
 
 bool loadStringFromFile(std::string &dst, const char *fileName)
 {
-  FILE *fid = fopen(fileName, "r");
-  if (fid != NULL)
-  {
-    fseek(fid, 0, SEEK_END);
-    long fsize = ftell(fid);
-    fseek(fid, 0, SEEK_SET); /* same as rewind(f); */
+  std::ifstream fi(fileName);
 
-    char *string = (char *)malloc(fsize + 1);
-    fread(string, 1, fsize, fid);
-    fclose(fid);
+  // If file not found or open, return false
+  if (fi.good() == false) return false;
 
-    string[fsize] = '\0';
+  // Reading entire file
+  dst = slurp(fi);
 
-    dst = string;
+  // Closing file
+  fi.close();
 
-    free(string);
-    return true;
-  }
-  return false;
+  return true;
 }
 
 
