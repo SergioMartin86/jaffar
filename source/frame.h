@@ -1,6 +1,6 @@
 #pragma once
 
-#define _FRAME_DATA_SIZE 2693
+#define _FRAME_DATA_SIZE 2708
 #define _MAX_MOVE_SIZE 4
 #define _VISIBLE_ROOM_COUNT 25
 

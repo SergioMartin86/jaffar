@@ -53,7 +53,6 @@ private:
 
  SDLPopInstance* _sdlPop;
  State* _state;
- std::string _baseStateData;
  bool _showSDLPopPreview;
 
  // Rule vector

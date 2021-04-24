@@ -134,7 +134,6 @@ void Train::run()
  if (_workerId == 0 && _winFrameFound == true)
  {
   printf("[Jaffar] Win Frame Information:\n");
-  _state->loadBase(_baseStateData);
   _state->loadState(_globalWinFrame.frameStateData);
   _sdlPop->refreshEngine();
   _sdlPop->printFrameInfo();
@@ -400,9 +399,6 @@ void Train::computeFrames()
 
    // Getting possible move string
    std::string move = _possibleMoves[moveId].c_str();
-
-   // Loading base frame information
-   _state->loadBase(_baseStateData);
 
    // Loading frame state
    _state->loadState(baseFrame->frameStateData);
@@ -1018,9 +1014,6 @@ Train::Train(int argc, char* argv[])
  _hasFinalized = false;
  _globalHashCollisions = 0;
 
- // Storing base frame data to be used by all frames
- _baseStateData = _state->saveBase();
-
  // Setting win status
  _winFrameFound = false;
  _localWinFound = false;
@@ -1103,12 +1096,8 @@ void Train::showSavingLoop()
     double bestFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - bestFrameSaveTimer).count();
     if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
     {
-     // Loading base state and best frame data
-     showState.loadBase(_baseStateData);
-     showState.loadState(_bestFrame.frameStateData);
-
-     // Saving state
-     showState.quickSave(_outputSaveBestPath);
+     // Saving best frame data
+     saveStringToFile(_bestFrame.frameStateData, _outputSaveBestPath.c_str());
 
      // Resetting timer
      bestFrameSaveTimer = std::chrono::steady_clock::now();
@@ -1121,12 +1110,8 @@ void Train::showSavingLoop()
     double currentFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - currentFrameSaveTimer).count();
     if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
     {
-     // Loading base state and best frame data
-     showState.loadBase(_baseStateData);
-     showState.loadState(_showFrameDB[currentFrameId].frameStateData);
-
-     // Saving state
-     showState.quickSave(_outputSaveCurrentPath);
+     // Saving best frame data
+     saveStringToFile(_showFrameDB[currentFrameId].frameStateData, _outputSaveCurrentPath.c_str());
 
      // Resetting timer
      currentFrameSaveTimer = std::chrono::steady_clock::now();

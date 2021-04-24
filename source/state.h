@@ -12,9 +12,7 @@ class State {
  public:
   enum ItemType {
     ONLY_quickSave,
-    BASE_LAYER,
     PER_FRAME_STATE,
-    ONLY_STATE,
     HASHABLE,
     HASHABLE_MANUAL,
   };
@@ -31,9 +29,6 @@ class State {
   void quickSave(const std::string& filename);
   uint64_t computeHash() const;
   uint64_t kidHash() const;
-
-  void loadBase(const std::string& data);
-  std::string saveBase() const;
 
   void loadState(const std::string& data);
   std::string saveState() const;

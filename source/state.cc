@@ -18,23 +18,20 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
   std::vector<State::Item> dest;
   AddItem(&dest, quick_control, State::ONLY_quickSave);
   AddItem(&dest, *sdlPop->level, State::HASHABLE_MANUAL);
-  AddItem(&dest, *sdlPop->checkpoint, State::BASE_LAYER);
+  AddItem(&dest, *sdlPop->checkpoint, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->upside_down, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->drawn_room, State::HASHABLE);
-  AddItem(&dest, *sdlPop->current_level, State::BASE_LAYER);
-  AddItem(&dest, *sdlPop->next_level, State::BASE_LAYER);
+  AddItem(&dest, *sdlPop->current_level, State::PER_FRAME_STATE);
+  AddItem(&dest, *sdlPop->next_level, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->mobs_count, State::HASHABLE_MANUAL);
   AddItem(&dest, *sdlPop->mobs, State::HASHABLE_MANUAL);
   AddItem(&dest, *sdlPop->trobs_count, State::HASHABLE_MANUAL);
   AddItem(&dest, *sdlPop->trobs, State::HASHABLE_MANUAL);
   AddItem(&dest, *sdlPop->leveldoor_open, State::HASHABLE);
-  AddItem(&dest, *sdlPop->exit_room_timer, State::ONLY_STATE);
-  // AddItem(&dest, *sdlPop->jumped_through_mirror, State::ONLY_STATE);
-  // kid
   AddItem(&dest, *sdlPop->Kid, State::HASHABLE);
   AddItem(&dest, *sdlPop->hitp_curr, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->hitp_max, State::PER_FRAME_STATE);
-  AddItem(&dest, *sdlPop->hitp_beg_lev, State::BASE_LAYER);
+  AddItem(&dest, *sdlPop->hitp_beg_lev, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->grab_timer, State::HASHABLE);
   AddItem(&dest, *sdlPop->holding_sword, State::HASHABLE);
   AddItem(&dest, *sdlPop->united_with_shadow, State::HASHABLE);
@@ -230,10 +227,8 @@ bool State::quickLoad(const std::string& filename)
 
   size_t curPos = 0;
   for (const auto& item : _items) {
-    if (item.type != ONLY_STATE) {
       memcpy(item.ptr, &saveString.c_str()[curPos], item.size);
       curPos += item.size;
-    }
   }
 
   _sdlPop->restore_room_after_quick_load();
@@ -248,41 +243,16 @@ void State::quickSave(const std::string& filename) {
    EXIT_WITH_ERROR("Error writing to or opening output save file: %s\n", filename.c_str());
 
   for (const auto& item : _items) {
-    if (item.type != ONLY_STATE) {
       fo.write(reinterpret_cast<char*>(item.ptr), item.size);
-    }
   }
-}
-
-void State::loadBase(const std::string& data) {
-  const char* ptr = data.data();
-  for (const auto& item : _items) {
-    if (item.type == BASE_LAYER) {
-      memcpy(item.ptr, ptr, item.size);
-      ptr += item.size;
-    }
-  }
-}
-
-std::string State::saveBase() const {
-  std::string res;
-  for (const auto& item : _items) {
-    if (item.type == BASE_LAYER) {
-      res.append(reinterpret_cast<const char*>(item.ptr), item.size);
-    }
-  }
-  return res;
 }
 
 void State::loadState(const std::string& data) {
   const char* ptr = data.data();
   for (const auto& item : _items) {
-    if (item.type > BASE_LAYER) {
       memcpy(item.ptr, ptr, item.size);
       ptr += item.size;
-    }
   }
-  // restore_room_after_quick_load();
 }
 
 std::string State::saveState() const {
@@ -290,9 +260,7 @@ std::string State::saveState() const {
   std::string res;
   res.reserve(kExpectedSize);
   for (const auto& item : _items) {
-    if (item.type > BASE_LAYER) {
       res.append(reinterpret_cast<const char*>(item.ptr), item.size);
-    }
   }
   if (res.size() != kExpectedSize)
    EXIT_WITH_ERROR("Expected %lu, got: %lu\n", kExpectedSize, res.size());
