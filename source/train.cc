@@ -154,9 +154,6 @@ void Train::run()
 
  // Barrier to wait for all workers
  MPI_Barrier(MPI_COMM_WORLD);
-
- // Finishing MPI
- MPI_Finalize();
 }
 
 void Train::distributeFrames()
