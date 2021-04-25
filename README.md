@@ -117,3 +117,5 @@ Authors
 - Alexander Lyashuk (mooskagh, crem) 
   + Github: https://github.com/mooskagh
   + Twitch: https://www.twitch.tv/mooskagh
+  
+Also thanks to Dávid Nagy and the developers of SDLPop (https://github.com/NagyD/SDLPoP) for reverse engineering Prince of Persia and making this possible.
