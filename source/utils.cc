@@ -62,7 +62,7 @@ bool loadStringFromFile(std::string &dst, const char *fileName)
 // Save string to a file
 bool saveStringToFile(const std::string &src, const char *fileName)
 {
- FILE *fid = fopen(fileName, "r");
+ FILE *fid = fopen(fileName, "w");
  if (fid != NULL)
  {
    fwrite(src.c_str(), 1, src.size(), fid);
