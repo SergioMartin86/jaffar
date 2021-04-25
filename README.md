@@ -1,8 +1,8 @@
-# Jaffar
-
-High-performance fully scalable solver for Prince of Persia (DOS) tool-assisted speedrunning. 
+# Jaffar 
 
 ![](jaffar.png)
+
+High-performance fully scalable solver for Prince of Persia (DOS) tool-assisted speedrunning.  
 
 This software is based on the sdlpop-tricks (https://bitbucket.org/mooskagh/sdlpop-tricks) bot.
 
@@ -125,4 +125,4 @@ Authors
   + Github: https://github.com/mooskagh
   + Twitch: https://www.twitch.tv/mooskagh
   
-Also thanks to Dávid Nagy and the developers of SDLPop (https://github.com/NagyD/SDLPoP) for reverse engineering Prince of Persia and making this possible.
+Also thanks to DÃ¡vid Nagy and the developers of SDLPop (https://github.com/NagyD/SDLPoP) for reverse engineering Prince of Persia and making this possible.
