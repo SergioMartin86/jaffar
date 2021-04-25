@@ -244,13 +244,15 @@ void Train::distributeFrames()
   }
 
   // Storage for MPI requests
-  MPI_Request reqs[4];
+  MPI_Request reqs[2];
 
   // Exchanging frames with all other workers at a one by one basis
   // This could be done more efficiently in terms of message traffic and performance by using an MPI_Alltoallv operation
   // However, this operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
   // Given this bot needs as much memory as possible, the more memory efficient pair-wise communication is used
   size_t nSteps = _workerCount/2;
+
+  // Perform right-wise communication first
   size_t leftNeighborId = _workerId == 0 ? _workerCount - 1 : _workerId - 1;
   size_t rightNeighborId = _workerId == _workerCount - 1 ? 0 : _workerId + 1;
   for (size_t step = 0; step < nSteps; step++)
@@ -261,19 +263,13 @@ void Train::distributeFrames()
 
    // Getting counts for the current worker
    int leftRecvCount = allToAllRecvCounts[_workerId][leftNeighborId];
-   int leftSendCount = allToAllSendCounts[_workerId][leftNeighborId];
-
-   int rightRecvCount = allToAllRecvCounts[_workerId][rightNeighborId];
    int rightSendCount = allToAllSendCounts[_workerId][rightNeighborId];
 
    // Reserving exchange buffers
-   char* leftRecvFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * rightRecvCount);
-   char* leftSendFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * rightSendCount);
-   char* rightSendFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * leftSendCount);
-   char* rightRecvFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * rightRecvCount);
+   char* leftRecvFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * leftRecvCount);
+   char* rightSendFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * rightSendCount);
 
    // Serializing always the last frame and reducing vector size to minimize memory usage
-
    currentSendPosition = 0;
    if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
    for (int i = 0; i < rightSendCount; i++)
@@ -294,6 +290,73 @@ void Train::distributeFrames()
     _currentFrameDB.resize(count-1);
    }
 
+   // Posting receive requests
+   MPI_Irecv(leftRecvFrameExchangeBuffer, leftRecvCount, _mpiFrameType, leftNeighborId, 0, MPI_COMM_WORLD, &reqs[0]);
+
+   // Making sure receives are posted before sends to prevent intermediate buffering
+   MPI_Barrier(MPI_COMM_WORLD);
+
+   // Posting send requests
+   MPI_Isend(rightSendFrameExchangeBuffer, rightSendCount, _mpiFrameType, rightNeighborId, 0, MPI_COMM_WORLD, &reqs[1]);
+
+   // Waiting for requests to finish
+   MPI_Waitall(2, reqs, MPI_STATUS_IGNORE);
+
+   // Freeing send buffers
+   free(rightSendFrameExchangeBuffer);
+
+   // Waiting for everyone to have cleaned their buffers before creating new frames
+   MPI_Barrier(MPI_COMM_WORLD);
+
+   currentRecvPosition = 0;
+   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
+    for (int frameId = 0; frameId < leftRecvCount; frameId++)
+    {
+     // Creating new frame
+     auto newFrame = std::make_unique<Frame>();
+
+     // Deserializing frame
+     newFrame->deserialize(&leftRecvFrameExchangeBuffer[currentRecvPosition]);
+
+     // Adding new frame into the data base
+     _nextFrameDB.push_back(std::move(newFrame));
+
+     // Advancing send buffer pointer
+     currentRecvPosition += _frameSerializedSize;
+    }
+
+   // Freeing left right receive buffer
+   free(leftRecvFrameExchangeBuffer);
+
+   // Waiting for everyone to have cleaned their buffers before continuing
+   MPI_Barrier(MPI_COMM_WORLD);
+
+   // Shifting neighbors by one
+   if (leftNeighborId == 0) leftNeighborId = _workerCount-1;
+   else leftNeighborId = leftNeighborId - 1;
+
+   if (rightNeighborId == _workerCount-1) rightNeighborId = 0;
+   else rightNeighborId = rightNeighborId + 1;
+  }
+
+  // Perform left-wise communication second
+  leftNeighborId = _workerId == 0 ? _workerCount - 1 : _workerId - 1;
+  rightNeighborId = _workerId == _workerCount - 1 ? 0 : _workerId + 1;
+  for (size_t step = 0; step < nSteps; step++)
+  {
+   // Variables to keep track of current send and recv positions
+   size_t currentSendPosition;
+   size_t currentRecvPosition;
+
+   // Getting counts for the current worker
+   int leftSendCount = allToAllSendCounts[_workerId][leftNeighborId];
+   int rightRecvCount = allToAllRecvCounts[_workerId][rightNeighborId];
+
+   // Reserving exchange buffers
+   char* leftSendFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * leftSendCount);
+   char* rightRecvFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * rightRecvCount);
+
+   // Serializing always the last frame and reducing vector size to minimize memory usage
    currentSendPosition = 0;
    if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
    for (int i = 0; i < leftSendCount; i++)
@@ -315,27 +378,27 @@ void Train::distributeFrames()
    }
 
    // Posting receive requests
-   MPI_Irecv(leftRecvFrameExchangeBuffer, leftRecvCount, _mpiFrameType, leftNeighborId, 0, MPI_COMM_WORLD, &reqs[0]);
-   MPI_Irecv(rightRecvFrameExchangeBuffer, rightRecvCount, _mpiFrameType, rightNeighborId, 0, MPI_COMM_WORLD, &reqs[1]);
+   MPI_Irecv(rightRecvFrameExchangeBuffer, rightRecvCount, _mpiFrameType, rightNeighborId, 0, MPI_COMM_WORLD, &reqs[0]);
 
    // Making sure receives are posted before sends to prevent intermediate buffering
    MPI_Barrier(MPI_COMM_WORLD);
 
    // Posting send requests
-   MPI_Isend(leftSendFrameExchangeBuffer, leftSendCount, _mpiFrameType, leftNeighborId, 0, MPI_COMM_WORLD, &reqs[2]);
-   MPI_Isend(rightSendFrameExchangeBuffer, rightSendCount, _mpiFrameType, rightNeighborId, 0, MPI_COMM_WORLD, &reqs[3]);
+   MPI_Isend(leftSendFrameExchangeBuffer, leftSendCount, _mpiFrameType, leftNeighborId, 0, MPI_COMM_WORLD, &reqs[1]);
 
    // Waiting for requests to finish
-   MPI_Waitall(4, reqs, MPI_STATUS_IGNORE);
+   MPI_Waitall(2, reqs, MPI_STATUS_IGNORE);
 
    // Freeing send buffers
    free(leftSendFrameExchangeBuffer);
-   free(rightSendFrameExchangeBuffer);
+
+   // Waiting for everyone to have cleaned their buffers before creating new frames
+   MPI_Barrier(MPI_COMM_WORLD);
 
    // Deserializing contiguous buffer into the new frame database
    currentRecvPosition = 0;
    if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
-    for (int frameId = 0; frameId < leftRecvCount; frameId++)
+    for (int frameId = 0; frameId < rightRecvCount; frameId++)
     {
      // Creating new frame
      auto newFrame = std::make_unique<Frame>();
@@ -353,25 +416,8 @@ void Train::distributeFrames()
    // Freeing right receive buffer
    free(rightRecvFrameExchangeBuffer);
 
-   currentRecvPosition = 0;
-   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
-    for (int frameId = 0; frameId < rightRecvCount; frameId++)
-    {
-     // Creating new frame
-     auto newFrame = std::make_unique<Frame>();
-
-     // Deserializing frame
-     newFrame->deserialize(&leftRecvFrameExchangeBuffer[currentRecvPosition]);
-
-     // Adding new frame into the data base
-     _nextFrameDB.push_back(std::move(newFrame));
-
-     // Advancing send buffer pointer
-     currentRecvPosition += _frameSerializedSize;
-    }
-
-   // Freeing left right receive buffer
-   free(leftRecvFrameExchangeBuffer);
+   // Waiting for everyone to have cleaned their buffers before continuing
+   MPI_Barrier(MPI_COMM_WORLD);
 
    // Shifting neighbors by one
    if (leftNeighborId == 0) leftNeighborId = _workerCount-1;

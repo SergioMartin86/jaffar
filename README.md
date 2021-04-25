@@ -2,6 +2,8 @@
 
 High-performance fully scalable solver for Prince of Persia (DOS) tool-assisted speedrunning. 
 
+![](jaffar.png)
+
 This software is based on the sdlpop-tricks (https://bitbucket.org/mooskagh/sdlpop-tricks) bot.
 
 Installation
