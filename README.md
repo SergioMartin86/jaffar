@@ -8,14 +8,14 @@ Installation
 ===============
 
 1) Get code
---------------
+
  
 ```
   git clone --recursive https://github.com/SergioMartin86/jaffar.git
 ```
   
 2) Create build directory
-----------------------------
+
 
 ```
   cd jaffar
@@ -24,7 +24,6 @@ Installation
 ```
 
 3) Configure and compile
---------------------------
 
 ```
   meson ..
