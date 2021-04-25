@@ -5,15 +5,17 @@ High-performance fully scalable solver for Prince of Persia (DOS) tool-assisted 
 This software is based on the sdlpop-tricks (https://bitbucket.org/mooskagh/sdlpop-tricks) bot.
 
 Installation
--------------
+===============
 
 1) Get code
+--------------
  
 ```
   git clone --recursive https://github.com/SergioMartin86/jaffar.git
 ```
   
 2) Create build directory
+----------------------------
 
 ```
   cd jaffar
@@ -22,6 +24,7 @@ Installation
 ```
 
 3) Configure and compile
+--------------------------
 
 ```
   meson ..
@@ -29,7 +32,7 @@ Installation
 ```
   
 Requisites
----------------
+============
 
 
 - MPI - For distributed execution. Jaffar has been tested exclusively on MPICH
@@ -40,14 +43,15 @@ Requisites
 - libncurses: For console output
 
 Usage
--------------
+=========
 
 Commands:
+-----------
 
 + To run the training process on 16 MPI ranks:
 
 ```
-mpirun -n 16 jaffar-train example.confiig 
+mpirun -n 16 jaffar-train example.config 
 ```
 
 
@@ -63,10 +67,12 @@ jaffar-play example.config example.seq
 + To showcase the current/best state of training:
 
 ```
-jaffar-show jaffar.current.sav 
+jaffar-show jaffar.current.sav
+jaffar-show jaffar.best.sav  
 ```
 
 Environment Variables:
+------------------------
 
 Indicate where the SDLpop root folder is located:
 
@@ -107,7 +113,7 @@ JAFFAR_SHOW_UPDATE_EVERY_SECONDS
 ```
 
 Authors
--------------
+=============
 
 - Sergio Martin (eien86)
   + Github: https://github.com/SergioMartin86
