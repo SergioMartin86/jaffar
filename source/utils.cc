@@ -1,15 +1,16 @@
 #include "utils.h"
+#include <dirent.h>
 #include <stdarg.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <sys/stat.h>
 
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, std::back_inserter(elems));
-    return elems;
+std::vector<std::string> split(const std::string &s, char delim)
+{
+  std::vector<std::string> elems;
+  split(s, delim, std::back_inserter(elems));
+  return elems;
 }
 
 void exitWithError [[noreturn]] (const char *fileName, const int lineNumber, const char *format, ...)
@@ -58,24 +59,23 @@ bool loadStringFromFile(std::string &dst, const char *fileName)
   return true;
 }
 
-
 // Save string to a file
 bool saveStringToFile(const std::string &src, const char *fileName)
 {
- FILE *fid = fopen(fileName, "w");
- if (fid != NULL)
- {
-   fwrite(src.c_str(), 1, src.size(), fid);
-   fclose(fid);
-   return true;
- }
- return false;
+  FILE *fid = fopen(fileName, "w");
+  if (fid != NULL)
+  {
+    fwrite(src.c_str(), 1, src.size(), fid);
+    fclose(fid);
+    return true;
+  }
+  return false;
 }
 
-
 // Taken from https://stackoverflow.com/questions/116038/how-do-i-read-an-entire-file-into-a-stdstring-in-c/116220#116220
-std::string slurp(std::ifstream& in) {
-    std::ostringstream sstr;
-    sstr << in.rdbuf();
-    return sstr.str();
+std::string slurp(std::ifstream &in)
+{
+  std::ostringstream sstr;
+  sstr << in.rdbuf();
+  return sstr.str();
 }

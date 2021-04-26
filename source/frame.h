@@ -6,49 +6,48 @@
 
 #include "nlohmann/json.hpp"
 #include "rule.h"
-#include <vector>
 #include <string>
+#include <vector>
 
-const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
+const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD"};
 
 struct Magnet
 {
- float intensityY;
- float intensityX;
- float positionX;
+  float intensityY;
+  float intensityX;
+  float positionX;
 };
 
 class Frame
 {
-public:
+  public:
+  Frame();
 
- Frame();
+  // Stores the entire move history of the frame
+  std::vector<uint8_t> moveHistory;
 
- // Stores the entire move history of the frame
- std::vector<uint8_t> moveHistory;
+  // The score calculated for this frame
+  float score;
 
- // The score calculated for this frame
- float score;
+  // Stores the game state data
+  std::string frameStateData;
 
- // Stores the game state data
- std::string frameStateData;
+  // Magnet vector
+  std::vector<Magnet> magnets;
 
- // Magnet vector
- std::vector<Magnet> magnets;
+  // Rule status vector
+  std::vector<status_t> rulesStatus;
 
- // Rule status vector
- std::vector<status_t> rulesStatus;
+  // Serialization functions
+  static size_t getSerializationSize();
+  void serialize(char *output);
+  void deserialize(const char *input);
 
- // Serialization functions
- static size_t getSerializationSize();
- void serialize(char* output);
- void deserialize(const char* input);
+  // Additional local metadata
+  bool isWin;
+  bool isFail;
 
- // Additional local metadata
- bool isWin;
- bool isFail;
-
- Frame& operator=(Frame sourceFrame);
+  Frame &operator=(Frame sourceFrame);
 };
 
 extern size_t _ruleCount;

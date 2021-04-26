@@ -1,20 +1,22 @@
 #include "state.h"
-#include "utils.h"
 #include "frame.h"
 #include "metrohash64.h"
+#include "utils.h"
 
 extern nlohmann::json _scriptJs;
 
-namespace {
-
+namespace
+{
 char quick_control[] = "........";
 
 template <class T>
-void AddItem(std::vector<State::Item>* dest, T& val, State::ItemType type) {
+void AddItem(std::vector<State::Item> *dest, T &val, State::ItemType type)
+{
   dest->push_back({&val, sizeof(val), type});
 }
 
-std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
+std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
+{
   std::vector<State::Item> dest;
   AddItem(&dest, quick_control, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->level, State::HASHABLE_MANUAL);
@@ -101,58 +103,62 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop) {
   return dest;
 }
 
-}  // namespace
+} // namespace
 
 State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
 {
- _sdlPop = sdlPop;
- _items = GenerateItemsMap(sdlPop);
+  _sdlPop = sdlPop;
+  _items = GenerateItemsMap(sdlPop);
 
- // Loading save file
- if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
- const std::string saveFile = stateConfig["Path"].get<std::string>();
- std::string saveString;
- bool status = loadStringFromFile(saveString, saveFile.c_str());
- if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state %s\n", saveFile.c_str());
- loadState(saveString);
- _sdlPop->restore_room_after_quick_load();
+  // Loading save file
+  if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
+  const std::string saveFile = stateConfig["Path"].get<std::string>();
+  std::string saveString;
+  bool status = loadStringFromFile(saveString, saveFile.c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state %s\n", saveFile.c_str());
+  loadState(saveString);
+  _sdlPop->restore_room_after_quick_load();
 
- // Parsing random seed information
- if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
- const dword configSeed = stateConfig["Random Seed"].get<dword>();
+  // Parsing random seed information
+  if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
+  const dword configSeed = stateConfig["Random Seed"].get<dword>();
 
- // Parsing last loose tile sound
- if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
- const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
+  // Parsing last loose tile sound
+  if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
+  const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
 
- // Playing a frame to initialize all SDLPop internals
- _sdlPop->performMove(".");
- _sdlPop->advanceFrame();
- _sdlPop->prandom(2);
+  // Playing a frame to initialize all SDLPop internals
+  _sdlPop->performMove(".");
+  _sdlPop->advanceFrame();
+  _sdlPop->prandom(2);
 
- // Setting values, overriding if value > 0 was passed
- if (configSeed != 0) _sdlPop->setSeed(configSeed);
- if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
+  // Setting values, overriding if value > 0 was passed
+  if (configSeed != 0) _sdlPop->setSeed(configSeed);
+  if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
 }
 
-uint64_t State::kidHash() const {
+uint64_t State::kidHash() const
+{
   uint64_t hash;
-  MetroHash64::Hash(reinterpret_cast<uint8_t*>(_sdlPop->Kid), sizeof(*_sdlPop->Kid),
-                    reinterpret_cast<uint8_t*>(&hash), 1);
+  MetroHash64::Hash(reinterpret_cast<uint8_t *>(_sdlPop->Kid), sizeof(*_sdlPop->Kid), reinterpret_cast<uint8_t *>(&hash), 1);
   return hash;
 }
 
-uint64_t State::computeHash() const {
+uint64_t State::computeHash() const
+{
   MetroHash64 hash;
-  for (const auto& item : _items) {
-    if (item.type == HASHABLE) {
+  for (const auto &item : _items)
+  {
+    if (item.type == HASHABLE)
+    {
       hash.Update(item.ptr, item.size);
     }
   }
 
   // manual hashes
   // hash.Update(_sdlPop->level->fg);
-  for (const uint8_t x : _sdlPop->level->fg) {
+  for (const uint8_t x : _sdlPop->level->fg)
+  {
     hash.Update(uint8_t(x & 0x1f));
   }
 
@@ -161,79 +167,83 @@ uint64_t State::computeHash() const {
   hash.Update(*_sdlPop->mobs, sizeof(mob_type) * (*_sdlPop->mobs_count));
   if (_sdlPop->Guard->alive) hash.Update(*_sdlPop->Guard);
 
-  for (int i = 0; i < *_sdlPop->trobs_count; ++i) {
-    const auto& trob = (*_sdlPop->trobs)[i];
+  for (int i = 0; i < *_sdlPop->trobs_count; ++i)
+  {
+    const auto &trob = (*_sdlPop->trobs)[i];
     const auto idx = (trob.room - 1) * 30 + trob.tilepos;
     const auto type = _sdlPop->level->fg[idx] & 0x1f;
-    switch (type) {
-      case tiles_0_empty:
-      case tiles_1_floor:
-      case tiles_3_pillar:
-      case tiles_5_stuck:
-      case tiles_6_closer:
-      case tiles_7_doortop_with_floor:
-      case tiles_8_bigpillar_bottom:
-      case tiles_9_bigpillar_top:
-      case tiles_10_potion:
-      case tiles_12_doortop:
-      case tiles_13_mirror:
-      case tiles_14_debris:
-      case tiles_15_opener:
-      case tiles_17_level_door_right:
-      case tiles_19_torch:
-      case tiles_20_wall:
-      case tiles_21_skeleton:
-      case tiles_22_sword:
-      case tiles_23_balcony_left:
-      case tiles_24_balcony_right:
-      case tiles_25_lattice_pillar:
-      case tiles_26_lattice_down:
-      case tiles_27_lattice_small:
-      case tiles_28_lattice_left:
-      case tiles_29_lattice_right:
-      case tiles_30_torch_with_debris:
-        break;
-      case tiles_11_loose:
-      case tiles_16_level_door_left:
-      case tiles_18_chomper:
-      case tiles_2_spike:
-      case tiles_4_gate:
-        hash.Update(trob);
-        hash.Update(_sdlPop->level->bg[idx]);
-        hash.Update(_sdlPop->level->fg[idx]);
-        break;
-      default:
-       EXIT_WITH_ERROR("Unknown trob type: %d\n", int(type));
+    switch (type)
+    {
+    case tiles_0_empty:
+    case tiles_1_floor:
+    case tiles_3_pillar:
+    case tiles_5_stuck:
+    case tiles_6_closer:
+    case tiles_7_doortop_with_floor:
+    case tiles_8_bigpillar_bottom:
+    case tiles_9_bigpillar_top:
+    case tiles_10_potion:
+    case tiles_12_doortop:
+    case tiles_13_mirror:
+    case tiles_14_debris:
+    case tiles_15_opener:
+    case tiles_17_level_door_right:
+    case tiles_19_torch:
+    case tiles_20_wall:
+    case tiles_21_skeleton:
+    case tiles_22_sword:
+    case tiles_23_balcony_left:
+    case tiles_24_balcony_right:
+    case tiles_25_lattice_pillar:
+    case tiles_26_lattice_down:
+    case tiles_27_lattice_small:
+    case tiles_28_lattice_left:
+    case tiles_29_lattice_right:
+    case tiles_30_torch_with_debris:
+      break;
+    case tiles_11_loose:
+    case tiles_16_level_door_left:
+    case tiles_18_chomper:
+    case tiles_2_spike:
+    case tiles_4_gate:
+      hash.Update(trob);
+      hash.Update(_sdlPop->level->bg[idx]);
+      hash.Update(_sdlPop->level->fg[idx]);
+      break;
+    default:
+      EXIT_WITH_ERROR("Unknown trob type: %d\n", int(type));
     }
   }
 
   uint64_t result;
-  hash.Finalize(reinterpret_cast<uint8_t*>(&result));
+  hash.Finalize(reinterpret_cast<uint8_t *>(&result));
   return result;
 }
 
-void State::loadState(const std::string& data) {
+void State::loadState(const std::string &data)
+{
+  if (data.size() != _FRAME_DATA_SIZE)
+    EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, data.size());
 
- if (data.size() != _FRAME_DATA_SIZE)
-  EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, data.size());
-
- size_t curPos = 0;
- for (const auto& item : _items) {
-     memcpy(item.ptr, &data.c_str()[curPos], item.size);
-     curPos += item.size;
- }
+  size_t curPos = 0;
+  for (const auto &item : _items)
+  {
+    memcpy(item.ptr, &data.c_str()[curPos], item.size);
+    curPos += item.size;
+  }
 }
 
-std::string State::saveState() const {
-
+std::string State::saveState() const
+{
   std::string res;
   res.reserve(_FRAME_DATA_SIZE);
-  for (const auto& item : _items) {
-      res.append(reinterpret_cast<const char*>(item.ptr), item.size);
+  for (const auto &item : _items)
+  {
+    res.append(reinterpret_cast<const char *>(item.ptr), item.size);
   }
 
   if (res.size() != _FRAME_DATA_SIZE)
-   EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, res.size());
+    EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, res.size());
 
   return res;
 }

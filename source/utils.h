@@ -1,23 +1,25 @@
 #pragma once
 
 #include "nlohmann/json.hpp"
-#include <string>
-#include <sstream>
-#include <vector>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include <vector>
 
 // Function to split a string into a sub-strings delimited by a character
 // Taken from stack overflow answer to https://stackoverflow.com/questions/236129/how-do-i-iterate-over-the-words-of-a-string
 // By Evan Teran
 
 template <typename Out>
-void split(const std::string &s, char delim, Out result) {
-    std::istringstream iss(s);
-    std::string item;
-    while (std::getline(iss, item, delim)) {
-        *result++ = item;
-    }
+void split(const std::string &s, char delim, Out result)
+{
+  std::istringstream iss(s);
+  std::string item;
+  while (std::getline(iss, item, delim))
+  {
+    *result++ = item;
+  }
 }
 
 std::vector<std::string> split(const std::string &s, char delim);
@@ -49,7 +51,7 @@ bool isDefined(T &js, const Key &... key)
 }
 
 // Function to split a vector into n mostly fair chunks
-template<typename T>
+template <typename T>
 std::vector<T> splitVector(const T size, const T n)
 {
   std::vector<T> subSizes(n);
@@ -58,10 +60,10 @@ std::vector<T> splitVector(const T size, const T n)
   T remain = size % n;
 
   for (T i = 0; i < n; i++)
-   subSizes[i] = i < remain ? length + 1 : length;
+    subSizes[i] = i < remain ? length + 1 : length;
 
   return subSizes;
 }
 
 // Taken from https://stackoverflow.com/questions/116038/how-do-i-read-an-entire-file-into-a-stdstring-in-c/116220#116220
-std::string slurp(std::ifstream& in);
+std::string slurp(std::ifstream &in);

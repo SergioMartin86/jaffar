@@ -6,6 +6,8 @@ subprojects/json-*
 subprojects/abseil-cpp*
 subprojects/packagecache
 build
+tools/llvm/
+tools/run-clang-format/
 *.p1r
 
 # Prerequisites

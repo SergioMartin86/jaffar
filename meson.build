@@ -95,3 +95,6 @@ executable('jaffar-show',
   link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
+
+checkStyleCommand = find_program('./tools/check_style.sh', required: true)
+test('C++ Style check', checkStyleCommand)

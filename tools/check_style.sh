@@ -19,10 +19,10 @@ root=$fileDir/../source/
 ##############################################
 
 # If clang-format is not installed, run the installation script
-clangFormatBin=${root}/external/clang-format
+clangFormatBin=llvm/bin/clang-format
 if [ ! -f $clangFormatBin ]; then
- pushd ${root}
- ./external/install_clang.sh
+ pushd ${fileDir}
+ ./install_clang.sh
  popd
 fi
  
@@ -37,9 +37,9 @@ if [ ! -f  run-clang-format/run-clang-format.py ]; then
 
 fi
 
-clangFormatCmd=${root}/external/clang-format
+clangFormatCmd=clang-format
 if [ ! -f $clangFormatCmd ]; then
- clangFormatCmd=clang-format
+ clangFormatCmd=llvm/bin/clang-format
 fi
 
 runClangCmd=run-clang-format/run-clang-format.py
