@@ -500,11 +500,11 @@ void Train::computeFrames()
    // Calculating score
    newFrame->score = getFrameScore(*newFrame);
 
-   // If frame has failed, then proceed to the next one
-   if (newFrame->isFail == true) continue;
-
    // If frame has succeded, then flag it
    if (newFrame->isWin == true) { _localWinFound = true; _localWinFrame = *newFrame; }
+
+   // If frame has failed, then proceed to the next one
+   if (newFrame->isFail == true) continue;
 
    // Adding novel frame in the next frame database
    _nextFrameDB.push_back(std::move(newFrame));

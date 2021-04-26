@@ -12,7 +12,7 @@ function check()
 fileDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 pushd $fileDir
 
-root=$fileDir/../src/
+root=$fileDir/../source/
 
 ##############################################
 ### Testing C++ Code Style
