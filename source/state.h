@@ -23,6 +23,8 @@ class State
     ItemType type;
   };
 
+  void advanceRNGState();
+  void reverseRNGState();
   State(SDLPopInstance *sdlPop, nlohmann::json stateConfig);
 
   uint64_t computeHash() const;

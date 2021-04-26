@@ -13,9 +13,9 @@ const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "
 
 struct Magnet
 {
-  float intensityY;
-  float intensityX;
-  float positionX;
+  int8_t intensityY;
+  int8_t intensityX;
+  int8_t positionX;
 };
 
 class Frame
@@ -24,7 +24,7 @@ class Frame
   Frame();
 
   // Stores the entire move history of the frame
-  std::vector<uint8_t> moveHistory;
+  std::vector<char> moveHistory;
 
   // The score calculated for this frame
   float score;
@@ -36,7 +36,7 @@ class Frame
   std::vector<Magnet> magnets;
 
   // Rule status vector
-  std::vector<status_t> rulesStatus;
+  std::vector<char> rulesStatus;
 
   // Serialization functions
   static size_t getSerializationSize();

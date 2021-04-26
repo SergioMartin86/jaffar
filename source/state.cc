@@ -5,8 +5,6 @@
 
 extern nlohmann::json _scriptJs;
 
-namespace
-{
 char quick_control[] = "........";
 
 template <class T>
@@ -103,7 +101,15 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   return dest;
 }
 
-} // namespace
+void State::advanceRNGState()
+{
+ *_sdlPop->random_seed = (*_sdlPop->random_seed * 214013) * 2531011;
+}
+
+void State::reverseRNGState()
+{
+ *_sdlPop->random_seed = (*_sdlPop->random_seed + 4292436285) * 3115528533;
+}
 
 State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
 {

@@ -14,7 +14,7 @@ size_t Frame::getSerializationSize()
   size_t size = 0;
 
   // Adding current move
-  size += (_maxSteps + 1) * sizeof(uint8_t);
+  size += (_maxSteps + 1) * sizeof(char);
 
   // Adding score size
   size += sizeof(float);
@@ -26,7 +26,7 @@ size_t Frame::getSerializationSize()
   size += _VISIBLE_ROOM_COUNT * sizeof(Magnet);
 
   // Adding rule status information
-  size += _ruleCount * sizeof(status_t);
+  size += _ruleCount * sizeof(char);
 
   return size;
 }
@@ -36,8 +36,8 @@ void Frame::serialize(char *output)
   size_t currentPos = 0;
 
   // Adding move history
-  memcpy(&output[currentPos], moveHistory.data(), (_maxSteps + 1) * sizeof(uint8_t));
-  currentPos += (_maxSteps + 1) * sizeof(uint8_t);
+  memcpy(&output[currentPos], moveHistory.data(), (_maxSteps + 1) * sizeof(char));
+  currentPos += (_maxSteps + 1) * sizeof(char);
 
   // Adding score
   memcpy(&output[currentPos], &score, sizeof(float));
@@ -52,8 +52,8 @@ void Frame::serialize(char *output)
   currentPos += _VISIBLE_ROOM_COUNT * sizeof(Magnet);
 
   // Copying Rule status information
-  memcpy(&output[currentPos], rulesStatus.data(), _ruleCount * sizeof(status_t));
-  currentPos += _ruleCount * sizeof(status_t);
+  memcpy(&output[currentPos], rulesStatus.data(), _ruleCount * sizeof(char));
+  currentPos += _ruleCount * sizeof(char);
 }
 
 void Frame::deserialize(const char *input)
@@ -62,8 +62,8 @@ void Frame::deserialize(const char *input)
 
   // Copying magnets information
   moveHistory.resize((_maxSteps + 1));
-  memcpy(moveHistory.data(), &input[currentPos], (_maxSteps + 1) * sizeof(uint8_t));
-  currentPos += (_maxSteps + 1) * sizeof(uint8_t);
+  memcpy(moveHistory.data(), &input[currentPos], (_maxSteps + 1) * sizeof(char));
+  currentPos += (_maxSteps + 1) * sizeof(char);
 
   // Adding score
   memcpy(&score, &input[currentPos], sizeof(float));
@@ -80,8 +80,8 @@ void Frame::deserialize(const char *input)
 
   // Copying Rule status information
   rulesStatus.resize(_ruleCount);
-  memcpy(rulesStatus.data(), &input[currentPos], _ruleCount * sizeof(status_t));
-  currentPos += _ruleCount * sizeof(status_t);
+  memcpy(rulesStatus.data(), &input[currentPos], _ruleCount * sizeof(char));
+  currentPos += _ruleCount * sizeof(char);
 }
 
 Frame &Frame::operator=(Frame sourceFrame)

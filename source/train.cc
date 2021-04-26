@@ -650,12 +650,12 @@ void Train::evaluateRules(Frame &frame)
   for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
   {
     // Evaluate rule only if it's active
-    if (frame.rulesStatus[ruleId] == st_active)
+    if (frame.rulesStatus[ruleId] == false)
     {
       // Checking dependencies first. If not met, continue to the next rule
       bool dependenciesMet = true;
       for (size_t i = 0; i < _rules[ruleId]->_dependencies.size(); i++)
-        if (frame.rulesStatus[_rules[ruleId]->_dependencies[i]] != st_achieved)
+        if (frame.rulesStatus[_rules[ruleId]->_dependencies[i]] == false)
           dependenciesMet = false;
 
       // If dependencies aren't met, then continue to next rule
@@ -668,7 +668,7 @@ void Train::evaluateRules(Frame &frame)
       if (isAchieved)
       {
         // Setting status to achieved
-        frame.rulesStatus[ruleId] = st_achieved;
+        frame.rulesStatus[ruleId] = true;
 
         // Perform actions
         for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
@@ -711,7 +711,7 @@ void Train::evaluateRules(Frame &frame)
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            float intensityX = actionJs["Value"].get<float>();
+            int8_t intensityX = actionJs["Value"].get<int8_t>();
 
             frame.magnets[room].intensityX = intensityX;
             recognizedActionType = true;
@@ -721,7 +721,7 @@ void Train::evaluateRules(Frame &frame)
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            float positionX = actionJs["Value"].get<float>();
+            int8_t positionX = actionJs["Value"].get<int8_t>();
 
             frame.magnets[room].positionX = positionX;
             recognizedActionType = true;
@@ -731,7 +731,7 @@ void Train::evaluateRules(Frame &frame)
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            float intensityY = actionJs["Value"].get<float>();
+            int8_t intensityY = actionJs["Value"].get<int8_t>();
 
             frame.magnets[room].intensityY = intensityY;
             recognizedActionType = true;
@@ -791,8 +791,8 @@ void Train::printTrainStatus()
   // Printing Magnet Status
   int currentRoom = _sdlPop->Kid->room;
   const auto &magnet = _bestFrame.magnets[currentRoom];
-  printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", magnet.intensityX, magnet.positionX);
-  printf("[Jaffar]  + Vertical Magnet Intensity: %.1f\n", magnet.intensityY);
+  printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) magnet.intensityX, (float) magnet.positionX);
+  printf("[Jaffar]  + Vertical Magnet Intensity: %.1f\n", (float) magnet.intensityY);
 
   // Print Move History
   printf("[Jaffar]  + Move List: ");
@@ -803,9 +803,9 @@ void Train::printTrainStatus()
 
 void Train::printRuleStatus(const Frame &frame)
 {
-  printf("[Jaffar]  + Rule Status: [ %d", (int)frame.rulesStatus[0]);
+  printf("[Jaffar]  + Rule Status: [ %d", frame.rulesStatus[0] ? 1 : 0);
   for (size_t i = 1; i < frame.rulesStatus.size(); i++)
-    printf(", %d", (int)frame.rulesStatus[i]);
+    printf(", %d", frame.rulesStatus[i] ? 1 : 0);
   printf(" ]\n");
 }
 
@@ -825,45 +825,45 @@ float Train::getFrameScore(const Frame &frame)
 
     // Evaluating magnet's score on the X axis
     const float diff = std::abs(_sdlPop->Kid->x - magnet.positionX);
-    score += magnet.intensityX * (256.0f - diff);
+    score += (float) magnet.intensityX * (256.0f - diff);
 
     // For positive Y axis magnet, rewarding climbing frames
-    if (magnet.intensityY > 0.0f)
+    if ((float) magnet.intensityY > 0.0f)
     {
       // Jumphang, because it preludes climbing (Score + 1-20)
       if (curFrame >= 67 && curFrame <= 80)
       {
-        float scoreAdd = magnet.intensityY * (0.0f + (curFrame - 66));
+        float scoreAdd = (float) magnet.intensityY * (0.0f + (curFrame - 66));
         score += scoreAdd;
       }
 
       // Hang, because it preludes climbing (Score +21)
-      if (curFrame == 91) score += 21.0f * magnet.intensityY;
+      if (curFrame == 91) score += 21.0f * (float) magnet.intensityY;
 
       // Climbing (Score +22-38)
-      if (curFrame >= 135 && curFrame <= 149) score += magnet.intensityY * (22.0f + (curFrame - 134));
+      if (curFrame >= 135 && curFrame <= 149) score += (float) magnet.intensityY * (22.0f + (curFrame - 134));
     }
 
     // For negative Y axis magnet, rewarding falling/climbing down frames
-    if (magnet.intensityY < 0.0f)
+    if ((float) magnet.intensityY < 0.0f)
     {
       // Turning around, because it generally preludes climbing down
-      if (curFrame >= 45 && curFrame <= 52) score += -0.5f * magnet.intensityY;
+      if (curFrame >= 45 && curFrame <= 52) score += -0.5f * (float) magnet.intensityY;
 
       // Hanging, because it preludes falling
-      if (curFrame >= 87 && curFrame <= 99) score += -0.5f * magnet.intensityY;
+      if (curFrame >= 87 && curFrame <= 99) score += -0.5f * (float) magnet.intensityY;
 
       // Hang drop, because it preludes falling
-      if (curFrame >= 81 && curFrame <= 85) score += -1.0f * magnet.intensityY;
+      if (curFrame >= 81 && curFrame <= 85) score += -1.0f * (float) magnet.intensityY;
 
       // Falling start
-      if (curFrame >= 102 && curFrame <= 105) score += -1.0f * magnet.intensityY;
+      if (curFrame >= 102 && curFrame <= 105) score += -1.0f * (float) magnet.intensityY;
 
       // Falling itself
-      if (curFrame == 106) score += -2.0f + magnet.intensityY;
+      if (curFrame == 106) score += -2.0f + (float) magnet.intensityY;
 
       // Climbing down
-      if (curFrame == 148) score += -2.0f + magnet.intensityY;
+      if (curFrame == 148) score += -2.0f + (float) magnet.intensityY;
     }
   }
 
@@ -873,7 +873,7 @@ float Train::getFrameScore(const Frame &frame)
 
   // Now adding rule rewards
   for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
-    if (frame.rulesStatus[ruleId] == st_achieved)
+    if (frame.rulesStatus[ruleId] == true)
       score += _rules[ruleId]->_reward;
 
   // Returning score
@@ -1071,9 +1071,9 @@ Train::Train(int argc, char *argv[])
 
   for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
   {
-    magnets[i].intensityY = 0.0f;
-    magnets[i].intensityX = 0.0f;
-    magnets[i].positionX = 0.0f;
+    magnets[i].intensityY = 0;
+    magnets[i].intensityX = 0;
+    magnets[i].positionX = 0;
   }
 
   // Processing user-specified rules
@@ -1085,8 +1085,8 @@ Train::Train(int argc, char *argv[])
   _ruleCount = _rules.size();
 
   // Setting initial status for each rule
-  std::vector<status_t> rulesStatus(_ruleCount);
-  for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = st_active;
+  std::vector<char> rulesStatus(_ruleCount);
+  for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = false;
 
   _frameSerializedSize = Frame::getSerializationSize();
   MPI_Type_contiguous(_frameSerializedSize, MPI_BYTE, &_mpiFrameType);
