@@ -721,7 +721,7 @@ void Train::evaluateRules(Frame &frame)
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int8_t positionX = actionJs["Value"].get<int8_t>();
+            int16_t positionX = actionJs["Value"].get<int16_t>();
 
             frame.magnets[room].positionX = positionX;
             recognizedActionType = true;

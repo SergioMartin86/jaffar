@@ -15,7 +15,7 @@ struct Magnet
 {
   int8_t intensityY;
   int8_t intensityX;
-  int8_t positionX;
+  int16_t positionX;
 };
 
 class Frame
