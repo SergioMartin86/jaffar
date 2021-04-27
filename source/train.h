@@ -17,7 +17,7 @@
 #include <vector>
 
 // Number of local databases for cyclic discarding of old hashes
-#define HASH_DATABASE_COUNT 10
+#define HASH_DATABASE_COUNT 20
 
 // Number of frames to cache for showing purposes
 #define SHOW_FRAME_COUNT 1000
