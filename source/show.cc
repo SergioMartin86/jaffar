@@ -1,6 +1,7 @@
 #include "argparse.hpp"
 #include "common.h"
 #include "nlohmann/json.hpp"
+#include "frame.h"
 #include "state.h"
 #include "utils.h"
 #include <unistd.h>
@@ -61,7 +62,7 @@ int main(int argc, char *argv[])
     std::string saveData;
     bool status = loadStringFromFile(saveData, saveFile.c_str());
 
-    if (status == true)
+    if (status == true && saveData.size() == _FRAME_DATA_SIZE)
     {
       // Loading data into state
       showState.loadState(saveData);
