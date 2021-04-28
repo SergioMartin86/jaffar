@@ -503,7 +503,8 @@ void Train::computeFrames()
       newFrame->moveHistory[_currentStep] = moveId;
       newFrame->rulesStatus = baseFrame->rulesStatus;
       newFrame->frameStateData = _state->saveState();
-      newFrame->magnets = baseFrame->magnets;
+      newFrame->kidMagnets = baseFrame->kidMagnets;
+      newFrame->guardMagnets = baseFrame->guardMagnets;
 
       // Evaluating rules on the new frame
       evaluateRules(*newFrame);
@@ -707,33 +708,63 @@ void Train::evaluateRules(Frame &frame)
           if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>();
           if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room);
 
-          if (actionType == "Set Horizontal Magnet Intensity")
+          if (actionType == "Set Kid Horizontal Magnet Intensity")
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
             int8_t intensityX = actionJs["Value"].get<int8_t>();
 
-            frame.magnets[room].intensityX = intensityX;
+            frame.kidMagnets[room].intensityX = intensityX;
             recognizedActionType = true;
           }
 
-          if (actionType == "Set Horizontal Magnet Position")
+          if (actionType == "Set Kid Horizontal Magnet Position")
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
             int16_t positionX = actionJs["Value"].get<int16_t>();
 
-            frame.magnets[room].positionX = positionX;
+            frame.kidMagnets[room].positionX = positionX;
             recognizedActionType = true;
           }
 
-          if (actionType == "Set Vertical Magnet Intensity")
+          if (actionType == "Set Kid Vertical Magnet Intensity")
           {
             if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
             if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
             int8_t intensityY = actionJs["Value"].get<int8_t>();
 
-            frame.magnets[room].intensityY = intensityY;
+            frame.kidMagnets[room].intensityY = intensityY;
+            recognizedActionType = true;
+          }
+
+          if (actionType == "Set Guard Horizontal Magnet Intensity")
+          {
+            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+            int8_t intensityX = actionJs["Value"].get<int8_t>();
+
+            frame.guardMagnets[room].intensityX = intensityX;
+            recognizedActionType = true;
+          }
+
+          if (actionType == "Set Guard Horizontal Magnet Position")
+          {
+            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+            int16_t positionX = actionJs["Value"].get<int16_t>();
+
+            frame.guardMagnets[room].positionX = positionX;
+            recognizedActionType = true;
+          }
+
+          if (actionType == "Set Guard Vertical Magnet Intensity")
+          {
+            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+            int8_t intensityY = actionJs["Value"].get<int8_t>();
+
+            frame.guardMagnets[room].intensityY = intensityY;
             recognizedActionType = true;
           }
 
@@ -791,9 +822,13 @@ void Train::printTrainStatus()
 
   // Printing Magnet Status
   int currentRoom = _sdlPop->Kid->room;
-  const auto &magnet = _bestFrame.magnets[currentRoom];
-  printf("[Jaffar]  + Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) magnet.intensityX, (float) magnet.positionX);
-  printf("[Jaffar]  + Vertical Magnet Intensity: %.1f\n", (float) magnet.intensityY);
+  const auto &kidMagnet = _bestFrame.kidMagnets[currentRoom];
+  const auto &guardMagnet = _bestFrame.guardMagnets[currentRoom];
+  printf("[Jaffar]  + Kid Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) kidMagnet.intensityX, (float) kidMagnet.positionX);
+  printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", (float) kidMagnet.intensityY);
+  printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) guardMagnet.intensityX, (float) guardMagnet.positionX);
+  printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", (float) guardMagnet.intensityY);
+
 
   // Print Move History
   printf("[Jaffar]  + Move List: ");
@@ -818,57 +853,84 @@ float Train::getFrameScore(const Frame &frame)
   // Obtaining magnet corresponding to kid's room
   int currentRoom = _sdlPop->Kid->room;
 
-  // Apply normal magnet if kid is inside visible rooms
+  // Apply magnets if kid is inside visible rooms
   if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
   {
-    const auto &magnet = frame.magnets[currentRoom];
-    const auto curFrame = _sdlPop->Kid->frame;
+   // Applying Kid Magnets
 
-    // Evaluating magnet's score on the X axis
-    const float diff = std::abs(_sdlPop->Kid->x - magnet.positionX);
-    score += (float) magnet.intensityX * (256.0f - diff);
+    const auto &kidMagnet = frame.kidMagnets[currentRoom];
+    const auto curKidFrame = _sdlPop->Kid->frame;
 
-    // For positive Y axis magnet, rewarding climbing frames
-    if ((float) magnet.intensityY > 0.0f)
+    // Evaluating kidMagnet's score on the X axis
+    const float kidDiffX = std::abs(_sdlPop->Kid->x - kidMagnet.positionX);
+    score += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
+
+    // For positive Y axis kidMagnet, rewarding climbing frames
+    if ((float) kidMagnet.intensityY > 0.0f)
     {
       // Jumphang, because it preludes climbing (Score + 1-20)
-      if (curFrame >= 67 && curFrame <= 80)
+      if (curKidFrame >= 67 && curKidFrame <= 80)
       {
-        float scoreAdd = (float) magnet.intensityY * (0.0f + (curFrame - 66));
+        float scoreAdd = (float) kidMagnet.intensityY * (0.0f + (curKidFrame - 66));
         score += scoreAdd;
       }
 
       // Hang, because it preludes climbing (Score +21)
-      if (curFrame == 91) score += 21.0f * (float) magnet.intensityY;
+      if (curKidFrame == 91) score += 21.0f * (float) kidMagnet.intensityY;
 
       // Climbing (Score +22-38)
-      if (curFrame >= 135 && curFrame <= 149) score += (float) magnet.intensityY * (22.0f + (curFrame - 134));
+      if (curKidFrame >= 135 && curKidFrame <= 149) score += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
     }
 
-    // For negative Y axis magnet, rewarding falling/climbing down frames
-    if ((float) magnet.intensityY < 0.0f)
+    // For negative Y axis kidMagnet, rewarding falling/climbing down frames
+    if ((float) kidMagnet.intensityY < 0.0f)
     {
       // Turning around, because it generally preludes climbing down
-      if (curFrame >= 45 && curFrame <= 52) score += -0.5f * (float) magnet.intensityY;
+      if (curKidFrame >= 45 && curKidFrame <= 52) score += -0.5f * (float) kidMagnet.intensityY;
 
       // Hanging, because it preludes falling
-      if (curFrame >= 87 && curFrame <= 99) score += -0.5f * (float) magnet.intensityY;
+      if (curKidFrame >= 87 && curKidFrame <= 99) score += -0.5f * (float) kidMagnet.intensityY;
 
       // Hang drop, because it preludes falling
-      if (curFrame >= 81 && curFrame <= 85) score += -1.0f * (float) magnet.intensityY;
+      if (curKidFrame >= 81 && curKidFrame <= 85) score += -1.0f * (float) kidMagnet.intensityY;
 
       // Falling start
-      if (curFrame >= 102 && curFrame <= 105) score += -1.0f * (float) magnet.intensityY;
+      if (curKidFrame >= 102 && curKidFrame <= 105) score += -1.0f * (float) kidMagnet.intensityY;
 
       // Falling itself
-      if (curFrame == 106) score += -2.0f + (float) magnet.intensityY;
+      if (curKidFrame == 106) score += -2.0f + (float) kidMagnet.intensityY;
 
       // Climbing down
-      if (curFrame == 148) score += -2.0f + (float) magnet.intensityY;
+      if (curKidFrame == 148) score += -2.0f + (float) kidMagnet.intensityY;
+    }
+
+    // Applying Guard Magnets
+
+    const auto &guardMagnet = frame.guardMagnets[currentRoom];
+    const auto curGuardFrame = _sdlPop->Guard->frame;
+
+    // Evaluating guardMagnet's score on the X axis
+    const float guardDiffX = std::abs(_sdlPop->Guard->x - guardMagnet.positionX);
+    score += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
+
+    // For positive Y axis guardMagnet
+    if ((float) guardMagnet.intensityY > 0.0f)
+    {
+     // Do nothing -- guards don't go up (or do they?)
+    }
+
+    // For negative Y axis guardMagnet, rewarding falling/climbing down frames
+    if ((float) guardMagnet.intensityY < 0.0f)
+    {
+      // Falling start
+      if (curGuardFrame >= 102 && curGuardFrame <= 105) score += -1.0f * (float) guardMagnet.intensityY;
+
+      // Falling itself
+      if (curGuardFrame == 106) score += -2.0f + (float) guardMagnet.intensityY;
     }
   }
 
-  // Apply full magnet when kid is inside a non-visible room
+  // Apply bonus when kid is inside a non-visible room
   if (currentRoom == 0 || currentRoom >= _VISIBLE_ROOM_COUNT)
     score += 128.0f;
 
@@ -1119,7 +1181,8 @@ Train::Train(int argc, char *argv[])
     auto initialFrame = std::make_unique<Frame>();
     initialFrame->moveHistory[0] = 0;
     initialFrame->frameStateData = _state->saveState();
-    initialFrame->magnets = magnets;
+    initialFrame->kidMagnets = magnets;
+    initialFrame->guardMagnets = magnets;
     initialFrame->rulesStatus = rulesStatus;
 
     // Evaluating Rules on initial frame

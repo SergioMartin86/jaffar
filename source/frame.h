@@ -32,8 +32,11 @@ class Frame
   // Stores the game state data
   std::string frameStateData;
 
-  // Magnet vector
-  std::vector<Magnet> magnets;
+  // Kid Magnet vector
+  std::vector<Magnet> kidMagnets;
+
+  // Kid Magnet vector
+  std::vector<Magnet> guardMagnets;
 
   // Rule status vector
   std::vector<char> rulesStatus;
