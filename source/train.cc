@@ -1058,11 +1058,20 @@ Train::Train(int argc, char *argv[])
   // Twice the size of frames to allow for communication
   _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
 
-  // Initializing SDLPop
-  _sdlPop = new SDLPopInstance;
+  // Creating SDL Pop Instance - important to do the next steps sequentially a to not overload the File I/O
+  for (size_t curRank = 0; curRank < _workerCount; curRank++)
+  {
 
-  // Dont show GUI
-  _sdlPop->initialize(false);
+   if (curRank == _workerId)
+   {
+    _sdlPop = new SDLPopInstance;
+    _sdlPop->initialize(false);
+    printf("[Jaffar] MPI Rank %lu/%lu initialized.\n", _workerId, _workerCount);
+    fflush(stdout);
+   }
+
+   MPI_Barrier(MPI_COMM_WORLD);
+  }
 
   // Initializing State Handler
   _state = new State(_sdlPop, _scriptJs);
