@@ -784,8 +784,9 @@ void Train::printTrainStatus()
   printf("[Jaffar] Hash DB Swaps: %lu\n", _hashDatabaseSwapCount);
 
   printf("[Jaffar] Best Frame Information:\n");
-  _sdlPop->printFrameInfo();
 
+  _state->loadState(_bestFrame.frameStateData);
+  _sdlPop->printFrameInfo();
   printRuleStatus(_bestFrame);
 
   // Printing Magnet Status
