@@ -97,7 +97,7 @@ template <typename T>
 _vCondition<T>::_vCondition(const operator_t opType, void *property, T immediate) : Condition(opType)
 {
   if (_opType == op_equal) _opFcPtr = _opEqual;
-  if (_opType == op_not_equal) _opFcPtr = _opEqual;
+  if (_opType == op_not_equal) _opFcPtr = _opNotEqual;
   if (_opType == op_greater) _opFcPtr = _opGreater;
   if (_opType == op_greater_or_equal) _opFcPtr = _opGreaterOrEqual;
   if (_opType == op_less) _opFcPtr = _opLess;
