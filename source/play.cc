@@ -181,23 +181,27 @@ int main(int argc, char *argv[])
       printw("[Jaffar] Current Step #: %d / %d\n", currentStep, sequenceLength);
       printw("[Jaffar]  + Move: %s\n", moveList[currentStep - 1].c_str());
 
-      printw("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Fall.y: %d, Frame: %3d, HP: %d/%d\n",
+      printw("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Fall.x: %d, Fall.y: %d, Frame: %3d, HP: %d/%d, Direction: %d\n",
              int(showSDLPop.Kid->room),
              int(showSDLPop.Kid->x),
              int(showSDLPop.Kid->y),
+             int(showSDLPop.Kid->fall_x),
              int(showSDLPop.Kid->fall_y),
              int(showSDLPop.Kid->frame),
              int(*showSDLPop.hitp_curr),
-             int(*showSDLPop.hitp_max));
+             int(*showSDLPop.hitp_max),
+             int(showSDLPop.Kid->direction));
 
-      printw("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Fall.y: %d,Frame: %3d, HP: %d/%d\n",
+      printw("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Fall.x: %d, Fall.y: %d, Frame: %3d, HP: %d/%d, Direction: %d\n",
              int(showSDLPop.Guard->room),
              int(showSDLPop.Guard->x),
              int(showSDLPop.Guard->y),
+             int(showSDLPop.Guard->fall_x),
              int(showSDLPop.Guard->fall_y),
              int(showSDLPop.Guard->frame),
              int(*showSDLPop.guardhp_curr),
-             int(*showSDLPop.guardhp_max));
+             int(*showSDLPop.guardhp_max),
+             int(showSDLPop.Guard->direction));
 
       printw("[Jaffar]  + Exit Door Open: %s\n", showSDLPop.isLevelExitDoorOpen() ? "Yes" : "No");
       printw("[Jaffar]  + Reached Checkpoint: %s (%d)\n", *showSDLPop.checkpoint ? "Yes" : "No", *showSDLPop.checkpoint);
