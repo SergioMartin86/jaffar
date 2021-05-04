@@ -880,6 +880,9 @@ float Train::getFrameScore(const Frame &frame)
 
       // Climbing (Score +22-38)
       if (curKidFrame >= 135 && curKidFrame <= 149) score += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
+
+      // Adding absolute reward for Y position
+      score += (float) kidMagnet.intensityY * (256.0f - _sdlPop->Kid->y);
     }
 
     // For negative Y axis kidMagnet, rewarding falling/climbing down frames
@@ -902,6 +905,9 @@ float Train::getFrameScore(const Frame &frame)
 
       // Climbing down
       if (curKidFrame == 148) score += -2.0f + (float) kidMagnet.intensityY;
+
+      // Adding absolute reward for Y position
+      score += (float) kidMagnet.intensityY * (_sdlPop->Kid->y);
     }
 
     // Applying Guard Magnets
