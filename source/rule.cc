@@ -148,8 +148,8 @@ void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlP
   if (property == "Kid Current Sequence") return &sdlPop->Kid->curr_seq;
 
   if (property == "Guard Frame") return &sdlPop->Guard->frame;
-  if (property == "Guard Current HP") return sdlPop->hitp_curr;
-  if (property == "Guard Max HP") return sdlPop->hitp_max;
+  if (property == "Guard Current HP") return sdlPop->guardhp_curr;
+  if (property == "Guard Max HP") return sdlPop->guardhp_max;
   if (property == "Guard Position X") return &sdlPop->Guard->x;
   if (property == "Guard Position Y") return &sdlPop->Guard->y;
   if (property == "Guard Direction") return &sdlPop->Guard->direction;
