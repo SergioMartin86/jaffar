@@ -48,9 +48,14 @@ jaffarFiles = [
 sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('sdl2_image')
 
+mpi_dep = dependency('mpi', language: 'cpp', required: false)  
+if mpi_dep.found() == false
+ mpi_dep = dependency('mpich', required: true)
+endif
+
 deps = [
-  dependency('mpi', required: false),
-  dependency('mpich', required: false),
+  mpi_dep,
+  dependency('openmp', required: true),
   dependency('sdl2'),
   dependency('sdl2_image'),
   subproject('json').get_variable('nlohmann_json_dep'),
