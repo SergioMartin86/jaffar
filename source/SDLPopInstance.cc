@@ -333,6 +333,7 @@ void SDLPopInstance::printFrameInfo()
 {
   printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame), int(*hitp_curr), int(*hitp_max), int(Kid->curr_seq));
   printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame), int(*guardhp_curr), int(*guardhp_max), int(Guard->curr_seq));
+  printf("[Jaffar]  + Exit Room Timer: %d\n", *exit_room_timer);
   printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
   printf("[Jaffar]  + Reached Checkpoint: %s\n", *checkpoint ? "Yes" : "No");
   printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", *random_seed, *last_loose_sound);

@@ -96,6 +96,8 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   AddItem(&dest, *sdlPop->ctrl1_up, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->ctrl1_down, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->ctrl1_shift2, State::PER_FRAME_STATE);
+  // Support for overflow glitch
+  AddItem(&dest, *sdlPop->exit_room_timer, State::PER_FRAME_STATE);
   // replay recording state
   AddItem(&dest, *sdlPop->curr_tick, State::PER_FRAME_STATE);
   return dest;
