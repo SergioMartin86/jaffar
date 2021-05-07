@@ -25,6 +25,7 @@ class State
 
   void advanceRNGState();
   void reverseRNGState();
+  State() = default;
   State(SDLPopInstance *sdlPop, nlohmann::json stateConfig);
 
   uint64_t computeHash() const;

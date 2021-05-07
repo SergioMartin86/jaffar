@@ -1,3 +1,7 @@
 [submodule "extern/SDLPoP"]
 	path = extern/SDLPoP
 	url = https://github.com/SergioMartin86/SDLPoP.git
+[submodule "extern/SDLPoP-barebones"]
+	path = extern/SDLPoP-barebones
+	url = https://github.com/SergioMartin86/SDLPoP.git
+	branch = barebones

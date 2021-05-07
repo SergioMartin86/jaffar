@@ -1041,7 +1041,7 @@ Train::Train(int argc, char *argv[])
   argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
 
   program.add_argument("jaffarFile")
-    .help("path to the Jaffar script (.jaffar) file to run.")
+    .help("path to the Jaffar configuration script (.config) file to run.")
     .required();
 
   // Try to parse arguments

@@ -543,6 +543,5 @@ SDLPopInstance::SDLPopInstance()
 
 SDLPopInstance::~SDLPopInstance()
 {
-  SDL_Quit();
   dlclose(_dllHandle);
 }
