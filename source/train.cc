@@ -1,6 +1,7 @@
 #include "train.h"
 #include "argparse.hpp"
 #include "utils.h"
+#include <omp.h>
 #include <unistd.h>
 
 void Train::run()
@@ -133,9 +134,9 @@ void Train::run()
   if (_workerId == 0 && _winFrameFound == true)
   {
     printf("[Jaffar] Win Frame Information:\n");
-    _state->loadState(_globalWinFrame.frameStateData);
-    _sdlPop->refreshEngine();
-    _sdlPop->printFrameInfo();
+    _state[0]->loadState(_globalWinFrame.frameStateData);
+    _sdlPop[0]->refreshEngine();
+    _sdlPop[0]->printFrameInfo();
     printRuleStatus(_globalWinFrame);
 
     // Print Move History
@@ -441,97 +442,101 @@ void Train::computeFrames()
   _localStepFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
 
-  // Computing always the last frame while resizing the database to reduce memory footprint
-  while (_currentFrameDB.empty() == false)
-  {
-    // Getting current frame count
-    const size_t count = _currentFrameDB.size();
+   // Computing always the last frame while resizing the database to reduce memory footprint
+   #pragma omp parallel for schedule(guided)
+   for (size_t baseFrameIdx = 0; baseFrameIdx < _currentFrameDB.size(); baseFrameIdx++)
+   {
+     // Getting thread id
+     int threadId = omp_get_thread_num();
 
-    // Getting base frame pointer
-    const auto &baseFrame = _currentFrameDB[count - 1];
+     // Storage for the base frame
+     const auto& baseFrame = _currentFrameDB[baseFrameIdx];
 
-    // Getting possible moves for the current frame
-    auto possibleMoveIds = getPossibleMoveIds(*baseFrame);
+     // Getting possible moves for the current frame
+     std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
 
-    // Running possible moves
-    for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
-    {
-      // Getting possible move id
-      auto moveId = possibleMoveIds[idx];
+     // Running possible moves
+     for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
+     {
+       // Increasing  frames processed counter
+       _localStepFramesProcessedCounter++;
 
-      // Getting possible move string
-      std::string move = _possibleMoves[moveId].c_str();
+       // Getting possible move id
+       auto moveId = possibleMoveIds[idx];
 
-      // Loading frame state
-      _state->loadState(baseFrame->frameStateData);
+       // Getting possible move string
+       std::string move = _possibleMoves[moveId].c_str();
 
-      // Refreshing engine
-      _sdlPop->refreshEngine();
+       // Loading frame state
+       _state[threadId]->loadState(baseFrame->frameStateData);
 
-      // Perform the selected move
-      _sdlPop->performMove(move);
+       // Perform the selected move
+       _sdlPop[threadId]->performMove(move);
 
-      // Advance a single frame
-      _sdlPop->advanceFrame();
+       // Advance a single frame
+       _sdlPop[threadId]->advanceFrame();
 
-      // Increasing  frames processed counter
-      _localStepFramesProcessedCounter++;
+       // Compute hash value
+       auto hash = _state[threadId]->computeHash();
 
-      // Compute hash value
-      auto hash = _state->computeHash();
+       // Inserting and checking for the existence of the hash in the hash databases
+       bool collisionDetected = false;
+       #pragma omp critical(hashTable)
+       {
+        for (size_t i = 0; i < HASH_DATABASE_COUNT; i++)
+        {
+          collisionDetected |= _hashDatabases[i].contains(hash);
+          if (collisionDetected) break;
+        }
 
-      // Inserting and checking for the existence of the hash in the hash databases
-      bool collisionDetected = false;
-      for (size_t i = 0; i < HASH_DATABASE_COUNT; i++)
-        collisionDetected |= _hashDatabases[i].contains(hash);
+        // If collision detected locally, discard this frame
+        if (collisionDetected)
+          _newCollisionCounter++;
+        else // Otherwise, add it to the hash databases
+        {
+          addHashEntry(hash);
+         _newHashes.insert(hash);
+        }
+       }
 
-      // If collision detected locally, discard this frame
-      if (collisionDetected)
-      {
-        _newCollisionCounter++;
-        continue;
-      }
+       // If collision detected locally, discard this frame
+       if (collisionDetected) continue;
 
-      // If not previously observed add new hash to the database
-      addHashEntry(hash);
+       // Creating new frame, mixing base frame information and the current sdlpop state
+       auto newFrame = std::make_unique<Frame>();
+       newFrame->isWin = false;
+       newFrame->isFail = false;
+       newFrame->moveHistory = baseFrame->moveHistory;
+       newFrame->moveHistory[_currentStep] = moveId;
+       newFrame->rulesStatus = baseFrame->rulesStatus;
+       newFrame->kidMagnets = baseFrame->kidMagnets;
+       newFrame->guardMagnets = baseFrame->guardMagnets;
 
-      // Creating new frame, mixing base frame information and the current sdlpop state
-      auto newFrame = std::make_unique<Frame>();
-      newFrame->isWin = false;
-      newFrame->isFail = false;
-      newFrame->moveHistory = baseFrame->moveHistory;
-      newFrame->moveHistory[_currentStep] = moveId;
-      newFrame->rulesStatus = baseFrame->rulesStatus;
-      newFrame->frameStateData = _state->saveState();
-      newFrame->kidMagnets = baseFrame->kidMagnets;
-      newFrame->guardMagnets = baseFrame->guardMagnets;
+       // Storing the frame data
+       newFrame->frameStateData = _state[threadId]->saveState();
 
-      // Evaluating rules on the new frame
-      evaluateRules(*newFrame);
+       // Evaluating rules on the new frame
+       evaluateRules(*newFrame);
 
-      // Calculating score
-      newFrame->score = getFrameScore(*newFrame);
+       // Calculating score
+       newFrame->score = getFrameScore(*newFrame);
 
-      // If frame has succeded, then flag it
-      if (newFrame->isWin == true)
-      {
-        _localWinFound = true;
-        _localWinFrame = *newFrame;
-      }
+       // If frame has succeded, then flag it
+       if (newFrame->isWin == true)
+       {
+         _localWinFound = true;
+          #pragma omp critical(winFrame)
+         _localWinFrame = *newFrame;
+       }
 
-      // If frame has failed, then proceed to the next one
-      if (newFrame->isFail == true) continue;
+       // If frame has failed, then proceed to the next one
+       if (newFrame->isFail == true) continue;
 
-      // Adding novel frame in the next frame database
-      _nextFrameDB.push_back(std::move(newFrame));
-
-      // Adding hash into the new hashes table
-      _newHashes.insert(hash);
-    }
-
-    // Reducing base database size
-    _currentFrameDB.resize(count - 1);
-  }
+       // Adding novel frame in the next frame database
+       #pragma omp critical(nextFrameDB)
+        _nextFrameDB.push_back(std::move(newFrame));
+     }
+   }
 }
 
 void Train::framePostprocessing()
@@ -563,10 +568,13 @@ void Train::framePostprocessing()
   int globalBestFrameRank = mpiLocResult.loc;
 
   // Serializing, broadcasting, and deserializing best frame
-  char frameBcastBuffer[_frameSerializedSize];
-  if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
-  MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
-  _bestFrame.deserialize(frameBcastBuffer);
+  if (_currentFrameDB.size() > 0)
+  {
+   char frameBcastBuffer[_frameSerializedSize];
+   if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
+   MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
+   _bestFrame.deserialize(frameBcastBuffer);
+  }
 
   // Clipping local database to the maximum threshold
   if (_currentFrameDB.size() > _maxLocalDatabaseSize) _currentFrameDB.resize(_maxLocalDatabaseSize);
@@ -648,22 +656,25 @@ void Train::updateHashDatabases()
 
 void Train::evaluateRules(Frame &frame)
 {
-  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
+  // Getting thread id
+  int threadId = omp_get_thread_num();
+
+  for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
   {
     // Evaluate rule only if it's active
     if (frame.rulesStatus[ruleId] == false)
     {
       // Checking dependencies first. If not met, continue to the next rule
       bool dependenciesMet = true;
-      for (size_t i = 0; i < _rules[ruleId]->_dependencies.size(); i++)
-        if (frame.rulesStatus[_rules[ruleId]->_dependencies[i]] == false)
+      for (size_t i = 0; i < _rules[threadId][ruleId]->_dependencies.size(); i++)
+        if (frame.rulesStatus[_rules[threadId][ruleId]->_dependencies[i]] == false)
           dependenciesMet = false;
 
       // If dependencies aren't met, then continue to next rule
       if (dependenciesMet == false) continue;
 
       // Checking if conditions are met
-      bool isAchieved = _rules[ruleId]->evaluate();
+      bool isAchieved = _rules[threadId][ruleId]->evaluate();
 
       // If it's achieved, update its status and run its actions
       if (isAchieved)
@@ -672,9 +683,9 @@ void Train::evaluateRules(Frame &frame)
         frame.rulesStatus[ruleId] = true;
 
         // Perform actions
-        for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
+        for (size_t actionId = 0; actionId < _rules[threadId][ruleId]->_actions.size(); actionId++)
         {
-          const auto actionJs = _rules[ruleId]->_actions[actionId];
+          const auto actionJs = _rules[threadId][ruleId]->_actions[actionId];
 
           // Getting action type
           if (isDefined(actionJs, "Type") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Type' key.\n", ruleId, actionId);
@@ -816,12 +827,12 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Best Frame Information:\n");
 
-  _state->loadState(_bestFrame.frameStateData);
-  _sdlPop->printFrameInfo();
+  _state[0]->loadState(_bestFrame.frameStateData);
+  _sdlPop[0]->printFrameInfo();
   printRuleStatus(_bestFrame);
 
   // Printing Magnet Status
-  int currentRoom = _sdlPop->Kid->room;
+  int currentRoom = _sdlPop[0]->Kid->room;
   const auto &kidMagnet = _bestFrame.kidMagnets[currentRoom];
   const auto &guardMagnet = _bestFrame.guardMagnets[currentRoom];
   printf("[Jaffar]  + Kid Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) kidMagnet.intensityX, (float) kidMagnet.positionX);
@@ -847,11 +858,14 @@ void Train::printRuleStatus(const Frame &frame)
 
 float Train::getFrameScore(const Frame &frame)
 {
+  // Getting thread id
+  int threadId = omp_get_thread_num();
+
   // Accumulator for total score
   float score = 0.0f;
 
   // Obtaining magnet corresponding to kid's room
-  int currentRoom = _sdlPop->Kid->room;
+  int currentRoom = _sdlPop[threadId]->Kid->room;
 
   // Apply magnets if kid is inside visible rooms
   if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
@@ -859,10 +873,10 @@ float Train::getFrameScore(const Frame &frame)
    // Applying Kid Magnets
 
     const auto &kidMagnet = frame.kidMagnets[currentRoom];
-    const auto curKidFrame = _sdlPop->Kid->frame;
+    const auto curKidFrame = _sdlPop[threadId]->Kid->frame;
 
     // Evaluating kidMagnet's score on the X axis
-    const float kidDiffX = std::abs(_sdlPop->Kid->x - kidMagnet.positionX);
+    const float kidDiffX = std::abs(_sdlPop[threadId]->Kid->x - kidMagnet.positionX);
     score += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
 
     // For positive Y axis kidMagnet, rewarding climbing frames
@@ -882,7 +896,7 @@ float Train::getFrameScore(const Frame &frame)
       if (curKidFrame >= 135 && curKidFrame <= 149) score += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
 
       // Adding absolute reward for Y position
-      score += (float) kidMagnet.intensityY * (256.0f - _sdlPop->Kid->y);
+      score += (float) kidMagnet.intensityY * (256.0f - _sdlPop[threadId]->Kid->y);
     }
 
     // For negative Y axis kidMagnet, rewarding falling/climbing down frames
@@ -907,16 +921,16 @@ float Train::getFrameScore(const Frame &frame)
       if (curKidFrame == 148) score += -2.0f + (float) kidMagnet.intensityY;
 
       // Adding absolute reward for Y position
-      score += (float) kidMagnet.intensityY * (_sdlPop->Kid->y);
+      score += (float) kidMagnet.intensityY * (_sdlPop[threadId]->Kid->y);
     }
 
     // Applying Guard Magnets
 
     const auto &guardMagnet = frame.guardMagnets[currentRoom];
-    const auto curGuardFrame = _sdlPop->Guard->frame;
+    const auto curGuardFrame = _sdlPop[threadId]->Guard->frame;
 
     // Evaluating guardMagnet's score on the X axis
-    const float guardDiffX = std::abs(_sdlPop->Guard->x - guardMagnet.positionX);
+    const float guardDiffX = std::abs(_sdlPop[threadId]->Guard->x - guardMagnet.positionX);
     score += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
 
     // For positive Y axis guardMagnet
@@ -941,9 +955,9 @@ float Train::getFrameScore(const Frame &frame)
     score += 128.0f;
 
   // Now adding rule rewards
-  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
+  for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
     if (frame.rulesStatus[ruleId] == true)
-      score += _rules[ruleId]->_reward;
+      score += _rules[threadId][ruleId]->_reward;
 
   // Returning score
   return score;
@@ -954,11 +968,14 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
   // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13
   //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
 
+  // Getting thread id
+  int threadId = omp_get_thread_num();
+
   // Loading frame state
-  _state->loadState(frame.frameStateData);
+  _state[threadId]->loadState(frame.frameStateData);
 
   // Getting Kid information
-  const auto &Kid = *_sdlPop->Kid;
+  const auto &Kid = *_sdlPop[threadId]->Kid;
 
   // If dead, do nothing
   if (Kid.alive >= 0)
@@ -1021,7 +1038,11 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
 Train::Train(int argc, char *argv[])
 {
   // Initialize the MPI environment
-  MPI_Init(&argc, &argv);
+  const int required = MPI_THREAD_SERIALIZED;
+  int provided;
+  MPI_Init_thread(&argc, &argv, required, &provided);
+  if (required != provided)
+   EXIT_WITH_ERROR("[ERROR] Error initializing threaded MPI");
 
   // Get the number of processes
   int mpiSize;
@@ -1124,21 +1145,37 @@ Train::Train(int argc, char *argv[])
   if (const char *outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_CURRENT_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
 
   // Twice the size of frames to allow for communication
-  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize() * 2.0));
+  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
 
-  // Creating SDL Pop Instance - important to do the next steps sequentially a to not overload the File I/O
-  _sdlPop = new SDLPopInstance;
-  printf("[Jaffar] MPI Rank %lu/%lu: SDLPop created.\n", _workerId, _workerCount);
-  fflush(stdout);
-  MPI_Barrier(MPI_COMM_WORLD);
+  // Processing user-specified rules
+  if (isDefined(_scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file missing 'Rules' key.\n");
 
-  _sdlPop->initialize(false);
+  // Setting global rule count
+  _ruleCount = _scriptJs["Rules"].size();
+
+  // Getting number of omp threads and resizing containers based on that
+  _threadCount = omp_get_max_threads();
+  _sdlPop.resize(_threadCount);
+  _state.resize(_threadCount);
+  _rules.resize(_threadCount);
+
+  // Creating Barebones SDL Pop Instance, one per openMP Thread
+  for (int threadId = 0; threadId < _threadCount; threadId++)
+  {
+    _sdlPop[threadId] = new SDLPopInstance("libsdlPopLibBarebones.so", true);
+    _sdlPop[threadId]->initialize(false);
+
+    // Initializing State Handler
+    _state[threadId] = new State(_sdlPop[threadId], _scriptJs);
+
+   // Adding rules, pointing to the thread-specific sdlpop instances
+   for (size_t i = 0; i < _ruleCount; i++)
+     _rules[threadId].push_back(new Rule(_scriptJs["Rules"][i], _sdlPop[threadId]));
+  }
+
   printf("[Jaffar] MPI Rank %lu/%lu: SDLPop initialized.\n", _workerId, _workerCount);
   fflush(stdout);
   MPI_Barrier(MPI_COMM_WORLD);
-
-  // Initializing State Handler
-  _state = new State(_sdlPop, _scriptJs);
 
   // Setting magnet default values. This default repels unspecified rooms.
   std::vector<Magnet> magnets(_VISIBLE_ROOM_COUNT);
@@ -1149,14 +1186,6 @@ Train::Train(int argc, char *argv[])
     magnets[i].intensityX = 0;
     magnets[i].positionX = 0;
   }
-
-  // Processing user-specified rules
-  if (isDefined(_scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file missing 'Rules' key.\n");
-  for (size_t i = 0; i < _scriptJs["Rules"].size(); i++)
-    _rules.push_back(new Rule(_scriptJs["Rules"][i], _sdlPop));
-
-  // Setting global for rule count
-  _ruleCount = _rules.size();
 
   // Setting initial status for each rule
   std::vector<char> rulesStatus(_ruleCount);
@@ -1178,26 +1207,17 @@ Train::Train(int argc, char *argv[])
   if (_workerId == 0)
   {
     // Computing initial hash
-    const auto hash = _state->computeHash();
+    const auto hash = _state[0]->computeHash();
 
     auto initialFrame = std::make_unique<Frame>();
     initialFrame->moveHistory[0] = 0;
-    initialFrame->frameStateData = _state->saveState();
+    initialFrame->frameStateData = _state[0]->saveState();
     initialFrame->kidMagnets = magnets;
     initialFrame->guardMagnets = magnets;
     initialFrame->rulesStatus = rulesStatus;
 
     // Evaluating Rules on initial frame
     evaluateRules(*initialFrame);
-
-    // Storing which rules are win rules
-    for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-      for (size_t actionId = 0; actionId < _rules[ruleId]->_actions.size(); actionId++)
-        if (_rules[ruleId]->_actions[actionId]["Type"] == "Trigger Win")
-          _winRulePositions.push_back(ruleId);
-
-    if (_winRulePositions.size() == 0)
-      EXIT_WITH_ERROR("[ERROR] No win (Trigger Win) rules were defined in the config file.\n");
 
     // Evaluating Score on initial frame
     initialFrame->score = getFrameScore(*initialFrame);
@@ -1220,6 +1240,9 @@ Train::Train(int argc, char *argv[])
       EXIT_WITH_ERROR("[ERROR] Could not create show thread.\n");
   }
 
+  // Close SDL after initializing
+  SDL_Quit();
+
   // Starting global frame counter
   _globalFrameCounter = 1;
 }
@@ -1238,12 +1261,6 @@ void Train::showSavingLoop()
 
   // Counter for the current best frame id
   size_t currentFrameId = 0;
-
-  // Independent instance of sdlpop
-  SDLPopInstance showSdlPop;
-
-  // Initializing State Handler
-  State showState(&showSdlPop, _scriptJs);
 
   while (_hasFinalized == false)
   {

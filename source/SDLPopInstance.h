@@ -80,7 +80,7 @@ typedef byte key_states_t[SDL_NUM_SCANCODES];
 class SDLPopInstance
 {
   public:
-  SDLPopInstance();
+  SDLPopInstance(const char* libraryFile, const bool multipleLibraries);
   ~SDLPopInstance();
 
   // Initializes the sdlPop instance

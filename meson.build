@@ -33,6 +33,26 @@ sdlPopFiles = [
   'extern/SDLPoP/src/stb_vorbis.c'
 ]
 
+sdlPopBarebonesFiles = [
+  'extern/SDLPoP-barebones/src/data.c',
+  'extern/SDLPoP-barebones/src/replay.c',
+  'extern/SDLPoP-barebones/src/midi.c',
+  'extern/SDLPoP-barebones/src/opl3.c',
+  'extern/SDLPoP-barebones/src/options.c',
+  'extern/SDLPoP-barebones/src/seg000.c',
+  'extern/SDLPoP-barebones/src/seg001.c',
+  'extern/SDLPoP-barebones/src/seg002.c',
+  'extern/SDLPoP-barebones/src/seg003.c',
+  'extern/SDLPoP-barebones/src/seg004.c',
+  'extern/SDLPoP-barebones/src/seg005.c',
+  'extern/SDLPoP-barebones/src/seg006.c',
+  'extern/SDLPoP-barebones/src/seg007.c',
+  'extern/SDLPoP-barebones/src/seg008.c',
+  'extern/SDLPoP-barebones/src/seg009.c',
+  'extern/SDLPoP-barebones/src/seqtbl.c',
+  'extern/SDLPoP-barebones/src/stb_vorbis.c'
+]
+
 metrohash64Files = [
   'extern/metrohash64/metrohash64.cc',
 ]
@@ -70,6 +90,11 @@ sdlPopLib = library('sdlPopLib',
   sdlPopFiles,
   c_args: [ '-DDISABLE_ALL_FIXES' ],
   dependencies : deps)
+  
+sdlPopLib = library('sdlPopLibBarebones',
+  sdlPopBarebonesFiles,
+  c_args: [ '-DDISABLE_ALL_FIXES' ],
+  dependencies : deps)
 
 executable('jaffar-train',
   'source/train.cc',
@@ -86,7 +111,7 @@ executable('jaffar-play',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
-  link_with: [ sdlPopLib, metroHash64Lib ],
+  link_with: [ metroHash64Lib ],
   link_args: [ '-ldl', '-lncurses' ],
   cpp_args: [ '-Wfatal-errors' ]
   )

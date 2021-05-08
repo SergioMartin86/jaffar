@@ -40,20 +40,22 @@ class Train
   double _outputSaveCurrentSeconds;
   std::string _outputSaveBestPath;
   std::string _outputSaveCurrentPath;
+  bool _showSDLPopPreview;
 
   // Worker id and count
   size_t _workerId;
   size_t _workerCount;
 
+  // Store the number of openMP threads in use
+  int _threadCount;
+
   // Communication schedule for frame exchange
   std::vector<size_t> _communicationSchedule;
 
-  SDLPopInstance *_sdlPop;
-  State *_state;
-  bool _showSDLPopPreview;
-
-  // Rule vector
-  std::vector<Rule *> _rules;
+  // Craeting SDLPop and State class instances and rule vector, one per openMP thread
+  std::vector<SDLPopInstance*> _sdlPop;
+  std::vector<State *> _state;
+  std::vector<std::vector<Rule *>> _rules;
 
   // Frame counter
   size_t _globalFrameCounter;
@@ -90,7 +92,6 @@ class Train
   size_t _localStepFramesProcessedCounter;
 
   // Storage for the position of win rules, for win detection
-  std::vector<size_t> _winRulePositions;
   bool _winFrameFound;
   Frame _globalWinFrame;
   Frame _localWinFrame;
@@ -100,7 +101,7 @@ class Train
   size_t _frameSerializedSize;
   MPI_Datatype _mpiFrameType;
 
-  // Id for the show thread
+  // SDLPop instance and Id for the show thread
   pthread_t _showThreadId;
 
   // Flag to indicate finalization

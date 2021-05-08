@@ -50,7 +50,6 @@ void SDLPopInstance::initialize(const bool useGUI)
   }
 
   // Setting argument config
-
   *is_validate_mode = byte(!useGUI);
   *g_argc = 1;
   *g_argv = __prince_argv;
@@ -358,9 +357,12 @@ bool SDLPopInstance::isLevelExitDoorOpen()
   return door_open;
 }
 
-SDLPopInstance::SDLPopInstance()
+SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibraries)
 {
-  _dllHandle = dlopen("libsdlPopLib.so", RTLD_LAZY);
+  if (multipleLibraries)
+   _dllHandle = dlmopen (LM_ID_NEWLM, libraryFile, RTLD_NOW | RTLD_LOCAL);
+  else
+   _dllHandle = dlopen (libraryFile, RTLD_NOW);
 
   if (!_dllHandle)
     EXIT_WITH_ERROR("Could not find libsdlPopLib.so. Check that this library's path is included in the LD_LIBRARY_PATH environment variable");

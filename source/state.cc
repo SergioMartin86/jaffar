@@ -6,6 +6,7 @@
 extern nlohmann::json _scriptJs;
 
 char quick_control[] = "........";
+float replay_curr_tick = 0.0;
 
 template <class T>
 void AddItem(std::vector<State::Item> *dest, T &val, State::ItemType type)
@@ -99,7 +100,7 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   // Support for overflow glitch
   AddItem(&dest, *sdlPop->exit_room_timer, State::PER_FRAME_STATE);
   // replay recording state
-  AddItem(&dest, *sdlPop->curr_tick, State::PER_FRAME_STATE);
+  AddItem(&dest, replay_curr_tick, State::PER_FRAME_STATE);
   return dest;
 }
 

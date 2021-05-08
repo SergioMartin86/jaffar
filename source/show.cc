@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
   std::string saveFile = program.get<std::string>("saveFile");
 
   // Initializing showing SDLPop Instance
-  SDLPopInstance showSDLPop;
+  SDLPopInstance showSDLPop("libsdlPopLib.so", false);
   showSDLPop.initialize(true);
 
   // Defining initial configuration

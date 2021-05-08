@@ -110,8 +110,8 @@ int main(int argc, char *argv[])
 
   refresh();
 
-  // Initializing generating SDLPop Instance
-  SDLPopInstance genSDLPop;
+  // Initializing replay generating SDLPop Instance
+  SDLPopInstance genSDLPop("libsdlPopLibBarebones.so", false);
   genSDLPop.initialize(false);
 
   // Storage for sequence frames
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   printw("[Jaffar] Opening SDLPop window...\n");
 
   // Initializing showing SDLPop Instance
-  SDLPopInstance showSDLPop;
+  SDLPopInstance showSDLPop("libsdlPopLib.so", false);
   showSDLPop.initialize(true);
 
   // Initializing State Handler
