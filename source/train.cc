@@ -560,44 +560,44 @@ void Train::framePostprocessing()
   float localBestFrameScore = -std::numeric_limits<float>::infinity();
   if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->score;
 
-  // Finding best global frame score
-  struct mpiLoc { float val; int loc; };
-  mpiLoc mpiLocInput;
-  mpiLoc mpiLocResult;
-  mpiLocInput.val = localBestFrameScore;
-  mpiLocInput.loc = _workerId;
-  MPI_Allreduce(&mpiLocInput, &mpiLocResult, 1, MPI_FLOAT_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-  int globalBestFrameRank = mpiLocResult.loc;
-
-  // Serializing, broadcasting, and deserializing best frame
-  if (_currentFrameDB.size() > 0)
-  {
-   char frameBcastBuffer[_frameSerializedSize];
-   if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
-   MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
-   _bestFrame.deserialize(frameBcastBuffer);
-  }
-
   // Calculating global frame count
   size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
   MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-  // Exchanging the fact that a win frame has been found
-  int winRank = -1;
-  int localHasWinFrame = _localWinFound == false ? 0 : 1;
-  std::vector<int> globalHasWinFrameVector(_workerCount);
-  MPI_Allgather(&localHasWinFrame, 1, MPI_INT, globalHasWinFrameVector.data(), 1, MPI_INT, MPI_COMM_WORLD);
-  for (size_t i = 0; i < _workerCount; i++)
-    if (globalHasWinFrameVector[i] == 1) winRank = i;
-
-  // If win frame found, broadcast it
-  if (winRank >= 0)
+  // If there are remaining frames, find best global frame score/win
+  if (_globalFrameCounter > 0)
   {
-    char winRankBuffer[_frameSerializedSize];
-    if ((size_t)winRank == _workerId) _localWinFrame.serialize(winRankBuffer);
-    MPI_Bcast(winRankBuffer, 1, _mpiFrameType, winRank, MPI_COMM_WORLD);
-    _globalWinFrame.deserialize(winRankBuffer);
-    _winFrameFound = true;
+   struct mpiLoc { float val; int loc; };
+   mpiLoc mpiLocInput;
+   mpiLoc mpiLocResult;
+   mpiLocInput.val = localBestFrameScore;
+   mpiLocInput.loc = _workerId;
+   MPI_Allreduce(&mpiLocInput, &mpiLocResult, 1, MPI_FLOAT_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+   int globalBestFrameRank = mpiLocResult.loc;
+
+   // Serializing, broadcasting, and deserializing best frame
+   char frameBcastBuffer[_frameSerializedSize];
+   if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
+   MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
+   _bestFrame.deserialize(frameBcastBuffer);
+
+   // Exchanging the fact that a win frame has been found
+   int winRank = -1;
+   int localHasWinFrame = _localWinFound == false ? 0 : 1;
+   std::vector<int> globalHasWinFrameVector(_workerCount);
+   MPI_Allgather(&localHasWinFrame, 1, MPI_INT, globalHasWinFrameVector.data(), 1, MPI_INT, MPI_COMM_WORLD);
+   for (size_t i = 0; i < _workerCount; i++)
+     if (globalHasWinFrameVector[i] == 1) winRank = i;
+
+   // If win frame found, broadcast it
+   if (winRank >= 0)
+   {
+     char winRankBuffer[_frameSerializedSize];
+     if ((size_t)winRank == _workerId) _localWinFrame.serialize(winRankBuffer);
+     MPI_Bcast(winRankBuffer, 1, _mpiFrameType, winRank, MPI_COMM_WORLD);
+     _globalWinFrame.deserialize(winRankBuffer);
+     _winFrameFound = true;
+   }
   }
 
   // Summing frame processing counters
