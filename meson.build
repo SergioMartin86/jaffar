@@ -3,6 +3,7 @@ project('jaffar', 'c', 'cpp',
 )
 
 cc = meson.get_compiler('c')
+cxx = meson.get_compiler('cpp')
 
 inc = include_directories([
  'extern/SDLPoP/src',
@@ -73,7 +74,10 @@ if mpi_dep.found() == false
  mpi_dep = dependency('mpich', required: true)
 endif
 
+boost_dep = dependency('boost')
+
 deps = [
+  boost_dep,
   mpi_dep,
   dependency('openmp', required: true),
   dependency('sdl2'),

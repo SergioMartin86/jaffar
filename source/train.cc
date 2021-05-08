@@ -3,7 +3,7 @@
 #include "utils.h"
 #include <omp.h>
 #include <unistd.h>
-#include <algorithm>
+#include <boost/sort/sort.hpp>
 
 void Train::run()
 {
@@ -533,18 +533,59 @@ void Train::computeFrames()
 
 void Train::framePostprocessing()
 {
-  // Swapping database pointers
-  _currentFrameDB = std::move(_nextFrameDB);
 
-  // Clearing next frame database
-  _nextFrameDB.clear();
+  auto t0 = std::chrono::steady_clock::now();
+
+  #pragma omp parallel for
+  for (size_t i = 0; i < _currentFrameDB.size(); i++)
+   _currentFrameDB[i].reset();
+  _currentFrameDB.clear();
+
+  auto t1 = std::chrono::steady_clock::now();
+  double time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("A: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
 
   // Sorting local DB frames by score
-  std::sort(_currentFrameDB.begin(), _currentFrameDB.end(), [](const auto &a, const auto &b) { return a->score > b->score; });
+  boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->score > b->score; });
+
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("Sort: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
+
+  // Swapping database pointers
+  size_t currentFrameCount = std::min(_nextFrameDB.size(), _maxLocalDatabaseSize);
+  _currentFrameDB.resize(currentFrameCount);
+
+  #pragma omp parallel for
+  for (size_t i = 0; i < currentFrameCount; i++)
+   _currentFrameDB[i] = std::move(_nextFrameDB[i]);
+
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("C: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
+
+  #pragma omp parallel for
+  for (size_t i = currentFrameCount; i < _nextFrameDB.size(); i++)
+   _nextFrameDB[i].reset();
+
+  _nextFrameDB.clear();
+
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("Clear: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
 
   // Finding local best frame score
   float localBestFrameScore = -std::numeric_limits<float>::infinity();
   if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->score;
+
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("D: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
 
   // Finding best global frame score
   struct mpiLoc
@@ -559,6 +600,11 @@ void Train::framePostprocessing()
   MPI_Allreduce(&mpiLocInput, &mpiLocResult, 1, MPI_FLOAT_INT, MPI_MAXLOC, MPI_COMM_WORLD);
   int globalBestFrameRank = mpiLocResult.loc;
 
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("E: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
+
   // Serializing, broadcasting, and deserializing best frame
   if (_currentFrameDB.size() > 0)
   {
@@ -568,12 +614,19 @@ void Train::framePostprocessing()
    _bestFrame.deserialize(frameBcastBuffer);
   }
 
-  // Clipping local database to the maximum threshold
-  if (_currentFrameDB.size() > _maxLocalDatabaseSize) _currentFrameDB.resize(_maxLocalDatabaseSize);
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("G: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
 
   // Calculating global frame count
   size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
   MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("H: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
 
   // Exchanging the fact that a win frame has been found
   int winRank = -1;
@@ -593,9 +646,19 @@ void Train::framePostprocessing()
     _winFrameFound = true;
   }
 
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("I: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
+
   // Summing frame processing counters
   MPI_Allreduce(&_localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
+
+  t1 = std::chrono::steady_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+  printf("J: %fs\n", time / 1.0e+9);
+  t0 = std::chrono::steady_clock::now();
 }
 
 void Train::updateHashDatabases()
