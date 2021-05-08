@@ -3,6 +3,7 @@
 #include "utils.h"
 #include <omp.h>
 #include <unistd.h>
+#include <algorithm>
 
 void Train::run()
 {
@@ -214,31 +215,22 @@ void Train::distributeFrames()
     }
   }
 
-  // Shuffling database to remove bias in the score distribution
-  std::shuffle(_currentFrameDB.begin(), _currentFrameDB.end(), std::default_random_engine(_currentStep));
+  // Getting current frame count
+  const size_t currentFrameDBSize = _currentFrameDB.size();
 
   // Passing own part of experiences to itself
   size_t ownExperienceCount = allToAllSendCounts[_workerId][_workerId];
   for (size_t i = 0; i < ownExperienceCount; i++)
   {
-    // Getting current frame count
-    const size_t count = _currentFrameDB.size();
-
-    // Getting last frame
-    const auto &frame = _currentFrameDB[count - 1];
-
-    // Creating new frame
-    auto newFrame = std::make_unique<Frame>();
-
-    // Copying frame contents
-    *newFrame = *frame;
+    // Getting last frames
+    auto frame = std::move(_currentFrameDB[currentFrameDBSize - ownExperienceCount + i]);
 
     // Adding new frame into the data base
-    _nextFrameDB.push_back(std::move(newFrame));
-
-    // Removing last frame by resizing
-    _currentFrameDB.resize(count - 1);
+    _nextFrameDB.push_back(std::move(frame));
   }
+
+  // Removing frame database
+  _currentFrameDB.resize(currentFrameDBSize - ownExperienceCount);
 
   // Storage for MPI requests
   MPI_Request reqs[2];

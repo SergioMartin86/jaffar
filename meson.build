@@ -1,5 +1,5 @@
 project('jaffar', 'c', 'cpp',
-  default_options : ['cpp_std=c++1z', 'default_library=shared', 'buildtype=release', 'c_args=-DSDL_VIDEO_DRIVER_DUMMY'],
+  default_options : ['cpp_std=c++17', 'default_library=shared', 'buildtype=release', 'c_args=-DSDL_VIDEO_DRIVER_DUMMY'],
 )
 
 cc = meson.get_compiler('c')
@@ -102,7 +102,7 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_with: [ sdlPopLib, metroHash64Lib ],
-  link_args: [ '-ldl' ],
+  link_args: [ '-ldl', '-ltbb' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
   
