@@ -25,6 +25,9 @@ enum datatype_t
   dt_dword = 5
 };
 
+// Modifier that specifies whether to store move list
+extern bool _storeMoveList;
+
 class Condition;
 
 class Rule
@@ -32,6 +35,9 @@ class Rule
   public:
   Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop);
   bool evaluate();
+
+  // Stores an identifying label for the rule
+  size_t _label;
 
   // Stores the reward associated with meeting this rule
   float _reward;
@@ -41,10 +47,12 @@ class Rule
   std::vector<nlohmann::json> _actions;
 
   // Stores dependencies with other rules
-  std::vector<size_t> _dependencies;
+  std::vector<size_t> _dependenciesLabels;
+  std::vector<size_t> _dependenciesIndexes;
 
   // Stores rules that also satisfied if this one is
-  std::vector<size_t> _satisfies;
+  std::vector<size_t> _satisfiesLabels;
+  std::vector<size_t> _satisfiesIndexes;
 
   private:
   // Conditions are evaluated frequently, so this optimized for performance

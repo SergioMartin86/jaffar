@@ -3,6 +3,8 @@
 
 size_t _ruleCount;
 size_t _maxSteps;
+bool _storeMoveList;
+
 
 Frame::Frame()
 {
@@ -13,8 +15,9 @@ size_t Frame::getSerializationSize()
 {
   size_t size = 0;
 
-  // Adding current move
-  size += (_maxSteps + 1) * sizeof(char);
+  // Adding move history
+  if (_storeMoveList == true)
+   size += (_maxSteps + 1) * sizeof(char);
 
   // Adding score size
   size += sizeof(float);
@@ -39,8 +42,11 @@ void Frame::serialize(char *output)
   size_t currentPos = 0;
 
   // Adding move history
-  memcpy(&output[currentPos], moveHistory.data(), (_maxSteps + 1) * sizeof(char));
-  currentPos += (_maxSteps + 1) * sizeof(char);
+  if (_storeMoveList == true)
+  {
+   memcpy(&output[currentPos], moveHistory.data(), (_maxSteps + 1) * sizeof(char));
+   currentPos += (_maxSteps + 1) * sizeof(char);
+  }
 
   // Adding score
   memcpy(&output[currentPos], &score, sizeof(float));
@@ -67,10 +73,13 @@ void Frame::deserialize(const char *input)
 {
   size_t currentPos = 0;
 
-  // Copying magnets information
-  moveHistory.resize((_maxSteps + 1));
-  memcpy(moveHistory.data(), &input[currentPos], (_maxSteps + 1) * sizeof(char));
-  currentPos += (_maxSteps + 1) * sizeof(char);
+  // Copying move history information
+  if (_storeMoveList == true)
+  {
+   moveHistory.resize((_maxSteps + 1));
+   memcpy(moveHistory.data(), &input[currentPos], (_maxSteps + 1) * sizeof(char));
+   currentPos += (_maxSteps + 1) * sizeof(char);
+  }
 
   // Adding score
   memcpy(&score, &input[currentPos], sizeof(float));
@@ -80,12 +89,12 @@ void Frame::deserialize(const char *input)
   frameStateData.resize(_FRAME_DATA_SIZE);
   for (size_t i = 0; i < _FRAME_DATA_SIZE; i++) frameStateData[i] = input[currentPos++];
 
-  // Copying magnets information
+  // Copying Kid magnets information
   kidMagnets.resize(_VISIBLE_ROOM_COUNT);
   memcpy(kidMagnets.data(), &input[currentPos], _VISIBLE_ROOM_COUNT * sizeof(Magnet));
   currentPos += _VISIBLE_ROOM_COUNT * sizeof(Magnet);
 
-  // Copying magnets information
+  // Copying Guard magnets information
   guardMagnets.resize(_VISIBLE_ROOM_COUNT);
   memcpy(guardMagnets.data(), &input[currentPos], _VISIBLE_ROOM_COUNT * sizeof(Magnet));
   currentPos += _VISIBLE_ROOM_COUNT * sizeof(Magnet);
@@ -98,7 +107,7 @@ void Frame::deserialize(const char *input)
 
 Frame &Frame::operator=(Frame sourceFrame)
 {
-  moveHistory = sourceFrame.moveHistory;
+  if (_storeMoveList == true) moveHistory = sourceFrame.moveHistory;
   score = sourceFrame.score;
   frameStateData = sourceFrame.frameStateData;
   kidMagnets = sourceFrame.kidMagnets;

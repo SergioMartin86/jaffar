@@ -2,6 +2,10 @@
 
 Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
 {
+  // Adding identifying label for the rule
+  if (isDefined(ruleJs, "Label") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Label' key.\n");
+  _label = ruleJs["Label"].get<size_t>();
+
   // Adding conditions. All of them must be satisfied for the rule to count
   if (isDefined(ruleJs, "Conditions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Conditions' key.\n");
   for (size_t i = 0; i < ruleJs["Conditions"].size(); i++)
@@ -37,11 +41,13 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
 
   // Adding Dependencies. All of them must be achieved for the rule to count
   if (isDefined(ruleJs, "Dependencies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Dependencies' key.\n");
-  _dependencies = ruleJs["Dependencies"].get<std::vector<size_t>>();
+  _dependenciesLabels = ruleJs["Dependencies"].get<std::vector<size_t>>();
+  _dependenciesIndexes.resize(_dependenciesLabels.size());
 
   // Adding Rules that are satisfied by this rule activation
   if (isDefined(ruleJs, "Satisfies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Satisfies' key.\n");
-  _satisfies = ruleJs["Satisfies"].get<std::vector<size_t>>();
+  _satisfiesLabels = ruleJs["Satisfies"].get<std::vector<size_t>>();
+  _satisfiesIndexes.resize(_satisfiesLabels.size());
 
   // Adding actions
   if (isDefined(ruleJs, "Actions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Actions' key.\n");

@@ -39,6 +39,8 @@ bool loadStringFromFile(std::string &dst, const char *fileName);
 // Save string to a file
 bool saveStringToFile(const std::string &dst, const char *fileName);
 
+#pragma GCC diagnostic ignored "-Wparentheses"
+
 // Checks whether a given key is present in the JSON object.
 template <typename T, typename... Key>
 bool isDefined(T &js, const Key &... key)

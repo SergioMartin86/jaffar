@@ -4,6 +4,7 @@
 #include <omp.h>
 #include <unistd.h>
 #include <boost/sort/sort.hpp>
+#include <set>
 
 void Train::run()
 {
@@ -141,10 +142,13 @@ void Train::run()
     printRuleStatus(_globalWinFrame);
 
     // Print Move History
-    printf("[Jaffar]  + Move List: ");
-    for (size_t i = 0; i <= _currentStep; i++)
-      printf("%s ", _possibleMoves[_globalWinFrame.moveHistory[i]].c_str());
-    printf("\n");
+    if (_storeMoveList)
+    {
+     printf("[Jaffar]  + Move List: ");
+     for (size_t i = 0; i <= _currentStep; i++)
+       printf("%s ", _possibleMoves[_globalWinFrame.moveHistory[i]].c_str());
+     printf("\n");
+    }
   }
 
   // Marking the end of the run
@@ -505,11 +509,16 @@ void Train::computeFrames()
         auto newFrame = std::make_unique<Frame>();
         newFrame->isWin = false;
         newFrame->isFail = false;
-        newFrame->moveHistory = baseFrame->moveHistory;
-        newFrame->moveHistory[_currentStep] = moveId;
         newFrame->rulesStatus = baseFrame->rulesStatus;
         newFrame->kidMagnets = baseFrame->kidMagnets;
         newFrame->guardMagnets = baseFrame->guardMagnets;
+
+        // If required, store move history
+        if (_storeMoveList == true)
+        {
+         newFrame->moveHistory = baseFrame->moveHistory;
+         newFrame->moveHistory[_currentStep] = moveId;
+        }
 
         // Storing the frame data
         newFrame->frameStateData = _state[threadId]->saveState();
@@ -680,8 +689,8 @@ void Train::evaluateRules(Frame &frame)
     {
       // Checking dependencies first. If not met, continue to the next rule
       bool dependenciesMet = true;
-      for (size_t i = 0; i < _rules[threadId][ruleId]->_dependencies.size(); i++)
-        if (frame.rulesStatus[_rules[threadId][ruleId]->_dependencies[i]] == false)
+      for (size_t i = 0; i < _rules[threadId][ruleId]->_dependenciesIndexes.size(); i++)
+        if (frame.rulesStatus[_rules[threadId][ruleId]->_dependenciesIndexes[i]] == false)
           dependenciesMet = false;
 
       // If dependencies aren't met, then continue to next rule
@@ -702,9 +711,15 @@ void Train::satisfyRule(Frame &frame, const size_t ruleId)
  int threadId = omp_get_thread_num();
 
  // Recursively run actions for the yet unsatisfied rules that are satisfied by this one and mark them as satisfied
- for (size_t subRuleId = 0; subRuleId < _rules[threadId][ruleId]->_satisfies.size(); subRuleId++)
+ for (size_t satisfiedIdx = 0; satisfiedIdx < _rules[threadId][ruleId]->_satisfiesIndexes.size(); satisfiedIdx++)
+ {
+  // Obtaining index
+  size_t subRuleId = _rules[threadId][ruleId]->_satisfiesIndexes[satisfiedIdx];
+
+  // Only activate it if it hasn't been activated before
   if(frame.rulesStatus[subRuleId] == false)
    satisfyRule(frame, subRuleId);
+ }
 
  // Setting status to satisfied and running actions for the current rule
  frame.rulesStatus[ruleId] = true;
@@ -871,12 +886,14 @@ void Train::printTrainStatus()
   printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) guardMagnet.intensityX, (float) guardMagnet.positionX);
   printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", (float) guardMagnet.intensityY);
 
-
   // Print Move History
-  printf("[Jaffar]  + Move List: ");
-  for (size_t i = 0; i <= _currentStep; i++)
-    printf("%s ", _possibleMoves[_bestFrame.moveHistory[i]].c_str());
-  printf("\n");
+  if (_storeMoveList)
+  {
+   printf("[Jaffar]  + Move List: ");
+   for (size_t i = 0; i <= _currentStep; i++)
+     printf("%s ", _possibleMoves[_bestFrame.moveHistory[i]].c_str());
+   printf("\n");
+  }
 }
 
 void Train::printRuleStatus(const Frame &frame)
@@ -1096,6 +1113,11 @@ Train::Train(int argc, char *argv[])
     .help("path to the Jaffar configuration script (.config) file to run.")
     .required();
 
+  program.add_argument("--storeHistory")
+    .help("Specifies that the move history is stored during the solving. It requires additional memory")
+    .default_value(false)
+    .implicit_value(true);
+
   // Try to parse arguments
   try
   {
@@ -1106,6 +1128,9 @@ Train::Train(int argc, char *argv[])
     if (_workerId == 0) fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
     exit(-1);
   }
+
+  // Establishing whether to store move history
+  _storeMoveList = program["--storeHistory"] == true;
 
   // Reading config file
   _scriptFile = program.get<std::string>("jaffarFile");
@@ -1200,8 +1225,50 @@ Train::Train(int argc, char *argv[])
     _state[threadId] = new State(_sdlPop[threadId], _scriptJs);
 
    // Adding rules, pointing to the thread-specific sdlpop instances
-   for (size_t i = 0; i < _ruleCount; i++)
-     _rules[threadId].push_back(new Rule(_scriptJs["Rules"][i], _sdlPop[threadId]));
+   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
+     _rules[threadId].push_back(new Rule(_scriptJs["Rules"][ruleId], _sdlPop[threadId]));
+
+   // Checking for repeated rule labels
+   std::set<size_t> ruleLabelSet;
+   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
+   {
+    size_t label = _rules[threadId][ruleId]->_label;
+    ruleLabelSet.insert(label);
+    if (ruleLabelSet.size() < ruleId + 1)
+     EXIT_WITH_ERROR("[ERROR] Rule label %lu is repeated in the configuration file.\n", label);
+   }
+
+   // Looking for rule dependency indexes that match their labels
+   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
+    for (size_t depId = 0; depId < _rules[threadId][ruleId]->_dependenciesLabels.size(); depId++)
+    {
+     bool foundLabel = false;
+     size_t label = _rules[threadId][ruleId]->_dependenciesLabels[depId];
+     for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
+      if (_rules[threadId][subRuleId]->_label == label)
+      {
+       _rules[threadId][ruleId]->_dependenciesIndexes[depId] = subRuleId;
+       foundLabel = true;
+       break;
+      }
+     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as dependency by rule %lu.\n", label, ruleId);
+    }
+
+   // Looking for rule satisfied sub-rules indexes that match their labels
+   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
+    for (size_t satisfiedId = 0; satisfiedId < _rules[threadId][ruleId]->_satisfiesLabels.size(); satisfiedId++)
+    {
+     bool foundLabel = false;
+     size_t label = _rules[threadId][ruleId]->_satisfiesLabels[satisfiedId];
+     for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
+      if (_rules[threadId][subRuleId]->_label == label)
+      {
+       _rules[threadId][ruleId]->_satisfiesIndexes[satisfiedId] = subRuleId;
+       foundLabel = true;
+       break;
+      }
+     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as satisfied by rule %lu.\n", label, satisfiedId);
+    }
   }
 
   printf("[Jaffar] MPI Rank %lu/%lu: SDLPop initialized.\n", _workerId, _workerCount);
