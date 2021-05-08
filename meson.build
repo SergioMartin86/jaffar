@@ -1,4 +1,6 @@
 project('jaffar', 'c', 'cpp',
+  version: '1.1.0',
+  license: 'GPL-3.0-only',
   default_options : ['cpp_std=c++17', 'default_library=shared', 'buildtype=release', 'c_args=-DSDL_VIDEO_DRIVER_DUMMY'],
 )
 
@@ -71,14 +73,13 @@ sdl2_image_dep = dependency('sdl2_image')
 
 mpi_dep = dependency('mpi', language: 'cpp', required: false)  
 if mpi_dep.found() == false
- mpi_dep = dependency('mpich', required: true)
+ mpi_dep = dependency('mpich', required: false)
 endif
 
 boost_dep = dependency('boost')
 
 deps = [
   boost_dep,
-  mpi_dep,
   dependency('openmp', required: true),
   dependency('sdl2'),
   dependency('sdl2_image'),
@@ -106,7 +107,7 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_with: [ sdlPopLib, metroHash64Lib ],
-  link_args: [ '-ldl', '-ltbb' ],
+  link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
   
