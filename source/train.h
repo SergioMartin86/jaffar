@@ -122,6 +122,12 @@ class Train
   // Evaluates the rule set on a given frame. Returns true if it is a fail.
   void evaluateRules(Frame &frame);
 
+  // Runs the actions of a given rule
+  void runRuleActions(Frame &frame, const size_t ruleId);
+
+  // Marks the given rule as satisfied, executes its actions, and recursively runs on its sub-satisfied rules
+  void satisfyRule(Frame &frame, const size_t ruleId);
+
   // Print Rule information
   void printRuleStatus(const Frame &frame);
 

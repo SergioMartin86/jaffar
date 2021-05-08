@@ -39,6 +39,10 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
   if (isDefined(ruleJs, "Dependencies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Dependencies' key.\n");
   _dependencies = ruleJs["Dependencies"].get<std::vector<size_t>>();
 
+  // Adding Rules that are satisfied by this rule activation
+  if (isDefined(ruleJs, "Satisfies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Satisfies' key.\n");
+  _satisfies = ruleJs["Satisfies"].get<std::vector<size_t>>();
+
   // Adding actions
   if (isDefined(ruleJs, "Actions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Actions' key.\n");
   for (size_t i = 0; i < ruleJs["Actions"].size(); i++)

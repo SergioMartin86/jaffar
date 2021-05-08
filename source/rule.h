@@ -43,6 +43,9 @@ class Rule
   // Stores dependencies with other rules
   std::vector<size_t> _dependencies;
 
+  // Stores rules that also satisfied if this one is
+  std::vector<size_t> _satisfies;
+
   private:
   // Conditions are evaluated frequently, so this optimized for performance
   // Operands are pre-parsed as pointers/immediates and the evaluation function

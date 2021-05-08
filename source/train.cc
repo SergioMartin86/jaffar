@@ -434,101 +434,113 @@ void Train::computeFrames()
   _localStepFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
 
-   // Computing always the last frame while resizing the database to reduce memory footprint
-   #pragma omp parallel for schedule(guided)
-   for (size_t baseFrameIdx = 0; baseFrameIdx < _currentFrameDB.size(); baseFrameIdx++)
-   {
-     // Getting thread id
-     int threadId = omp_get_thread_num();
+  // Processing frame database in parallel
+  #pragma omp parallel
+  {
+    // Getting thread id
+    int threadId = omp_get_thread_num();
 
-     // Storage for the base frame
-     const auto& baseFrame = _currentFrameDB[baseFrameIdx];
+    // Creating thread-local storage for new frames
+    std::vector<std::unique_ptr<Frame>> newThreadFrames;
 
-     // Getting possible moves for the current frame
-     std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
+    // Computing always the last frame while resizing the database to reduce memory footprint
+    #pragma omp for schedule(guided)
+    for (size_t baseFrameIdx = 0; baseFrameIdx < _currentFrameDB.size(); baseFrameIdx++)
+    {
+      // Storage for the base frame
+      const auto& baseFrame = _currentFrameDB[baseFrameIdx];
 
-     // Running possible moves
-     for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
-     {
-       // Increasing  frames processed counter
-       _localStepFramesProcessedCounter++;
+      // Getting possible moves for the current frame
+      std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
 
-       // Getting possible move id
-       auto moveId = possibleMoveIds[idx];
+      // Running possible moves
+      for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
+      {
+        // Increasing  frames processed counter
+        _localStepFramesProcessedCounter++;
 
-       // Getting possible move string
-       std::string move = _possibleMoves[moveId].c_str();
+        // Getting possible move id
+        auto moveId = possibleMoveIds[idx];
 
-       // Loading frame state
-       _state[threadId]->loadState(baseFrame->frameStateData);
+        // Getting possible move string
+        std::string move = _possibleMoves[moveId].c_str();
 
-       // Perform the selected move
-       _sdlPop[threadId]->performMove(move);
+        // Loading frame state
+        _state[threadId]->loadState(baseFrame->frameStateData);
 
-       // Advance a single frame
-       _sdlPop[threadId]->advanceFrame();
+        // Perform the selected move
+        _sdlPop[threadId]->performMove(move);
 
-       // Compute hash value
-       auto hash = _state[threadId]->computeHash();
+        // Advance a single frame
+        _sdlPop[threadId]->advanceFrame();
 
-       // Inserting and checking for the existence of the hash in the hash databases
-       bool collisionDetected = false;
-       #pragma omp critical(hashTable)
-       {
+        // Compute hash value
+        auto hash = _state[threadId]->computeHash();
+
+        // Checking for the existence of the hash in the hash databases
+        bool collisionDetected = false;
+
         for (size_t i = 0; i < HASH_DATABASE_COUNT; i++)
-        {
+         if (collisionDetected == false)
           collisionDetected |= _hashDatabases[i].contains(hash);
-          if (collisionDetected) break;
-        }
 
-        // If collision detected locally, discard this frame
+        // If no collision detected with the normal databases, check the new hash DB
+        if (collisionDetected == false)
+         #pragma omp critical(newHashTable)
+          collisionDetected |= _newHashes.contains(hash);
+
+        // If collision detected, increase collision counter
         if (collisionDetected)
+         #pragma omp atomic
           _newCollisionCounter++;
-        else // Otherwise, add it to the hash databases
-        {
-          addHashEntry(hash);
+
+        // If collision detected, discard this frame
+        if (collisionDetected) continue;
+
+        // If collision not detected, register new hash
+        #pragma omp critical(newHashTable)
          _newHashes.insert(hash);
+
+        // Creating new frame, mixing base frame information and the current sdlpop state
+        auto newFrame = std::make_unique<Frame>();
+        newFrame->isWin = false;
+        newFrame->isFail = false;
+        newFrame->moveHistory = baseFrame->moveHistory;
+        newFrame->moveHistory[_currentStep] = moveId;
+        newFrame->rulesStatus = baseFrame->rulesStatus;
+        newFrame->kidMagnets = baseFrame->kidMagnets;
+        newFrame->guardMagnets = baseFrame->guardMagnets;
+
+        // Storing the frame data
+        newFrame->frameStateData = _state[threadId]->saveState();
+
+        // Evaluating rules on the new frame
+        evaluateRules(*newFrame);
+
+        // If frame has failed, then proceed to the next one
+        if (newFrame->isFail == true) continue;
+
+        // Calculating score
+        newFrame->score = getFrameScore(*newFrame);
+
+        // If frame has succeded, then flag it
+        if (newFrame->isWin == true)
+        {
+          _localWinFound = true;
+           #pragma omp critical(winFrame)
+           _localWinFrame = *newFrame;
         }
-       }
 
-       // If collision detected locally, discard this frame
-       if (collisionDetected) continue;
+        // Adding novel frame in the next frame database
+        newThreadFrames.push_back(std::move(newFrame));
+      }
+    }
 
-       // Creating new frame, mixing base frame information and the current sdlpop state
-       auto newFrame = std::make_unique<Frame>();
-       newFrame->isWin = false;
-       newFrame->isFail = false;
-       newFrame->moveHistory = baseFrame->moveHistory;
-       newFrame->moveHistory[_currentStep] = moveId;
-       newFrame->rulesStatus = baseFrame->rulesStatus;
-       newFrame->kidMagnets = baseFrame->kidMagnets;
-       newFrame->guardMagnets = baseFrame->guardMagnets;
-
-       // Storing the frame data
-       newFrame->frameStateData = _state[threadId]->saveState();
-
-       // Evaluating rules on the new frame
-       evaluateRules(*newFrame);
-
-       // Calculating score
-       newFrame->score = getFrameScore(*newFrame);
-
-       // If frame has succeded, then flag it
-       if (newFrame->isWin == true)
-       {
-         _localWinFound = true;
-          #pragma omp critical(winFrame)
-         _localWinFrame = *newFrame;
-       }
-
-       // If frame has failed, then proceed to the next one
-       if (newFrame->isFail == true) continue;
-
-       // Adding novel frame in the next frame database
-       #pragma omp critical(nextFrameDB)
-        _nextFrameDB.push_back(std::move(newFrame));
-     }
-   }
+    // Sequentially passing thread-local new frames to the common database
+    #pragma omp critical
+    for (size_t i = 0; i < newThreadFrames.size(); i++)
+     _nextFrameDB.push_back(std::move(newThreadFrames[i]));
+  }
 }
 
 void Train::framePostprocessing()
@@ -607,6 +619,9 @@ void Train::framePostprocessing()
 
 void Train::updateHashDatabases()
 {
+  // Pouring all new hashes into the regular hash databases
+  for (const auto &hash : _newHashes) addHashEntry(hash);
+
   // Gathering number of new hash entries
   int localNewHashEntryCount = (int)_newHashes.size();
   std::vector<int> globalNewHashEntryCounts(_workerCount);
@@ -623,7 +638,7 @@ void Train::updateHashDatabases()
 
   // Serializing new hash entries
   std::vector<uint64_t> localNewHashVector;
-  for (const auto &key : _newHashes) localNewHashVector.push_back(key);
+  for (const auto &hash : _newHashes) localNewHashVector.push_back(hash);
 
   // Freeing new hashes vector
   _newHashes.clear();
@@ -673,116 +688,133 @@ void Train::evaluateRules(Frame &frame)
       if (dependenciesMet == false) continue;
 
       // Checking if conditions are met
-      bool isAchieved = _rules[threadId][ruleId]->evaluate();
+      bool isSatisfied = _rules[threadId][ruleId]->evaluate();
 
       // If it's achieved, update its status and run its actions
-      if (isAchieved)
-      {
-        // Setting status to achieved
-        frame.rulesStatus[ruleId] = true;
-
-        // Perform actions
-        for (size_t actionId = 0; actionId < _rules[threadId][ruleId]->_actions.size(); actionId++)
-        {
-          const auto actionJs = _rules[threadId][ruleId]->_actions[actionId];
-
-          // Getting action type
-          if (isDefined(actionJs, "Type") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Type' key.\n", ruleId, actionId);
-          std::string actionType = actionJs["Type"].get<std::string>();
-
-          // Running the action, depending on the type
-          bool recognizedActionType = false;
-
-          if (actionType == "Add Reward")
-          {
-            // This action is handled during startup, no need to do anything now.
-            recognizedActionType = true;
-          }
-
-          // Storing fail state
-          if (actionType == "Trigger Fail")
-          {
-            frame.isFail = true;
-            recognizedActionType = true;
-          }
-
-          // Storing win state
-          if (actionType == "Trigger Win")
-          {
-            frame.isWin = true;
-            recognizedActionType = true;
-          }
-
-          // Parsing room here to avoid duplicating code per each rule
-          int room = 0;
-          if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>();
-          if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room);
-
-          if (actionType == "Set Kid Horizontal Magnet Intensity")
-          {
-            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int8_t intensityX = actionJs["Value"].get<int8_t>();
-
-            frame.kidMagnets[room].intensityX = intensityX;
-            recognizedActionType = true;
-          }
-
-          if (actionType == "Set Kid Horizontal Magnet Position")
-          {
-            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int16_t positionX = actionJs["Value"].get<int16_t>();
-
-            frame.kidMagnets[room].positionX = positionX;
-            recognizedActionType = true;
-          }
-
-          if (actionType == "Set Kid Vertical Magnet Intensity")
-          {
-            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int8_t intensityY = actionJs["Value"].get<int8_t>();
-
-            frame.kidMagnets[room].intensityY = intensityY;
-            recognizedActionType = true;
-          }
-
-          if (actionType == "Set Guard Horizontal Magnet Intensity")
-          {
-            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int8_t intensityX = actionJs["Value"].get<int8_t>();
-
-            frame.guardMagnets[room].intensityX = intensityX;
-            recognizedActionType = true;
-          }
-
-          if (actionType == "Set Guard Horizontal Magnet Position")
-          {
-            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int16_t positionX = actionJs["Value"].get<int16_t>();
-
-            frame.guardMagnets[room].positionX = positionX;
-            recognizedActionType = true;
-          }
-
-          if (actionType == "Set Guard Vertical Magnet Intensity")
-          {
-            if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-            if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-            int8_t intensityY = actionJs["Value"].get<int8_t>();
-
-            frame.guardMagnets[room].intensityY = intensityY;
-            recognizedActionType = true;
-          }
-
-          if (recognizedActionType == false) EXIT_WITH_ERROR("[ERROR] Unrecognized action type %s\n", actionType.c_str());
-        }
-      }
+      if (isSatisfied) satisfyRule(frame, ruleId);
     }
   }
+}
+
+void Train::satisfyRule(Frame &frame, const size_t ruleId)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ // Recursively run actions for the yet unsatisfied rules that are satisfied by this one and mark them as satisfied
+ for (size_t subRuleId = 0; subRuleId < _rules[threadId][ruleId]->_satisfies.size(); subRuleId++)
+  if(frame.rulesStatus[subRuleId] == false)
+   satisfyRule(frame, subRuleId);
+
+ // Setting status to satisfied and running actions for the current rule
+ frame.rulesStatus[ruleId] = true;
+ runRuleActions(frame, ruleId);
+}
+
+void Train::runRuleActions(Frame &frame, const size_t ruleId)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ // Perform actions for this
+ for (size_t actionId = 0; actionId < _rules[threadId][ruleId]->_actions.size(); actionId++)
+ {
+   const auto actionJs = _rules[threadId][ruleId]->_actions[actionId];
+
+   // Getting action type
+   if (isDefined(actionJs, "Type") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Type' key.\n", ruleId, actionId);
+   std::string actionType = actionJs["Type"].get<std::string>();
+
+   // Running the action, depending on the type
+   bool recognizedActionType = false;
+
+   if (actionType == "Add Reward")
+   {
+     // This action is handled during startup, no need to do anything now.
+     recognizedActionType = true;
+   }
+
+   // Storing fail state
+   if (actionType == "Trigger Fail")
+   {
+     frame.isFail = true;
+     recognizedActionType = true;
+   }
+
+   // Storing win state
+   if (actionType == "Trigger Win")
+   {
+     frame.isWin = true;
+     recognizedActionType = true;
+   }
+
+   // Parsing room here to avoid duplicating code per each rule
+   int room = 0;
+   if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>();
+   if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room);
+
+   if (actionType == "Set Kid Horizontal Magnet Intensity")
+   {
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+     int8_t intensityX = actionJs["Value"].get<int8_t>();
+
+     frame.kidMagnets[room].intensityX = intensityX;
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Kid Horizontal Magnet Position")
+   {
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+     int16_t positionX = actionJs["Value"].get<int16_t>();
+
+     frame.kidMagnets[room].positionX = positionX;
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Kid Vertical Magnet Intensity")
+   {
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+     int8_t intensityY = actionJs["Value"].get<int8_t>();
+
+     frame.kidMagnets[room].intensityY = intensityY;
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Guard Horizontal Magnet Intensity")
+   {
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+     int8_t intensityX = actionJs["Value"].get<int8_t>();
+
+     frame.guardMagnets[room].intensityX = intensityX;
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Guard Horizontal Magnet Position")
+   {
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+     int16_t positionX = actionJs["Value"].get<int16_t>();
+
+     frame.guardMagnets[room].positionX = positionX;
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Guard Vertical Magnet Intensity")
+   {
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
+     int8_t intensityY = actionJs["Value"].get<int8_t>();
+
+     frame.guardMagnets[room].intensityY = intensityY;
+     recognizedActionType = true;
+   }
+
+   if (recognizedActionType == false) EXIT_WITH_ERROR("[ERROR] Unrecognized action type %s\n", actionType.c_str());
+ }
 }
 
 void Train::addHashEntry(uint64_t hash)
