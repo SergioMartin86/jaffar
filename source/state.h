@@ -23,8 +23,8 @@ class State
     ItemType type;
   };
 
-  void advanceRNGState();
-  void reverseRNGState();
+  unsigned int advanceRNGState(const unsigned int randomSeed);
+  unsigned int reverseRNGState(const unsigned int randomSeed);
   State() = default;
   State(SDLPopInstance *sdlPop, nlohmann::json stateConfig);
 

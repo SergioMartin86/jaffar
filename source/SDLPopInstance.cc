@@ -99,8 +99,6 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   *doorlink1_ad = /*&*/ level->doorlinks1;
   *doorlink2_ad = /*&*/ level->doorlinks2;
-
-  prandom(1);
   *guard_palettes = (byte *)load_from_opendats_alloc(10, "bin", NULL, NULL);
 
   // (blood, hurt flash) #E00030 = red
@@ -214,7 +212,6 @@ void SDLPopInstance::startLevel(const word level)
 void SDLPopInstance::setSeed(const dword randomSeed)
 {
   *random_seed = randomSeed;
-  *seed_was_init = 1;
 }
 
 void SDLPopInstance::draw()
@@ -386,6 +383,10 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   save_recorded_replay = (save_recorded_replay_t)dlsym(_dllHandle, "save_recorded_replay");
   start_recording = (start_recording_t)dlsym(_dllHandle, "start_recording");
   add_replay_move = (add_replay_move_t)dlsym(_dllHandle, "add_replay_move");
+  process_trobs = (process_trobs_t)dlsym(_dllHandle, "process_trobs");
+  do_mobs = (do_mobs_t)dlsym(_dllHandle, "do_mobs");
+  check_skel = (check_skel_t)dlsym(_dllHandle, "check_skel");
+  check_can_guard_see_kid = (check_can_guard_see_kid_t)dlsym(_dllHandle, "check_can_guard_see_kid");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");

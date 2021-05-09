@@ -104,14 +104,14 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   return dest;
 }
 
-void State::advanceRNGState()
+dword State::advanceRNGState(const dword randomSeed)
 {
- *_sdlPop->random_seed = (*_sdlPop->random_seed * 214013) * 2531011;
+ return randomSeed * 214013 + 2531011;
 }
 
-void State::reverseRNGState()
+dword State::reverseRNGState(const dword randomSeed)
 {
- *_sdlPop->random_seed = (*_sdlPop->random_seed + 4292436285) * 3115528533;
+ return (randomSeed + 4292436285) * 3115528533;
 }
 
 State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
@@ -126,18 +126,29 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
   bool status = loadStringFromFile(saveString, saveFile.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state %s\n", saveFile.c_str());
   loadState(saveString);
-  _sdlPop->restore_room_after_quick_load();
 
   // Parsing random seed information
   if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
-  const dword configSeed = stateConfig["Random Seed"].get<dword>();
+  dword configSeed = stateConfig["Random Seed"].get<dword>();
 
   // Parsing last loose tile sound
   if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
   const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
 
-  // Setting values, overriding if value > 0 was passed
-  if (configSeed != 0) _sdlPop->setSeed(configSeed);
+  // Overriding RNG state if value > 0 was passed
+  if (configSeed > 0)
+  {
+   // Processing screen objects that might affect RNG state
+   _sdlPop->play_frame();
+
+   // Reload State
+   loadState(saveString);
+
+   // Set Correct pre-seed
+   _sdlPop->setSeed(configSeed);
+  }
+
+  // Setting value of last loose tile sound, overriding if value > 0 was passed
   if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
 }
 

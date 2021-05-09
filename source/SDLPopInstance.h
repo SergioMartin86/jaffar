@@ -64,6 +64,10 @@ typedef void (*__pascal far play_level_t)(int level_number);
 typedef int (*save_recorded_replay_t)(const char *full_filename);
 typedef void (*start_recording_t)(void);
 typedef void (*add_replay_move_t)(void);
+typedef void (*__pascal far process_trobs_t)(void);
+typedef void (*__pascal far do_mobs_t)(void);
+typedef void (*__pascal far check_skel_t)(void);
+typedef void (*__pascal far check_can_guard_see_kid_t)(void);
 
 typedef chtab_type *chtab_addrs_t[10];
 typedef mob_type mobs_t[14];
@@ -170,6 +174,10 @@ class SDLPopInstance
   save_recorded_replay_t save_recorded_replay;
   start_recording_t start_recording;
   add_replay_move_t add_replay_move;
+  process_trobs_t process_trobs;
+  do_mobs_t do_mobs;
+  check_skel_t check_skel;
+  check_can_guard_see_kid_t check_can_guard_see_kid;
 
   // SDLPop State variables
   char_type *Kid;     //
