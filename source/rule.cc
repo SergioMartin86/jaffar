@@ -130,7 +130,7 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Exit Door Open") return dt_byte;
   if (property == "Checkpoint Reached") return dt_word;
   if (property == "Is Upside Down") return dt_word;
-  if (property == "Is Feather Fall") return dt_word;
+  if (property == "Needs Level 1 Music") return dt_word;
 
   EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property.c_str());
 
@@ -182,6 +182,7 @@ void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlP
   if (property == "Checkpoint Reached") return sdlPop->checkpoint;
   if (property == "Is Upside Down") return sdlPop->upside_down;
   if (property == "Is Feather Fall") return sdlPop->is_feather_fall;
+  if (property == "Needs Level 1 Music") return sdlPop->need_level1_music;
 
   EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property.c_str());
 

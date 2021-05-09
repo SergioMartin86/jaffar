@@ -67,9 +67,6 @@ int main(int argc, char *argv[])
       // Loading data into state
       showState.loadState(saveData);
 
-      // Refreshing engine
-      showSDLPop.refreshEngine();
-
       // Drawing frame
       showSDLPop.draw();
     }

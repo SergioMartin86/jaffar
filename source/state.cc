@@ -72,7 +72,7 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   AddItem(&dest, *sdlPop->flash_color, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->flash_time, State::PER_FRAME_STATE);
   // sounds
-  AddItem(&dest, *sdlPop->need_level1_music, State::PER_FRAME_STATE);
+  AddItem(&dest, *sdlPop->need_level1_music, State::HASHABLE);
   AddItem(&dest, *sdlPop->is_screaming, State::HASHABLE);
   AddItem(&dest, *sdlPop->is_feather_fall, State::HASHABLE);
   AddItem(&dest, *sdlPop->last_loose_sound, State::HASHABLE);
@@ -135,11 +135,6 @@ State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
   // Parsing last loose tile sound
   if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
   const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
-
-  // Playing a frame to initialize all SDLPop internals
-  _sdlPop->performMove(".");
-  _sdlPop->advanceFrame();
-  _sdlPop->prandom(2);
 
   // Setting values, overriding if value > 0 was passed
   if (configSeed != 0) _sdlPop->setSeed(configSeed);

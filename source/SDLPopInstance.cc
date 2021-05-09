@@ -136,8 +136,6 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   *offscreen_surface = make_offscreen_buffer(rect_top);
 
-  load_kid_sprite();
-
   *text_time_remaining = 0;
   *text_time_total = 0;
   *is_show_time = 1;
@@ -147,16 +145,18 @@ void SDLPopInstance::initialize(const bool useGUI)
   *rem_min = (*custom)->start_minutes_left; // 60
   *rem_tick = (*custom)->start_ticks_left;  // 719
   *hitp_beg_lev = (*custom)->start_hitp;    // 3
+  *need_level1_music = 1;
+  startLevel(1);
+}
 
-  *need_level1_music = false;
-
-  //  play_level(2);
-
-  ///////////////////////////////////////////////////////////////
+void SDLPopInstance::startLevel(const word level)
+{
+ ///////////////////////////////////////////////////////////////
   // play_level
   int level_number = 1;
   if (level_number != *current_level) load_lev_spr(level_number);
 
+  load_kid_sprite();
   load_level();
   pos_guards();
   clear_coll_rooms();
@@ -191,7 +191,7 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   stop_sounds();
 
-  //draw_level_first();
+  draw_level_first();
   show_copyprot(0);
   reset_timer(timer_1);
 
@@ -223,51 +223,6 @@ void SDLPopInstance::draw()
   draw_game_frame();
   update_screen();
   do_simple_wait(timer_1);
-}
-
-void SDLPopInstance::refreshEngine()
-{
-  int temp1 = *curr_guard_color;
-  int temp2 = *next_level;
-
-  reset_level_unused_fields(false);
-
-  // load_lev_spr(current_level);
-  *curr_guard_color = temp1;
-  *next_level = temp2;
-
-  // need_full_redraw = 1;
-  *different_room = 1;
-
-  // Show the room where the prince is, even if the player moved the view away
-  // from it (with the H,J,U,N keys).
-  *next_room = *drawn_room = Kid->room;
-  load_room_links();
-
-  // draw_level_first();
-  // gen_palace_wall_colors();
-  *is_guard_notice = 0; // prevent guard turning around immediately
-
-  // draw_game_frame();    // for falling
-  // redraw_screen(1); // for room_L
-
-  *hitp_delta = *guardhp_delta = 1; // force HP redraw
-
-  // Don't draw guard HP if a previously viewed room (with the H,J,U,N keys) had
-  // a guard but the current room doesn't have one.
-  if (Guard->room != *drawn_room)
-  {
-    // Like in clear_char().
-    Guard->direction = dir_56_none;
-    *guardhp_curr = 0;
-  }
-
-  // draw_hp();
-  /* loadkid_and_opp();
-  // Get rid of "press button" message if kid was dead before quickload.
-  text_time_total = text_time_remaining = 0;
-  // next_sound = current_sound = -1;
-  exit_room_timer = 0; */
 }
 
 void SDLPopInstance::performMove(const std::string &move)
@@ -306,7 +261,11 @@ void SDLPopInstance::performMove(const std::string &move)
     (*key_states)[SDL_SCANCODE_RSHIFT] = 1;
     recognizedMove = true;
   }
-  //if (move == "restart") {  (*key_states)[SDL_SCANCODE_A | WITH_CTRL] = 1; recognizedMove = true; }
+  if (move == "CA") // Ctrl+A
+  {
+    startLevel(*current_level);
+    recognizedMove = true;
+  }
   //if (move == "toggle_sound") {  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1; recognizedMove = true; }
 
   if (recognizedMove == false)
@@ -365,7 +324,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
    _dllHandle = dlopen (libraryFile, RTLD_NOW);
 
   if (!_dllHandle)
-    EXIT_WITH_ERROR("Could not find libsdlPopLib.so. Check that this library's path is included in the LD_LIBRARY_PATH environment variable");
+    EXIT_WITH_ERROR("Could not load %s. Check that this library's path is included in the LD_LIBRARY_PATH environment variable. Try also reducing the number of openMP threads.\n", libraryFile);
 
   // Functions
   restore_room_after_quick_load = (restore_room_after_quick_load_t)dlsym(_dllHandle, "restore_room_after_quick_load");

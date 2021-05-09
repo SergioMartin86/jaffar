@@ -137,7 +137,6 @@ void Train::run()
   {
     printf("[Jaffar] Win Frame Information:\n");
     _state[0]->loadState(_globalWinFrame.frameStateData);
-    _sdlPop[0]->refreshEngine();
     _sdlPop[0]->printFrameInfo();
     printRuleStatus(_globalWinFrame);
 
@@ -507,8 +506,6 @@ void Train::computeFrames()
 
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>();
-        newFrame->isWin = false;
-        newFrame->isFail = false;
         newFrame->rulesStatus = baseFrame->rulesStatus;
         newFrame->kidMagnets = baseFrame->kidMagnets;
         newFrame->guardMagnets = baseFrame->guardMagnets;
@@ -520,14 +517,14 @@ void Train::computeFrames()
          newFrame->moveHistory[_currentStep] = moveId;
         }
 
-        // Storing the frame data
-        newFrame->frameStateData = _state[threadId]->saveState();
-
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
 
         // If frame has failed, then proceed to the next one
         if (newFrame->isFail == true) continue;
+
+        // Storing the frame data
+        newFrame->frameStateData = _state[threadId]->saveState();
 
         // Calculating score
         newFrame->score = getFrameScore(*newFrame);
@@ -682,6 +679,11 @@ void Train::evaluateRules(Frame &frame)
   // Getting thread id
   int threadId = omp_get_thread_num();
 
+  // Resetting frame status flags
+  frame.isWin = false;
+  frame.isFail = false;
+  frame.isRestart = false;
+
   for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
   {
     // Evaluate rule only if it's active
@@ -760,6 +762,13 @@ void Train::runRuleActions(Frame &frame, const size_t ruleId)
    if (actionType == "Trigger Win")
    {
      frame.isWin = true;
+     recognizedActionType = true;
+   }
+
+   // Storing restart state
+   if (actionType == "Restart Level")
+   {
+     frame.isRestart = true;
      recognizedActionType = true;
    }
 
@@ -1013,11 +1022,14 @@ float Train::getFrameScore(const Frame &frame)
 
 std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
 {
-  // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13
-  //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD" };
+  // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
+  //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
 
   // Getting thread id
   int threadId = omp_get_thread_num();
+
+  // If the restart flag is activated, then only option is to hit Ctrl+A
+  if (frame.isRestart) return { 14 };
 
   // Loading frame state
   _state[threadId]->loadState(frame.frameStateData);
@@ -1113,8 +1125,8 @@ Train::Train(int argc, char *argv[])
     .help("path to the Jaffar configuration script (.config) file to run.")
     .required();
 
-  program.add_argument("--storeHistory")
-    .help("Specifies that the move history is stored during the solving. It requires additional memory")
+  program.add_argument("--noHistory")
+    .help("Do not store the move history during training to save memory.")
     .default_value(false)
     .implicit_value(true);
 
@@ -1130,7 +1142,7 @@ Train::Train(int argc, char *argv[])
   }
 
   // Establishing whether to store move history
-  _storeMoveList = program["--storeHistory"] == true;
+  _storeMoveList = program["--noHistory"] == false;
 
   // Reading config file
   _scriptFile = program.get<std::string>("jaffarFile");

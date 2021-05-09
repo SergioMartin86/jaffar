@@ -34,6 +34,9 @@ size_t Frame::getSerializationSize()
   // Adding rule status information
   size += _ruleCount * sizeof(char);
 
+  // Adding restart condition
+  size += sizeof(bool);
+
   return size;
 }
 
@@ -67,6 +70,10 @@ void Frame::serialize(char *output)
   // Copying Rule status information
   memcpy(&output[currentPos], rulesStatus.data(), _ruleCount * sizeof(char));
   currentPos += _ruleCount * sizeof(char);
+
+  // Copying restart flag
+  memcpy(&output[currentPos], &isRestart, sizeof(bool));
+  currentPos += sizeof(bool);
 }
 
 void Frame::deserialize(const char *input)
@@ -103,6 +110,10 @@ void Frame::deserialize(const char *input)
   rulesStatus.resize(_ruleCount);
   memcpy(rulesStatus.data(), &input[currentPos], _ruleCount * sizeof(char));
   currentPos += _ruleCount * sizeof(char);
+
+  // Copying restart flag
+  memcpy(&isRestart, &input[currentPos], sizeof(bool));
+  currentPos += sizeof(bool);
 }
 
 Frame &Frame::operator=(Frame sourceFrame)
@@ -113,6 +124,7 @@ Frame &Frame::operator=(Frame sourceFrame)
   kidMagnets = sourceFrame.kidMagnets;
   guardMagnets = sourceFrame.guardMagnets;
   rulesStatus = sourceFrame.rulesStatus;
+  isRestart = sourceFrame.isRestart;
 
   return *this;
 }

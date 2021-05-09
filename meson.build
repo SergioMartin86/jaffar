@@ -79,6 +79,7 @@ endif
 boost_dep = dependency('boost')
 
 deps = [
+  mpi_dep,
   boost_dep,
   dependency('openmp', required: true),
   dependency('sdl2'),

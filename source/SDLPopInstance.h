@@ -86,6 +86,9 @@ class SDLPopInstance
   // Initializes the sdlPop instance
   void initialize(const bool useGUI);
 
+  // Starts a given level
+  void startLevel(const word level);
+
   // Set seed
   void setSeed(const dword randomSeed);
 
@@ -100,9 +103,6 @@ class SDLPopInstance
 
   // Print information about the current frame
   void printFrameInfo();
-
-  // Refreshes state after a load
-  void refreshEngine();
 
   // Check if exit door is open
   bool isLevelExitDoorOpen();
