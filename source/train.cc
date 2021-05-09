@@ -978,7 +978,7 @@ float Train::getFrameScore(const Frame &frame)
       if (curKidFrame == 148) score += -2.0f + (float) kidMagnet.intensityY;
 
       // Adding absolute reward for Y position
-      score += (float) kidMagnet.intensityY * (_sdlPop[threadId]->Kid->y);
+      score += (float) -1.0f * kidMagnet.intensityY * (_sdlPop[threadId]->Kid->y);
     }
 
     // Applying Guard Magnets
