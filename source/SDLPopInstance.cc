@@ -151,8 +151,7 @@ void SDLPopInstance::startLevel(const word level)
 {
  ///////////////////////////////////////////////////////////////
   // play_level
-  int level_number = 1;
-  if (level_number != *current_level) load_lev_spr(level_number);
+  if (level != *current_level) load_lev_spr(level);
 
   load_kid_sprite();
   load_level();
@@ -180,7 +179,7 @@ void SDLPopInstance::startLevel(const word level)
   do_startpos();
 
   // (level_number != 1)
-  *have_sword = (level_number == 0 || level_number >= (*custom)->have_sword_from_level);
+  *have_sword = (level == 0 || level >= (*custom)->have_sword_from_level);
 
   find_start_level_door();
 
