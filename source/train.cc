@@ -540,6 +540,9 @@ void Train::computeFrames()
         // Adding novel frame in the next frame database
         newThreadFrames.push_back(std::move(newFrame));
       }
+
+      // Freeing memory for the used base frame
+      _currentFrameDB[baseFrameIdx].reset();
     }
 
     // Sequentially passing thread-local new frames to the common database
@@ -552,9 +555,6 @@ void Train::computeFrames()
 void Train::framePostprocessing()
 {
   // Clearing current frame DB
-  #pragma omp parallel for
-  for (size_t i = 0; i < _currentFrameDB.size(); i++)
-   _currentFrameDB[i].reset();
   _currentFrameDB.clear();
 
   // Sorting local DB frames by score
@@ -1230,7 +1230,7 @@ Train::Train(int argc, char *argv[])
   // Creating Barebones SDL Pop Instance, one per openMP Thread
   for (int threadId = 0; threadId < _threadCount; threadId++)
   {
-    _sdlPop[threadId] = new SDLPopInstance("libsdlPopLibBarebones.so", true);
+    _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
     _sdlPop[threadId]->initialize(false);
 
     // Initializing State Handler
@@ -1349,9 +1349,6 @@ Train::Train(int argc, char *argv[])
     if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)
       EXIT_WITH_ERROR("[ERROR] Could not create show thread.\n");
   }
-
-  // Close SDL after initializing
-  SDL_Quit();
 
   // Starting global frame counter
   _globalFrameCounter = 1;

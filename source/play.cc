@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
   refresh();
 
   // Initializing replay generating SDLPop Instance
-  SDLPopInstance genSDLPop("libsdlPopLibBarebones.so", false);
+  SDLPopInstance genSDLPop("libsdlPopLib.so", false);
   genSDLPop.initialize(false);
 
   // Storage for sequence frames
