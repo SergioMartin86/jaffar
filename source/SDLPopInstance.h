@@ -291,6 +291,7 @@ class SDLPopInstance
   byte *enable_quicksave_penalty;
   word *is_restart_level;
   SDL_Window **window_;
+  byte* enable_copyprot;
 
   private:
   void *_dllHandle;

@@ -78,7 +78,6 @@ class Train
 
   // Hash information
   std::vector<absl::flat_hash_set<uint64_t>> _hashDatabases;
-  absl::flat_hash_set<uint64_t> _newHashes;
   size_t _hashDatabaseSizeThreshold;
   size_t _globalHashCollisions;
   size_t _globalHashEntries;
@@ -134,9 +133,6 @@ class Train
   // Redistribute frames uniformly among workers
   void distributeFrames();
 
-  // Sharing hash entries among workers and cut hash tables databases to size
-  void updateHashDatabases();
-
   // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
   void addHashEntry(uint64_t hash);
 
@@ -156,5 +152,4 @@ class Train
   double _frameDistributionTime;
   double _frameComputationTime;
   double _framePostprocessingTime;
-  double _hashExchangeTime;
 };

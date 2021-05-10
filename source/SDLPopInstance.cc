@@ -175,6 +175,7 @@ void SDLPopInstance::startLevel(const word level)
   *hitp_delta = 0;
   Guard->charid = charid_2_guard;
   Guard->direction = dir_56_none;
+  *need_level1_music = 0;
 
   do_startpos();
 
@@ -190,6 +191,7 @@ void SDLPopInstance::startLevel(const word level)
 
   draw_level_first();
   show_copyprot(0);
+  *enable_copyprot = 1;
   reset_timer(timer_1);
 
   _prevDrawnRoom = *drawn_room;
@@ -276,12 +278,21 @@ void SDLPopInstance::advanceFrame()
   *is_restart_level = 0;
   play_frame();
 
+  // Using copy protection
+  if (*current_level == 1 && *next_level == 2)
+   *next_level = 15;
+
+  // If level has changed, then load it
+  if (*current_level != *next_level)
+   startLevel(*next_level);
+
   _prevDrawnRoom = *drawn_room;
   isExitDoorOpen = isLevelExitDoorOpen();
 }
 
 void SDLPopInstance::printFrameInfo()
 {
+  printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", *current_level, *next_level);
   printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame), int(*hitp_curr), int(*hitp_max), int(Kid->curr_seq));
   printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame), int(*guardhp_curr), int(*guardhp_max), int(Guard->curr_seq));
   printf("[Jaffar]  + Exit Room Timer: %d\n", *exit_room_timer);
@@ -386,6 +397,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   do_mobs = (do_mobs_t)dlsym(_dllHandle, "do_mobs");
   check_skel = (check_skel_t)dlsym(_dllHandle, "check_skel");
   check_can_guard_see_kid = (check_can_guard_see_kid_t)dlsym(_dllHandle, "check_can_guard_see_kid");
+  open_dat = (open_dat_t)dlsym(_dllHandle, "open_dat");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");
@@ -500,6 +512,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   is_restart_level = (word *)dlsym(_dllHandle, "is_restart_level");
   last_loose_sound = (word *)dlsym(_dllHandle, "last_loose_sound");
   window_ = (SDL_Window **)dlsym(_dllHandle, "window_");
+  enable_copyprot = (byte *)dlsym(_dllHandle, "enable_copyprot");
 }
 
 SDLPopInstance::~SDLPopInstance()
