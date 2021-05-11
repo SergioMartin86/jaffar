@@ -92,6 +92,14 @@ void Train::run()
     auto framePostprocessingTimeEnd = std::chrono::steady_clock::now();                                                                                 // Profiling
     _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
 
+    // 4) Workers exchange hash information and update hash databases
+    MPI_Barrier(MPI_COMM_WORLD);                                   // Profiling
+    auto hashExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
+    updateHashDatabases();
+    MPI_Barrier(MPI_COMM_WORLD);                                                                                                   // Profiling
+    auto hashExchangeTimeEnd = std::chrono::steady_clock::now();                                                                   // Profiling
+    _hashExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count(); // Profiling
+
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle end
     /////////////////////////////////////////////////////////////////
@@ -435,9 +443,6 @@ void Train::computeFrames()
     // Getting thread id
     int threadId = omp_get_thread_num();
 
-    // Storage for newly found hashes
-    absl::flat_hash_set<uint64_t> newHashes;
-
     // Creating thread-local storage for new frames
     std::vector<std::unique_ptr<Frame>> newThreadFrames;
 
@@ -478,12 +483,14 @@ void Train::computeFrames()
         // Checking for the existence of the hash in the hash databases
         bool collisionDetected = false;
 
-        // If no collision detected with the normal databases, check the new hash DB
-        collisionDetected |= newHashes.contains(hash);
-
         for (size_t i = 0; i < HASH_DATABASE_COUNT; i++)
          if (collisionDetected == false)
           collisionDetected |= _hashDatabases[i].contains(hash);
+
+        // If no collision detected with the normal databases, check the new hash DB
+        if (collisionDetected == false)
+         #pragma omp critical(newHashTable)
+          collisionDetected |= _newHashes.contains(hash);
 
         // If collision detected, increase collision counter
         if (collisionDetected)
@@ -494,7 +501,8 @@ void Train::computeFrames()
         if (collisionDetected) continue;
 
         // If collision not detected, register new hash
-        newHashes.insert(hash);
+        #pragma omp critical(newHashTable)
+         _newHashes.insert(hash);
 
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>();
@@ -537,15 +545,10 @@ void Train::computeFrames()
       _currentFrameDB[baseFrameIdx].reset();
     }
 
-    // Passing thread-local new frames to the common database
+    // Sequentially passing thread-local new frames to the common database
     #pragma omp critical
     for (size_t i = 0; i < newThreadFrames.size(); i++)
      _nextFrameDB.push_back(std::move(newThreadFrames[i]));
-
-    // Pouring all new hashes into the regular hash databases
-    #pragma omp critical
-     for (const auto &hash : newHashes)
-      addHashEntry(hash);
   }
 }
 
@@ -618,6 +621,43 @@ void Train::framePostprocessing()
   // Summing frame processing counters
   MPI_Allreduce(&_localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
+}
+
+void Train::updateHashDatabases()
+{
+  // Pouring all new hashes into the regular hash databases
+  for (const auto &hash : _newHashes) addHashEntry(hash);
+
+  // Gathering number of new hash entries
+  int localNewHashEntryCount = (int)_newHashes.size();
+  std::vector<int> globalNewHashEntryCounts(_workerCount);
+  MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+  // Calculating displacements for new hash entries
+  std::vector<int> globalNewHashEntryDispls(_workerCount);
+  int currentDispl = 0;
+  for (size_t i = 0; i < _workerCount; i++)
+  {
+    globalNewHashEntryDispls[i] = currentDispl;
+    currentDispl += globalNewHashEntryCounts[i];
+  }
+
+  // Serializing new hash entries
+  std::vector<uint64_t> localNewHashVector;
+  localNewHashVector.reserve(localNewHashEntryCount);
+  for (const auto &hash : _newHashes) localNewHashVector.push_back(hash);
+
+  // Freeing new hashes vector
+  _newHashes.clear();
+
+  // Gathering new hash entries
+  size_t globalNewHashEntryCount = currentDispl;
+  std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
+  MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+
+  // Adding new hash entries
+  for (size_t i = 0; i < globalNewHashEntryCount; i++)
+    addHashEntry(globalNewHashVector[i]);
 
   // Gathering global swap counter
   size_t globalStepSwapCounter;
@@ -834,6 +874,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
   printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
+  printf("[Jaffar] Hash Exchange Time:        %3.3fs\n", _hashExchangeTime / 1.0e+9);
   printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
@@ -1191,7 +1232,11 @@ Train::Train(int argc, char *argv[])
   for (int threadId = 0; threadId < _threadCount; threadId++)
   {
     _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
+    _sdlPop[threadId]->transferCachedFiles(_sdlPop[0]);
     _sdlPop[threadId]->initialize(false);
+
+    // Exiting SDL for thread safety reasons
+    SDL_Quit();
 
     // Initializing State Handler
     _state[threadId] = new State(_sdlPop[threadId], _scriptJs);

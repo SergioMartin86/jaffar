@@ -80,6 +80,13 @@ typedef byte below_row_coll_flags_t[10];
 typedef byte above_row_coll_flags_t[10];
 typedef char exe_dir_t[256];
 typedef byte key_states_t[SDL_NUM_SCANCODES];
+typedef long int cachedFilePointerTable_t[MAX_CACHED_FILES];
+typedef char* cachedFileBufferTable_t[MAX_CACHED_FILES];
+typedef size_t cachedFileBufferSizes_t[MAX_CACHED_FILES];
+typedef char cachedFilePathTable_t[MAX_CACHED_FILES][POP_MAX_PATH];
+typedef size_t cachedFileCounter_t;
+
+
 
 class SDLPopInstance
 {
@@ -107,6 +114,9 @@ class SDLPopInstance
 
   // Print information about the current frame
   void printFrameInfo();
+
+  // Function to transfer cache file contents to reduce pressure on I/O
+  void transferCachedFiles(const SDLPopInstance* srcSDLPop);
 
   // Check if exit door is open
   bool isLevelExitDoorOpen();
@@ -292,6 +302,13 @@ class SDLPopInstance
   word *is_restart_level;
   SDL_Window **window_;
   byte* enable_copyprot;
+
+  // File cache variables
+  cachedFilePointerTable_t* _cachedFilePointerTable;
+  cachedFileBufferTable_t* _cachedFileBufferTable;
+  cachedFileBufferSizes_t* _cachedFileBufferSizes;
+  cachedFilePathTable_t* _cachedFilePathTable;
+  cachedFileCounter_t* _cachedFileCounter;
 
   private:
   void *_dllHandle;

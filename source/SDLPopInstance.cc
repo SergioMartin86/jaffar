@@ -8,6 +8,7 @@ char *__prince_argv[] = {(char *)"prince"};
 
 void SDLPopInstance::initialize(const bool useGUI)
 {
+
   // Looking for sdlpop in default folders when running examples
   if (dirExists("extern/SDLPoP/"))
   {
@@ -45,7 +46,7 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   if (*found_exe_dir == false)
   {
-    fprintf(stderr, "[ERROR] Could not find the root folder for SDLPoP. Please set the SDLPOP_ROOT environment variable to the path where SDLPop is installed.\n");
+    fprintf(stderr, "[ERROR] Could not find the root folder for  Please set the SDLPOP_ROOT environment variable to the path where SDLPop is installed.\n");
     exit(-1);
   }
 
@@ -118,7 +119,6 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   close_dat(*dathandle);
   load_all_sounds();
-
   hof_read();
 
   ///////////////////////////////////////////////////
@@ -144,6 +144,8 @@ void SDLPopInstance::initialize(const bool useGUI)
   *rem_tick = (*custom)->start_ticks_left;  // 719
   *hitp_beg_lev = (*custom)->start_hitp;    // 3
   *need_level1_music = 1;
+
+  *current_level = 0;
   startLevel(1);
 }
 
@@ -221,6 +223,19 @@ void SDLPopInstance::draw()
   draw_game_frame();
   update_screen();
   do_simple_wait(timer_1);
+}
+
+void SDLPopInstance::transferCachedFiles(const SDLPopInstance* srcSDLPop)
+{
+ *_cachedFileCounter = *srcSDLPop->_cachedFileCounter;
+ for (size_t i = 0; i < *_cachedFileCounter; i++)
+ {
+  size_t fileSize = (*srcSDLPop->_cachedFileBufferSizes)[i];
+  (*_cachedFileBufferSizes)[i] = fileSize;
+  (*_cachedFileBufferTable)[i] = (char*) malloc(fileSize);
+  memcpy((*_cachedFileBufferTable)[i], (*srcSDLPop->_cachedFileBufferTable)[i], fileSize);
+  memcpy((*_cachedFilePathTable)[i], (*srcSDLPop->_cachedFilePathTable)[i], POP_MAX_PATH);
+ }
 }
 
 void SDLPopInstance::performMove(const std::string &move)
@@ -513,6 +528,11 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   last_loose_sound = (word *)dlsym(_dllHandle, "last_loose_sound");
   window_ = (SDL_Window **)dlsym(_dllHandle, "window_");
   enable_copyprot = (byte *)dlsym(_dllHandle, "enable_copyprot");
+  _cachedFilePointerTable = (cachedFilePointerTable_t*)dlsym(_dllHandle, "_cachedFilePointerTable");
+  _cachedFileBufferTable = (cachedFileBufferTable_t*)dlsym(_dllHandle, "_cachedFileBufferTable");
+  _cachedFileBufferSizes = (cachedFileBufferSizes_t*)dlsym(_dllHandle, "_cachedFileBufferSizes");
+  _cachedFilePathTable = (cachedFilePathTable_t*)dlsym(_dllHandle, "_cachedFilePathTable");
+  _cachedFileCounter = (cachedFileCounter_t*)dlsym(_dllHandle, "_cachedFileCounter");
 }
 
 SDLPopInstance::~SDLPopInstance()
