@@ -29,11 +29,9 @@ class Train
   void run();
 
   private:
-  // Jaffar script file to load
-  std::string _scriptFile;
 
-  // Jaffar script file contents (JSON)
-  nlohmann::json _scriptJs;
+  // Jaffar script files
+  std::vector<std::string> _scriptFiles;
 
   // File output config
   double _outputSaveBestSeconds;
@@ -45,6 +43,9 @@ class Train
   // Worker id and count
   size_t _workerId;
   size_t _workerCount;
+
+  // Flag that indicates whether to ignore win rules
+  bool _disableWin;
 
   // Store the number of openMP threads in use
   int _threadCount;

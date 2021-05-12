@@ -13,18 +13,18 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
     auto conditionJs = ruleJs["Conditions"][i];
 
     // Parsing operation type
-    if (isDefined(conditionJs, "Op") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Op' key.\n");
+    if (isDefined(conditionJs, "Op") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition missing 'Op' key.\n", _label);
     operator_t operation = getOperationType(conditionJs["Op"].get<std::string>());
 
     // Parsing first operand (property name)
-    if (isDefined(conditionJs, "Property") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Property' key.\n");
-    if (conditionJs["Property"].is_string() == false) EXIT_WITH_ERROR("[ERROR] Condition operand 1 must be a string with the name of a property.\n");
+    if (isDefined(conditionJs, "Property") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition missing 'Property' key.\n", _label);
+    if (conditionJs["Property"].is_string() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition operand 1 must be a string with the name of a property.\n", _label);
     datatype_t dtype = getPropertyType(conditionJs["Property"].get<std::string>());
     auto property = getPropertyPointer(conditionJs["Property"].get<std::string>(), sdlPop);
 
     // Parsing second operand (number)
-    if (isDefined(conditionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule condition missing 'Value' key.\n");
-    if (conditionJs["Value"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Condition operand 2 must be an integer number.\n");
+    if (isDefined(conditionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition missing 'Value' key.\n", _label);
+    if (conditionJs["Value"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition operand 2 must be an integer number.\n", _label);
 
     // Creating new condition object
     Condition *condition;
@@ -81,7 +81,7 @@ operator_t Rule::getOperationType(const std::string &operation)
   if (operation == "<") return op_less;
   if (operation == "<=") return op_less_or_equal;
 
-  EXIT_WITH_ERROR("[Error] Unrecognized (smooth) operator: %s\n", operation.c_str());
+  EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized operator: %s\n", _label, operation.c_str());
 
   return op_equal;
 }
@@ -132,7 +132,7 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Is Upside Down") return dt_word;
   if (property == "Needs Level 1 Music") return dt_word;
 
-  EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property.c_str());
+  EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
   return dt_byte;
 }
@@ -184,7 +184,7 @@ void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlP
   if (property == "Is Feather Fall") return sdlPop->is_feather_fall;
   if (property == "Needs Level 1 Music") return sdlPop->need_level1_music;
 
-  EXIT_WITH_ERROR("[Error] Unrecognized property: %s\n", property.c_str());
+  EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
   return NULL;
 }

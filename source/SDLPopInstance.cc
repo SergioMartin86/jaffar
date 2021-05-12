@@ -293,10 +293,6 @@ void SDLPopInstance::advanceFrame()
   *is_restart_level = 0;
   play_frame();
 
-  // Using copy protection
-  if (*current_level == 1 && *next_level == 2)
-   *next_level = 15;
-
   // If level has changed, then load it
   if (*current_level != *next_level)
    startLevel(*next_level);

@@ -12,7 +12,7 @@ void Train::run()
   {
     printf("[Jaffar] ----------------------------------------------------------------\n");
     printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
-    printf("[Jaffar] Using configuration file: %s.\n", _scriptFile.c_str());
+    printf("[Jaffar] Using configuration file(s): "); for (size_t i = 0; i < _scriptFiles.size(); i++) printf("%s ", _scriptFiles[i].c_str()); printf("\n");
     printf("[Jaffar] Starting search with %lu workers.\n", _workerCount);
     printf("[Jaffar] Frame DB entries per worker: %lu\n", _maxLocalDatabaseSize);
     printf("[Jaffar] Hash DBs per worker: %d x %lu.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
@@ -530,7 +530,7 @@ void Train::computeFrames()
         newFrame->score = getFrameScore(*newFrame);
 
         // If frame has succeded, then flag it
-        if (newFrame->isWin == true)
+        if (newFrame->isWin == true && _disableWin == false)
         {
           _localWinFound = true;
            #pragma omp critical(winFrame)
@@ -1119,49 +1119,6 @@ Train::Train(int argc, char *argv[])
   setenv("SDL_VIDEODRIVER", "dummy", 1);
   setenv("SDL_AUDIODRIVER", "dummy", 1);
 
-  // Parsing command line arguments
-  argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
-
-  program.add_argument("jaffarFile")
-    .help("path to the Jaffar configuration script (.config) file to run.")
-    .required();
-
-  program.add_argument("--noHistory")
-    .help("Do not store the move history during training to save memory.")
-    .default_value(false)
-    .implicit_value(true);
-
-  // Try to parse arguments
-  try
-  {
-    program.parse_args(argc, argv);
-  }
-  catch (const std::runtime_error &err)
-  {
-    if (_workerId == 0) fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
-    exit(-1);
-  }
-
-  // Establishing whether to store move history
-  _storeMoveList = program["--noHistory"] == false;
-
-  // Reading config file
-  _scriptFile = program.get<std::string>("jaffarFile");
-  std::string scriptString;
-  bool status = loadStringFromFile(scriptString, _scriptFile.c_str());
-  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", _scriptFile.c_str(), program.help().str().c_str());
-
-  // Parsing JSON from config file
-  try
-  {
-    _scriptJs = nlohmann::json::parse(scriptString);
-  }
-  catch (const std::exception &err)
-  {
-    if (_workerId == 0) fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _scriptFile.c_str(), err.what());
-    exit(-1);
-  }
-
   // Profiling information
   _searchTotalTime = 0.0;
   _currentStepTime = 0.0;
@@ -1179,10 +1136,6 @@ Train::Train(int argc, char *argv[])
 
   // Setting starting step
   _currentStep = 0;
-
-  // Parsing max frames from configuration file
-  if (isDefined(_scriptJs, "Max Steps") == false) EXIT_WITH_ERROR("[ERROR] Train configuration missing 'Max Steps' key.\n");
-  _maxSteps = _scriptJs["Max Steps"].get<size_t>();
 
   // Parsing max hash DB entries
   _hashDatabases.resize(HASH_DATABASE_COUNT);
@@ -1213,14 +1166,91 @@ Train::Train(int argc, char *argv[])
   _outputSaveCurrentPath = "/tmp/jaffar.current.sav";
   if (const char *outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_CURRENT_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
 
-  // Twice the size of frames to allow for communication
+  // Getting maximum local database size
   _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
 
-  // Processing user-specified rules
-  if (isDefined(_scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file missing 'Rules' key.\n");
+  // Parsing command line arguments
+  argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
 
-  // Setting global rule count
-  _ruleCount = _scriptJs["Rules"].size();
+  program.add_argument("--savFile")
+    .help("Specifies the path to the SDLPop savefile (.sav) from which to start.")
+    .default_value(std::string("quicksave.sav"))
+    .required();
+
+  program.add_argument("--maxSteps")
+    .help("Specifies the maximum number of steps to run jaffar for.")
+    .action([](const std::string& value) { return std::stoul(value); })
+    .required();
+
+  program.add_argument("--disableHistory")
+    .help("Do not store the move history during training to save memory.")
+    .default_value(false)
+    .implicit_value(true);
+
+  program.add_argument("--disableWin")
+    .help("Do not finish execution upon finding a winning condition.")
+    .default_value(false)
+    .implicit_value(true);
+
+  program.add_argument("jaffarFiles")
+    .help("path to the Jaffar configuration script (.config) file(s) to run.")
+    .remaining()
+    .required();
+
+  // Try to parse arguments
+  try
+  {
+    program.parse_args(argc, argv);
+  }
+  catch (const std::runtime_error &err)
+  {
+    if (_workerId == 0) fprintf(stderr, "%s\n%s", err.what(), program.help().str().c_str());
+    exit(-1);
+  }
+
+  // Establishing whether to store move history
+  _storeMoveList = program.get<bool>("--disableHistory") == false;
+
+  // Establising whether to disable win conditions
+  _disableWin = program.get<bool>("--disableWin");
+
+  // Getting savefile path
+  auto saveFilePath = program.get<std::string>("--savFile");
+
+  // Loading save file contents
+  std::string saveString;
+  bool status = loadStringFromFile(saveString, saveFilePath.c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
+
+  // Parsing max steps
+  _maxSteps = program.get<size_t>("--maxSteps");
+
+  // Parsing config files
+  _scriptFiles = program.get<std::vector<std::string>>("jaffarFiles");
+  std::vector<nlohmann::json> scriptFilesJs;
+  for (size_t i = 0; i < _scriptFiles.size(); i++)
+  {
+   std::string scriptString;
+   status = loadStringFromFile(scriptString, _scriptFiles[i].c_str());
+   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", _scriptFiles[i].c_str(), program.help().str().c_str());
+
+   nlohmann::json scriptJs;
+   try
+   {
+    scriptJs = nlohmann::json::parse(scriptString);
+   }
+   catch (const std::exception &err)
+   {
+     if (_workerId == 0) fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", _scriptFiles[i].c_str(), err.what());
+     exit(-1);
+   }
+
+   // Checking whether it contains the rules field
+   if (isDefined(scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file '%s' missing 'Rules' key.\n", _scriptFiles[i].c_str());
+
+   // Adding it to the collection
+   scriptFilesJs.push_back(scriptJs);
+  }
 
   // Getting number of omp threads and resizing containers based on that
   _threadCount = omp_get_max_threads();
@@ -1239,11 +1269,15 @@ Train::Train(int argc, char *argv[])
     SDL_Quit();
 
     // Initializing State Handler
-    _state[threadId] = new State(_sdlPop[threadId], _scriptJs);
+    _state[threadId] = new State(_sdlPop[threadId], saveString);
 
    // Adding rules, pointing to the thread-specific sdlpop instances
-   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-     _rules[threadId].push_back(new Rule(_scriptJs["Rules"][ruleId], _sdlPop[threadId]));
+   for (size_t scriptId = 0; scriptId < scriptFilesJs.size(); scriptId++)
+    for (size_t ruleId = 0; ruleId < scriptFilesJs[scriptId]["Rules"].size(); ruleId++)
+     _rules[threadId].push_back(new Rule(scriptFilesJs[scriptId]["Rules"][ruleId], _sdlPop[threadId]));
+
+   // Setting global rule count
+   _ruleCount = _rules[threadId].size();
 
    // Checking for repeated rule labels
    std::set<size_t> ruleLabelSet;
@@ -1261,6 +1295,7 @@ Train::Train(int argc, char *argv[])
     {
      bool foundLabel = false;
      size_t label = _rules[threadId][ruleId]->_dependenciesLabels[depId];
+     if (label == _rules[threadId][ruleId]->_label) EXIT_WITH_ERROR("[ERROR] Rule %lu references itself in dependencies vector.\n", label);
      for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
       if (_rules[threadId][subRuleId]->_label == label)
       {
@@ -1268,7 +1303,7 @@ Train::Train(int argc, char *argv[])
        foundLabel = true;
        break;
       }
-     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as dependency by rule %lu.\n", label, ruleId);
+     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as dependency by rule %lu.\n", label, _rules[threadId][ruleId]->_label);
     }
 
    // Looking for rule satisfied sub-rules indexes that match their labels
@@ -1277,6 +1312,8 @@ Train::Train(int argc, char *argv[])
     {
      bool foundLabel = false;
      size_t label = _rules[threadId][ruleId]->_satisfiesLabels[satisfiedId];
+     if (label == _rules[threadId][ruleId]->_label) EXIT_WITH_ERROR("[ERROR] Rule %lu references itself in satisfied vector.\n", label);
+
      for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
       if (_rules[threadId][subRuleId]->_label == label)
       {

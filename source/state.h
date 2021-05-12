@@ -26,7 +26,7 @@ class State
   unsigned int advanceRNGState(const unsigned int randomSeed);
   unsigned int reverseRNGState(const unsigned int randomSeed);
   State() = default;
-  State(SDLPopInstance *sdlPop, nlohmann::json stateConfig);
+  State(SDLPopInstance *sdlPop, const std::string& saveString);
 
   uint64_t computeHash() const;
   uint64_t kidHash() const;

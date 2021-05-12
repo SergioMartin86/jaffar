@@ -33,26 +33,25 @@ int main(int argc, char *argv[])
     fprintf(stderr, "[Jaffar] Warning: Environment variable JAFFAR_SHOW_UPDATE_EVERY_SECONDS is not defined. Using default: 1.0s\n");
 
   // Getting savefile path
-  std::string saveFile = program.get<std::string>("saveFile");
+  std::string saveFilePath = program.get<std::string>("saveFile");
+
+  // Loading save file contents
+  std::string saveString;
+  bool status = loadStringFromFile(saveString, saveFilePath.c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
 
   // Initializing showing SDLPop Instance
   SDLPopInstance showSDLPop("libsdlPopLib.so", false);
   showSDLPop.initialize(true);
 
-  // Defining initial configuration
-  nlohmann::json stateConfig;
-  stateConfig["Path"] = saveFile;
-  stateConfig["Random Seed"] = 0;
-  stateConfig["Last Loose Tile Sound"] = 0;
-
   // Initializing State Handler
-  State showState(&showSDLPop, stateConfig);
+  State showState(&showSDLPop, saveString);
 
   // Setting timer for a human-visible animation
   showSDLPop.set_timer_length(timer_1, 16);
 
   // Setting window title
-  std::string windowTitle = "Jaffar Show: " + saveFile;
+  std::string windowTitle = "Jaffar Show: " + saveFilePath;
   SDL_SetWindowTitle(*showSDLPop.window_, windowTitle.c_str());
 
   // Constant loop of updates
@@ -60,7 +59,7 @@ int main(int argc, char *argv[])
   {
     // Reloading save file
     std::string saveData;
-    bool status = loadStringFromFile(saveData, saveFile.c_str());
+    bool status = loadStringFromFile(saveData, saveFilePath.c_str());
 
     if (status == true && saveData.size() == _FRAME_DATA_SIZE)
     {

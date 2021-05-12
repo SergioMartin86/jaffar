@@ -114,42 +114,27 @@ dword State::reverseRNGState(const dword randomSeed)
  return (randomSeed + 4292436285) * 3115528533;
 }
 
-State::State(SDLPopInstance *sdlPop, nlohmann::json stateConfig)
+State::State(SDLPopInstance *sdlPop, const std::string& saveString)
 {
   _sdlPop = sdlPop;
   _items = GenerateItemsMap(sdlPop);
 
-  // Loading save file
-  if (isDefined(stateConfig, "Path") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Path' key.\n");
-  const std::string saveFile = stateConfig["Path"].get<std::string>();
-  std::string saveString;
-  bool status = loadStringFromFile(saveString, saveFile.c_str());
-  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state %s\n", saveFile.c_str());
+  // Update the SDLPop instance with the savefile contents
   loadState(saveString);
 
-  // Parsing random seed information
-  if (isDefined(stateConfig, "Random Seed") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Random Seed' key.\n");
-  dword configSeed = stateConfig["Random Seed"].get<dword>();
+  // Backing up current RNG state
+  auto rngState = *_sdlPop->random_seed;
+  auto looseTileSound = *_sdlPop->last_loose_sound;
 
-  // Parsing last loose tile sound
-  if (isDefined(stateConfig, "Last Loose Tile Sound") == false) EXIT_WITH_ERROR("[ERROR] State configuration missing 'Last Loose Tile Sound' key.\n");
-  const word configLooseTileSound = stateConfig["Last Loose Tile Sound"].get<dword>();
+  // Processing screen objects that might affect RNG state
+  _sdlPop->play_frame();
 
-  // Overriding RNG state if value > 0 was passed
-  if (configSeed > 0)
-  {
-   // Processing screen objects that might affect RNG state
-   _sdlPop->play_frame();
+  // Update the SDLPop instance with the savefile contents again
+  loadState(saveString);
 
-   // Reload State
-   loadState(saveString);
-
-   // Set Correct pre-seed
-   _sdlPop->setSeed(configSeed);
-  }
-
-  // Setting value of last loose tile sound, overriding if value > 0 was passed
-  if (configLooseTileSound != 0) *_sdlPop->last_loose_sound = configLooseTileSound;
+  // Recover original RNG state
+  _sdlPop->setSeed(rngState);
+  *_sdlPop->last_loose_sound = looseTileSound;
 }
 
 uint64_t State::kidHash() const
@@ -246,6 +231,12 @@ void State::loadState(const std::string &data)
     memcpy(item.ptr, &data.c_str()[curPos], item.size);
     curPos += item.size;
   }
+
+  *_sdlPop->different_room = 1;
+  // Show the room where the prince is, even if the player moved the view away
+  // from it (with the H,J,U,N keys).
+  *_sdlPop->next_room = *_sdlPop->drawn_room = _sdlPop->Kid->room;
+  _sdlPop->load_room_links();
 }
 
 std::string State::saveState() const

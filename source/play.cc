@@ -47,8 +47,8 @@ int main(int argc, char *argv[])
   // Defining arguments
   argparse::ArgumentParser program("jaffar-play", JAFFAR_VERSION);
 
-  program.add_argument("jaffarFile")
-    .help("path to the Jaffar script (.jaffar) file to run.")
+  program.add_argument("savFile")
+    .help("Specifies the path to the SDLPop savefile (.sav) from which to start.")
     .required();
 
   program.add_argument("sequenceFile")
@@ -66,23 +66,14 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  // Reading config file
-  std::string scriptFile = program.get<std::string>("jaffarFile");
-  std::string scriptString;
-  bool status = loadStringFromFile(scriptString, scriptFile.c_str());
-  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", scriptFile.c_str(), program.help().str().c_str());
+  // Getting savefile path
+  std::string saveFilePath = program.get<std::string>("savFile");
 
-  // Parsing JSON from config file
-  nlohmann::json scriptJs;
-  try
-  {
-    scriptJs = nlohmann::json::parse(scriptString);
-  }
-  catch (const std::exception &err)
-  {
-    fprintf(stderr, "[Error] Parsing configuration file %s. Details:\n%s\n", scriptFile.c_str(), err.what());
-    exit(-1);
-  }
+  // Loading save file contents
+  std::string saveString;
+  bool status = loadStringFromFile(saveString, saveFilePath.c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
+
 
   // If sequence file defined, load it and play it
   std::string moveSequence;
@@ -122,7 +113,7 @@ int main(int argc, char *argv[])
   genSDLPop.start_recording();
 
   // Initializing generating State Handler
-  State genState(&genSDLPop, scriptJs);
+  State genState(&genSDLPop, saveString);
 
   // Saving initial frame
   frameSequence.push_back(genState.saveState());
@@ -144,7 +135,7 @@ int main(int argc, char *argv[])
   showSDLPop.initialize(true);
 
   // Initializing State Handler
-  State showState(&showSDLPop, scriptJs);
+  State showState(&showSDLPop, saveString);
 
   // Setting timer for a human-visible animation
   showSDLPop.set_timer_length(timer_1, 16);
