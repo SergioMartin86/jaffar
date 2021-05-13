@@ -55,8 +55,10 @@ void SDLPopInstance::initialize(const bool useGUI)
   *g_argc = 1;
   *g_argv = __prince_argv;
 
-  // debug only: check that the sequence table deobfuscation did not mess things up
+  // Fix feather fall problem when quickload/quicksaving
+  (*fixes)->fix_quicksave_during_feather = 1;
 
+  // debug only: check that the sequence table deobfuscation did not mess things up
   load_global_options();
   check_mod_param();
   turn_sound_on_off(1);
@@ -309,6 +311,7 @@ void SDLPopInstance::printFrameInfo()
   printf("[Jaffar]  + Exit Room Timer: %d\n", *exit_room_timer);
   printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
   printf("[Jaffar]  + Reached Checkpoint: %s\n", *checkpoint ? "Yes" : "No");
+  printf("[Jaffar]  + Feather Fall: %d\n", *is_feather_fall);
   printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", *random_seed, *last_loose_sound);
 }
 
@@ -529,6 +532,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   _cachedFileBufferSizes = (cachedFileBufferSizes_t*)dlsym(_dllHandle, "_cachedFileBufferSizes");
   _cachedFilePathTable = (cachedFilePathTable_t*)dlsym(_dllHandle, "_cachedFilePathTable");
   _cachedFileCounter = (cachedFileCounter_t*)dlsym(_dllHandle, "_cachedFileCounter");
+  fixes = (fixes_options_type**)dlsym(_dllHandle, "fixes");
 }
 
 SDLPopInstance::~SDLPopInstance()

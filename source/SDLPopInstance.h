@@ -302,6 +302,7 @@ class SDLPopInstance
   word *is_restart_level;
   SDL_Window **window_;
   byte* enable_copyprot;
+  fixes_options_type** fixes;
 
   // File cache variables
   cachedFilePointerTable_t* _cachedFilePointerTable;
