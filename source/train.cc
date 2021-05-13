@@ -156,6 +156,11 @@ void Train::run()
   // Stopping show thread
   if (_workerId == 0) pthread_join(_showThreadId, NULL);
 
+  // If it has finalized with a win, save the winning frame
+  if (_outputSaveBestSeconds > 0.0)
+   if (_winFrameFound == true)
+    saveStringToFile(_globalWinFrame.frameStateData, _outputSaveBestPath.c_str());
+
   // Barrier to wait for all workers
   MPI_Barrier(MPI_COMM_WORLD);
 }
