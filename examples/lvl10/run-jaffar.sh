@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mpirun -n 1 jaffar-train --maxSteps 450 --savFile quicksave.sav jaffar.config 
+mpirun -n 1 jaffar-train --maxSteps 950 --savFile quicksave.sav jaffar.config 
