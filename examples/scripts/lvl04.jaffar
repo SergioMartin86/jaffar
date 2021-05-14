@@ -410,7 +410,8 @@
     "Description": "If Kid exits the level, then win.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": ">", "Value":  4 }
+     { "Property": "Current Level", "Op": ">", "Value":  4 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
     ],
      
     "Dependencies": [ ],

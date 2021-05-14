@@ -150,7 +150,8 @@
     "Description": "If Kid falls to the next level, then win.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": ">", "Value":  6 }
+     { "Property": "Current Level", "Op": ">", "Value":  6 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
     ],
     
     "Dependencies": [ ],

@@ -129,23 +129,6 @@
    },
    
    {
-    "Label": 13999,
-    "Description": "If Kid advances to the next level then win.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": ">", "Value":  13 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 13005 ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Win" }
-    ]
-   },
-   
-   {
     "Label": 13998,
     "Description": "If Kid dies, then fail.",
     "Conditions":
@@ -160,6 +143,24 @@
     "Actions":
     [
      { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
+    "Label": 13999,
+    "Description": "If Kid advances to the next level then win.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": ">", "Value":  13 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 13005 ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
     ]
    }
   ]  

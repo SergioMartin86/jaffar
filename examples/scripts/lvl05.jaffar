@@ -216,7 +216,8 @@
     "Description": "If Kid starts exits the level, then win.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": ">", "Value":  5 }
+     { "Property": "Current Level", "Op": ">", "Value":  5 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
     ],
     
     "Dependencies": [ ],

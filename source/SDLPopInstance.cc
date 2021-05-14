@@ -194,6 +194,7 @@ void SDLPopInstance::startLevel(const word level)
   stop_sounds();
 
   draw_level_first();
+
   show_copyprot(0);
   *enable_copyprot = 1;
   reset_timer(timer_1);
@@ -201,10 +202,8 @@ void SDLPopInstance::startLevel(const word level)
   _prevDrawnRoom = *drawn_room;
 
   set_timer_length(timer_1, 20);
-
   // Setting exit door status
   isExitDoorOpen = isLevelExitDoorOpen();
-
   // // Skip cutscenes
   // while(*is_cutscene == 1)
   // {
@@ -300,7 +299,19 @@ void SDLPopInstance::advanceFrame()
 
   // If level has changed, then load it
   if (*current_level != *next_level)
+  {
+   if (*enable_copyprot)
+   {
+    if (*current_level == (*custom)->copyprot_level-1 && *next_level == (*custom)->copyprot_level)
+     *next_level = 15;
+
+    if (*current_level == 15)
+     *next_level = (*custom)->copyprot_level;
+   }
+
    startLevel(*next_level);
+  }
+
 
   _prevDrawnRoom = *drawn_room;
   isExitDoorOpen = isLevelExitDoorOpen();

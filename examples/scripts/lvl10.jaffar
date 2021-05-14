@@ -266,7 +266,8 @@
     "Description": "If kid advances to next level, trigger win.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": ">", "Value":  10 }
+     { "Property": "Current Level", "Op": ">", "Value":  10 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
     ],
     
     "Dependencies": [ ],

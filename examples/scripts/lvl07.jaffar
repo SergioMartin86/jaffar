@@ -239,24 +239,6 @@
    },
     
    {
-    "Label": 7999,
-    "Description": "If Kid exits to the next level, then win.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": ">", "Value":  7 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 7010  ],
-    
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Trigger Win" }
-    ]
-   },
-   
-   {
     "Label": 7998,
     "Description": "If Kid dies, then fail.",
     "Conditions":
@@ -272,6 +254,26 @@
     [
      { "Type": "Trigger Fail" }
     ]
+   },
+ 
+   {
+    "Label": 7999,
+    "Description": "If Kid exits to the next level, then win.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": ">", "Value":  7 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 7010  ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Trigger Win" }
+    ]
    }
+   
   ]  
 }

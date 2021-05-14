@@ -334,7 +334,8 @@
     "Description": "If Kid advances to the next level then win.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": ">", "Value":  12 }
+     { "Property": "Current Level", "Op": ">", "Value":  12 },
+     { "Property": "Current Level", "Op": "!=", "Value":  15 }
     ],
     
     "Dependencies": [ ],
