@@ -68,6 +68,7 @@ typedef void (*__pascal far process_trobs_t)(void);
 typedef void (*__pascal far do_mobs_t)(void);
 typedef void (*__pascal far check_skel_t)(void);
 typedef void (*__pascal far check_can_guard_see_kid_t)(void);
+typedef void (*__pascal far check_mirror_t)(void);
 
 typedef chtab_type *chtab_addrs_t[10];
 typedef mob_type mobs_t[14];
@@ -188,6 +189,7 @@ class SDLPopInstance
   do_mobs_t do_mobs;
   check_skel_t check_skel;
   check_can_guard_see_kid_t check_can_guard_see_kid;
+  check_mirror_t check_mirror;
 
   // SDLPop State variables
   char_type *Kid;     //

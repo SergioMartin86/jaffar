@@ -534,8 +534,12 @@ void Train::computeFrames()
         // Calculating score
         newFrame->score = getFrameScore(*newFrame);
 
+        // Check if the frame beats the game
+        bool isBeatGame = *_sdlPop[threadId]->current_level == (*_sdlPop[threadId]->custom)->win_level &&
+                          *_sdlPop[threadId]->drawn_room == (*_sdlPop[threadId]->custom)->win_room;
+
         // If frame has succeded, then flag it
-        if (newFrame->isWin == true && _disableWin == false)
+        if ((newFrame->isWin == true && _disableWin == false) || isBeatGame)
         {
           _localWinFound = true;
            #pragma omp critical(winFrame)
@@ -1198,7 +1202,7 @@ Train::Train(int argc, char *argv[])
     .implicit_value(true);
 
   program.add_argument("jaffarFiles")
-    .help("path to the Jaffar configuration script (.config) file(s) to run.")
+    .help("path to the Jaffar configuration script (.jaffar) file(s) to run.")
     .remaining()
     .required();
 

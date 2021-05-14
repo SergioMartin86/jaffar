@@ -88,12 +88,11 @@
    
    {
     "Label": 14999,
-    "Description": "If Kid meets the princess, then win.",
+    "Description": "If Kid meets enters final room, then win.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  14 },
-     { "Property": "Kid Room", "Op": "==", "Value": 1 },
-     { "Property": "Kid Position X", "Op": "<=", "Value": 57 }
+     { "Property": "Kid Room", "Op": "==", "Value": 5 }
     ],
     
     "Dependencies": [ ],

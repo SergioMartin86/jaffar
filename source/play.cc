@@ -118,17 +118,17 @@ int main(int argc, char *argv[])
   // Saving initial frame
   frameSequence.push_back(genState.saveState());
 
-  nlohmann::json sequenceJs;
+//  nlohmann::json sequenceJs;
 
   // Iterating move list in the sequence
   for (int i = 0; i < sequenceLength; i++)
   {
-    // Kid.Room Kid.x Kid.y Kid.frame Kid.Orientation
-   sequenceJs["Kid Room"][i] = int(genSDLPop.Kid->room);
-   sequenceJs["Kid X"][i] = int(genSDLPop.Kid->x);
-   sequenceJs["Kid Y"][i] = int(genSDLPop.Kid->y);
-   sequenceJs["Kid Frame"][i] = int(genSDLPop.Kid->frame);
-   sequenceJs["Kid Direction"][i] = int(genSDLPop.Kid->direction);
+//     // Kid.Room Kid.x Kid.y Kid.frame Kid.Orientation
+//    sequenceJs["Kid Room"][i] = int(genSDLPop.Kid->room);
+//    sequenceJs["Kid X"][i] = int(genSDLPop.Kid->x);
+//    sequenceJs["Kid Y"][i] = int(genSDLPop.Kid->y);
+//    sequenceJs["Kid Frame"][i] = int(genSDLPop.Kid->frame);
+//    sequenceJs["Kid Direction"][i] = int(genSDLPop.Kid->direction);
 
     genSDLPop.performMove(moveList[i]);
     genSDLPop.advanceFrame();
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     frameSequence.push_back(genState.saveState());
   }
 
-  saveStringToFile(sequenceJs.dump(2).c_str(), "sequence.js");
+//  saveStringToFile(sequenceJs.dump(2).c_str(), "sequence.js");
   printw("[Jaffar] Opening SDLPop window...\n");
 
   // Initializing showing SDLPop Instance

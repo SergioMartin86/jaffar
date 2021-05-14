@@ -295,6 +295,9 @@ void SDLPopInstance::advanceFrame()
   *is_restart_level = 0;
   play_frame();
 
+  // if we're on lvl 4, check mirror
+  if (*current_level == 4) check_mirror();
+
   // If level has changed, then load it
   if (*current_level != *next_level)
    startLevel(*next_level);
@@ -412,6 +415,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   check_skel = (check_skel_t)dlsym(_dllHandle, "check_skel");
   check_can_guard_see_kid = (check_can_guard_see_kid_t)dlsym(_dllHandle, "check_can_guard_see_kid");
   open_dat = (open_dat_t)dlsym(_dllHandle, "open_dat");
+  check_mirror = (check_mirror_t)dlsym(_dllHandle, "check_mirror");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");

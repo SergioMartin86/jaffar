@@ -17,8 +17,26 @@
 
     "Actions":
     [
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 1,  "Value": 200.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 1,  "Value": 220.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 1, "Value": 1.0 }
+    ]
+   },
+   
+   {
+    "Label": 4100,
+    "Description": "Rewarding kid for entering room 2, necessary to luring the guard",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  2 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 4000 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 }
     ]
    },
    
@@ -33,7 +51,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4000 ],
+    "Satisfies": [ 4100 ],
     
     "Actions":
     [
