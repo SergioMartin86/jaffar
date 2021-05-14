@@ -28,11 +28,31 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Kid Room", "Op": "==", "Value":  2 }
+     { "Property": "Kid Room", "Op": "==", "Value":  2 },
+     { "Property": "Guard Position X", "Op": "<", "Value":  128 }
     ],
     
     "Dependencies": [ ],
     "Satisfies": [ 4000 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 }
+    ]
+   },
+   
+   {
+    "Label": 4101,
+    "Description": "Keep luring guard necessary to luring the guard",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  2 },
+     { "Property": "Guard Position X", "Op": "<", "Value":  110 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 4100 ],
     
     "Actions":
     [
@@ -51,7 +71,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4100 ],
+    "Satisfies": [ 4101 ],
     
     "Actions":
     [

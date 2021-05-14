@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     .required();
 
   program.add_argument("sequenceFile")
-    .help("path to the Jaffar move sequence (.seq) file to run.")
+    .help("path to the Jaffar solution (.sol) file to run.")
     .required();
 
   // Parsing command line
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   std::string moveSequence;
   std::string sequenceFile = program.get<std::string>("sequenceFile");
   status = loadStringFromFile(moveSequence, sequenceFile.c_str());
-  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from sequence input file: %s\n%s \n", sequenceFile.c_str(), program.help().str().c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from solution file: %s\n%s \n", sequenceFile.c_str(), program.help().str().c_str());
 
   // Initializing ncurses screen
   initscr();
