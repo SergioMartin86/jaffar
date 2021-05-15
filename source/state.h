@@ -23,8 +23,6 @@ class State
     ItemType type;
   };
 
-  unsigned int advanceRNGState(const unsigned int randomSeed);
-  unsigned int reverseRNGState(const unsigned int randomSeed);
   State() = default;
   State(SDLPopInstance *sdlPop, const std::string& saveString);
 

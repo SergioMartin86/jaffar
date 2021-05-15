@@ -56,6 +56,7 @@ void SDLPopInstance::initialize(const bool useGUI)
   *g_argv = __prince_argv;
 
   // Fix feather fall problem when quickload/quicksaving
+  init_copyprot();
   (*fixes)->fix_quicksave_during_feather = 1;
   (*fixes)->fix_quicksave_during_lvl1_music = 1;
 
@@ -129,7 +130,6 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   release_title_images(); // added
   free_optsnd_chtab();    // added
-
   *start_level = 1;
 
   ///////////////////////////////////////////////////////////////
@@ -149,7 +149,6 @@ void SDLPopInstance::initialize(const bool useGUI)
   *current_level = 0;
   startLevel(1);
   *need_level1_music = (*custom)->intro_music_time_initial;
-
 }
 
 void SDLPopInstance::startLevel(const word level)
@@ -289,6 +288,17 @@ void SDLPopInstance::performMove(const std::string &move)
     EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
 }
 
+dword SDLPopInstance::advanceRNGState(const dword randomSeed)
+{
+ return randomSeed * 214013 + 2531011;
+}
+
+dword SDLPopInstance::reverseRNGState(const dword randomSeed)
+{
+ return (randomSeed + 4292436285) * 3115528533;
+}
+
+
 void SDLPopInstance::advanceFrame()
 {
   *guardhp_delta = 0;
@@ -316,6 +326,9 @@ void SDLPopInstance::advanceFrame()
    }
 
    startLevel(*next_level);
+
+   // Handle cutscenes
+   if (*next_level == 2) for (size_t i = 0; i < 3; i++) *random_seed = advanceRNGState(*random_seed);
   }
 
   *is_restart_level = 0;
@@ -433,6 +446,8 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   check_can_guard_see_kid = (check_can_guard_see_kid_t)dlsym(_dllHandle, "check_can_guard_see_kid");
   open_dat = (open_dat_t)dlsym(_dllHandle, "open_dat");
   check_mirror = (check_mirror_t)dlsym(_dllHandle, "check_mirror");
+  init_copyprot = (init_copyprot_t)dlsym(_dllHandle, "init_copyprot");
+  alter_mods_allrm = (alter_mods_allrm_t) dlsym(_dllHandle, "alter_mods_allrm");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");
@@ -554,6 +569,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   _cachedFilePathTable = (cachedFilePathTable_t*)dlsym(_dllHandle, "_cachedFilePathTable");
   _cachedFileCounter = (cachedFileCounter_t*)dlsym(_dllHandle, "_cachedFileCounter");
   fixes = (fixes_options_type**)dlsym(_dllHandle, "fixes");
+  copyprot_plac = (word *) dlsym(_dllHandle, "copyprot_plac");
 }
 
 SDLPopInstance::~SDLPopInstance()

@@ -69,6 +69,9 @@ typedef void (*__pascal far do_mobs_t)(void);
 typedef void (*__pascal far check_skel_t)(void);
 typedef void (*__pascal far check_can_guard_see_kid_t)(void);
 typedef void (*__pascal far check_mirror_t)(void);
+typedef void (*__pascal far init_copyprot_t)(void);
+typedef void (*__pascal far alter_mods_allrm_t)(void);
+
 
 typedef chtab_type *chtab_addrs_t[10];
 typedef mob_type mobs_t[14];
@@ -124,6 +127,10 @@ class SDLPopInstance
 
   // Storing previously drawn room
   word _prevDrawnRoom;
+
+  // Functions to advance/reverse RNG state
+  unsigned int advanceRNGState(const unsigned int randomSeed);
+  unsigned int reverseRNGState(const unsigned int randomSeed);
 
   // SDLPop Functions
   restore_room_after_quick_load_t restore_room_after_quick_load;
@@ -190,6 +197,8 @@ class SDLPopInstance
   check_skel_t check_skel;
   check_can_guard_see_kid_t check_can_guard_see_kid;
   check_mirror_t check_mirror;
+  init_copyprot_t init_copyprot;
+  alter_mods_allrm_t alter_mods_allrm;
 
   // SDLPop State variables
   char_type *Kid;     //
@@ -305,6 +314,7 @@ class SDLPopInstance
   SDL_Window **window_;
   byte* enable_copyprot;
   fixes_options_type** fixes;
+  word* copyprot_plac;
 
   // File cache variables
   cachedFilePointerTable_t* _cachedFilePointerTable;

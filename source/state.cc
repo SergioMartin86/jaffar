@@ -104,16 +104,6 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   return dest;
 }
 
-dword State::advanceRNGState(const dword randomSeed)
-{
- return randomSeed * 214013 + 2531011;
-}
-
-dword State::reverseRNGState(const dword randomSeed)
-{
- return (randomSeed + 4292436285) * 3115528533;
-}
-
 State::State(SDLPopInstance *sdlPop, const std::string& saveString)
 {
   _sdlPop = sdlPop;

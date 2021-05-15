@@ -461,6 +461,9 @@ void Train::computeFrames()
       // Getting possible moves for the current frame
       std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
 
+      // If the restart flag is activated, then also try hitting Ctrl+A
+      if (baseFrame->isRestart) possibleMoveIds.push_back(14);
+
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
       {
@@ -1037,9 +1040,6 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
 
   // Getting thread id
   int threadId = omp_get_thread_num();
-
-  // If the restart flag is activated, then only option is to hit Ctrl+A
-  if (frame.isRestart) return { 14 };
 
   // Loading frame state
   _state[threadId]->loadState(frame.frameStateData);

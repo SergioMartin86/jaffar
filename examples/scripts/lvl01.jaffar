@@ -5,11 +5,12 @@
   [
    {
     "Label": 1000,
-    "Description": "Restart to clear the need to play initial music",
+    "Description": "Restart to clear the need to play initial music upon crouching",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  1 },
-     { "Property": "Needs Level 1 Music", "Op": "==", "Value":  2 }
+     { "Property": "Needs Level 1 Music", "Op": "==", "Value":  33 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  109 }
     ],
     
     "Dependencies": [ ],
