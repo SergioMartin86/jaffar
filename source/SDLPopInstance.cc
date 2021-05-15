@@ -200,7 +200,7 @@ void SDLPopInstance::startLevel(const word level)
 
   _prevDrawnRoom = *drawn_room;
 
-  set_timer_length(timer_1, 20);
+  set_timer_length(timer_1, 12);
   // Setting exit door status
   isExitDoorOpen = isLevelExitDoorOpen();
 
@@ -449,6 +449,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   init_copyprot = (init_copyprot_t)dlsym(_dllHandle, "init_copyprot");
   alter_mods_allrm = (alter_mods_allrm_t) dlsym(_dllHandle, "alter_mods_allrm");
   start_replay = (start_replay_t) dlsym(_dllHandle, "start_replay");
+  start_game = (start_game_t) dlsym(_dllHandle, "start_game");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");

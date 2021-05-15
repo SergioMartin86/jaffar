@@ -55,6 +55,11 @@ int main(int argc, char *argv[])
     .help("path to the Jaffar solution (.sol) file to run.")
     .required();
 
+  program.add_argument("--reproduce")
+    .help("Plays the entire sequence without interruptions")
+    .default_value(false)
+    .implicit_value(true);
+
   // Parsing command line
   try
   {
@@ -66,6 +71,9 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
+  // Getting reproduce path
+  bool isReproduce = program.get<bool>("--reproduce");
+
   // Getting savefile path
   std::string saveFilePath = program.get<std::string>("savFile");
 
@@ -73,7 +81,6 @@ int main(int argc, char *argv[])
   std::string saveString;
   bool status = loadStringFromFile(saveString, saveFilePath.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
-
 
   // If sequence file defined, load it and play it
   std::string moveSequence;
@@ -160,10 +167,13 @@ int main(int argc, char *argv[])
   int currentStep = 1;
 
   // Print command list
-  printw("[Jaffar] Available commands:\n");
-  printw("[Jaffar]  n: -1 m: +1 | h: -10 | j: +10 | y: -100 | u: +100 \n");
-  printw("[Jaffar]  g: set RNG | l: loose tile sound | s: quicksave | r: create replay | q: quit  \n");
-  printw("[Jaffar]  1: set lvl1 music \n");
+  if (isReproduce == false)
+  {
+   printw("[Jaffar] Available commands:\n");
+   printw("[Jaffar]  n: -1 m: +1 | h: -10 | j: +10 | y: -100 | u: +100 \n");
+   printw("[Jaffar]  g: set RNG | l: loose tile sound | s: quicksave | r: create replay | q: quit  \n");
+   printw("[Jaffar]  1: set lvl1 music \n");
+  }
 
   // Flag to display frame information
   bool showFrameInfo = true;
@@ -178,7 +188,6 @@ int main(int argc, char *argv[])
     // Draw requested step
     showSDLPop.draw();
 
-    // Printing frame information
     if (showFrameInfo)
     {
       printw("[Jaffar] ----------------------------------------------------------------\n");
@@ -216,6 +225,14 @@ int main(int argc, char *argv[])
 
     // Resetting show frame info flag
     showFrameInfo = true;
+
+    // If we're reproducing do not have an interactive interface
+    if (isReproduce)
+    {
+     currentStep = currentStep + 1;
+     if (currentStep > sequenceLength) break;
+     continue;
+    }
 
     // Get command
     command = getKeyPress();

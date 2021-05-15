@@ -52,6 +52,7 @@ typedef void (*reset_timer_t)(int timer_index);
 typedef void (*__pascal far free_peels_t)(void);
 typedef int (*__pascal far play_level_2_t)(void);
 typedef void (*__pascal far timers_t)(void);
+typedef void (*__pascal far start_game_t)(void);
 typedef void (*__pascal far play_frame_t)(void);
 typedef void (*__pascal far draw_game_frame_t)(void);
 typedef void (*update_screen_t)(void);
@@ -201,6 +202,7 @@ class SDLPopInstance
   init_copyprot_t init_copyprot;
   alter_mods_allrm_t alter_mods_allrm;
   start_replay_t start_replay;
+  start_game_t start_game;
 
   // SDLPop State variables
   char_type *Kid;     //
