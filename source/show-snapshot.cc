@@ -9,7 +9,7 @@
 int main(int argc, char *argv[])
 {
   // Defining arguments
-  argparse::ArgumentParser program("jaffar-show", JAFFAR_VERSION);
+  argparse::ArgumentParser program("jaffar-show-snapshot", JAFFAR_VERSION);
 
   program.add_argument("saveFile")
     .help("path to the Prince of Persia Save file (.sav) to display.")

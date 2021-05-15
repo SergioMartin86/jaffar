@@ -448,6 +448,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   check_mirror = (check_mirror_t)dlsym(_dllHandle, "check_mirror");
   init_copyprot = (init_copyprot_t)dlsym(_dllHandle, "init_copyprot");
   alter_mods_allrm = (alter_mods_allrm_t) dlsym(_dllHandle, "alter_mods_allrm");
+  start_replay = (start_replay_t) dlsym(_dllHandle, "start_replay");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");
@@ -570,6 +571,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   _cachedFileCounter = (cachedFileCounter_t*)dlsym(_dllHandle, "_cachedFileCounter");
   fixes = (fixes_options_type**)dlsym(_dllHandle, "fixes");
   copyprot_plac = (word *) dlsym(_dllHandle, "copyprot_plac");
+
 }
 
 SDLPopInstance::~SDLPopInstance()

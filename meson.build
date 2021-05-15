@@ -97,8 +97,8 @@ executable('jaffar-play',
   cpp_args: [ '-Wfatal-errors' ]
   )
   
-executable('jaffar-show',
-  'source/show.cc',
+executable('jaffar-show-snapshot',
+  'source/show-snapshot.cc',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
@@ -107,5 +107,15 @@ executable('jaffar-show',
   cpp_args: [ '-Wfatal-errors' ]
   )
 
+executable('jaffar-show-replay',
+  'source/show-replay.cc',
+  jaffarFiles,
+  dependencies: deps,
+  include_directories: inc,
+  link_with: [ sdlPopLib, metroHash64Lib ],
+  link_args: [ '-ldl' ],
+  cpp_args: [ '-Wfatal-errors' ]
+  )
+  
 checkStyleCommand = find_program('./tools/check_style.sh', required: true)
 test('C++ Style check', checkStyleCommand)

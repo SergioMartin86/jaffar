@@ -71,6 +71,7 @@ typedef void (*__pascal far check_can_guard_see_kid_t)(void);
 typedef void (*__pascal far check_mirror_t)(void);
 typedef void (*__pascal far init_copyprot_t)(void);
 typedef void (*__pascal far alter_mods_allrm_t)(void);
+typedef void (*__pascal far start_replay_t)(void);
 
 
 typedef chtab_type *chtab_addrs_t[10];
@@ -199,6 +200,7 @@ class SDLPopInstance
   check_mirror_t check_mirror;
   init_copyprot_t init_copyprot;
   alter_mods_allrm_t alter_mods_allrm;
+  start_replay_t start_replay;
 
   // SDLPop State variables
   char_type *Kid;     //
