@@ -221,10 +221,29 @@ void SDLPopInstance::setSeed(const dword randomSeed)
   *random_seed = randomSeed;
 }
 
+size_t SDLPopInstance::getElapsedMins()
+{
+ return 60 - *rem_min;
+}
+
+size_t SDLPopInstance::getElapsedSecs()
+{
+ return (720 - *rem_tick) / 12;
+}
+
+size_t SDLPopInstance::getElapsedMilisecs()
+{
+ return ceil( ((double)((720 - *rem_tick) % 12) * (60.0 / 720.0)) * 1000.0 );
+}
+
 void SDLPopInstance::draw()
 {
   restore_room_after_quick_load();
   draw_game_frame();
+
+  char IGTText[512];
+  sprintf(IGTText, "IGT %2lu:%02lu.%03lu", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
+  display_text_bottom(IGTText);
   update_screen();
   do_simple_wait(timer_1);
 }
@@ -450,6 +469,8 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   alter_mods_allrm = (alter_mods_allrm_t) dlsym(_dllHandle, "alter_mods_allrm");
   start_replay = (start_replay_t) dlsym(_dllHandle, "start_replay");
   start_game = (start_game_t) dlsym(_dllHandle, "start_game");
+  display_text_bottom = (display_text_bottom_t) dlsym(_dllHandle, "display_text_bottom");
+  redraw_screen = (redraw_screen_t) dlsym(_dllHandle, "redraw_screen");
 
   // State variables
   Kid = (char_type *)dlsym(_dllHandle, "Kid");

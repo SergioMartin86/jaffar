@@ -73,7 +73,8 @@ typedef void (*__pascal far check_mirror_t)(void);
 typedef void (*__pascal far init_copyprot_t)(void);
 typedef void (*__pascal far alter_mods_allrm_t)(void);
 typedef void (*__pascal far start_replay_t)(void);
-
+typedef void (*__pascal far display_text_bottom_t)(const char near *text);
+typedef void (*__pascal far redraw_screen_t)(int drawing_different_room);
 
 typedef chtab_type *chtab_addrs_t[10];
 typedef mob_type mobs_t[14];
@@ -133,6 +134,11 @@ class SDLPopInstance
   // Functions to advance/reverse RNG state
   unsigned int advanceRNGState(const unsigned int randomSeed);
   unsigned int reverseRNGState(const unsigned int randomSeed);
+
+  // IGT Timing functions
+  size_t getElapsedMins();
+  size_t getElapsedSecs();
+  size_t getElapsedMilisecs();
 
   // SDLPop Functions
   restore_room_after_quick_load_t restore_room_after_quick_load;
@@ -203,6 +209,8 @@ class SDLPopInstance
   alter_mods_allrm_t alter_mods_allrm;
   start_replay_t start_replay;
   start_game_t start_game;
+  display_text_bottom_t display_text_bottom;
+  redraw_screen_t redraw_screen;
 
   // SDLPop State variables
   char_type *Kid;     //
