@@ -38,6 +38,8 @@ class Train
   double _outputSaveCurrentSeconds;
   std::string _outputSaveBestPath;
   std::string _outputSaveCurrentPath;
+  std::string _outputSolutionBestPath;
+  std::string _outputSolutionCurrentPath;
   bool _showSDLPopPreview;
 
   // Worker id and count

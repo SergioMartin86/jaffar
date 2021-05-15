@@ -20,13 +20,15 @@ void Train::run()
     if (_outputSaveBestSeconds > 0)
     {
       printf("[Jaffar] Saving best frame every: %.3f seconds.\n", _outputSaveBestSeconds);
-      printf("[Jaffar]  + Path: %s\n", _outputSaveBestPath.c_str());
+      printf("[Jaffar]  + Savefile Path: %s\n", _outputSaveBestPath.c_str());
+      printf("[Jaffar]  + Solution Path: %s\n", _outputSolutionBestPath.c_str());
     }
 
     if (_outputSaveCurrentSeconds > 0)
     {
       printf("[Jaffar] Saving current frame every: %.3f seconds.\n", _outputSaveCurrentSeconds);
-      printf("[Jaffar]  + Path: %s\n", _outputSaveCurrentPath.c_str());
+      printf("[Jaffar]  + Savefile Path: %s\n", _outputSaveCurrentPath.c_str());
+      printf("[Jaffar]  + Solution Path: %s\n", _outputSolutionCurrentPath.c_str());
     }
 
     // Sleep for a second to show this message
@@ -1169,11 +1171,17 @@ Train::Train(int argc, char *argv[])
   _outputSaveCurrentSeconds = -1.0;
   if (const char *outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_CURRENT_EVERY_SECONDS")) _outputSaveCurrentSeconds = std::stof(outputSaveCurrentSecondsEnv);
 
-  // Parsing file output path
+  // Parsing savegame files output path
   _outputSaveBestPath = "/tmp/jaffar.best.sav";
   if (const char *outputSaveBestPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestPathEnv);
   _outputSaveCurrentPath = "/tmp/jaffar.current.sav";
   if (const char *outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_CURRENT_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
+
+  // Parsing solution files output path
+  _outputSolutionBestPath = "/tmp/jaffar.best.sol";
+  if (const char *outputSolutionBestPathEnv = std::getenv("JAFFAR_SOLUTION_BEST_PATH")) _outputSolutionBestPath = std::string(outputSolutionBestPathEnv);
+  _outputSolutionCurrentPath = "/tmp/jaffar.current.sol";
+  if (const char *outputSolutionCurrentPathEnv = std::getenv("JAFFAR_SOLUTION_CURRENT_PATH")) _outputSolutionCurrentPath = std::string(outputSolutionCurrentPathEnv);
 
   // Getting maximum local database size
   _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
@@ -1435,6 +1443,16 @@ void Train::showSavingLoop()
         // Saving best frame data
         saveStringToFile(_bestFrame.frameStateData, _outputSaveBestPath.c_str());
 
+        // Storing the solution sequence
+        if (_storeMoveList)
+        {
+         std::string solutionString;
+         solutionString += _possibleMoves[_bestFrame.moveHistory[0]];
+         for (size_t i = 1; i <= _currentStep; i++)
+          solutionString += std::string(" ") + _possibleMoves[_bestFrame.moveHistory[i]];
+         saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+        }
+
         // Resetting timer
         bestFrameSaveTimer = std::chrono::steady_clock::now();
       }
@@ -1448,6 +1466,16 @@ void Train::showSavingLoop()
       {
         // Saving best frame data
         saveStringToFile(_showFrameDB[currentFrameId].frameStateData, _outputSaveCurrentPath.c_str());
+
+        // Storing the solution sequence
+        if (_storeMoveList)
+        {
+         std::string solutionString;
+         solutionString += _possibleMoves[_showFrameDB[currentFrameId].moveHistory[0]];
+         for (size_t i = 1; i <= _currentStep; i++)
+          solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].moveHistory[i]];
+         saveStringToFile(solutionString, _outputSolutionCurrentPath.c_str());
+        }
 
         // Resetting timer
         currentFrameSaveTimer = std::chrono::steady_clock::now();

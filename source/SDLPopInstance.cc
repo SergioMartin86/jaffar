@@ -328,7 +328,7 @@ void SDLPopInstance::advanceFrame()
    startLevel(*next_level);
 
    // Handle cutscenes
-   if (*next_level == 2) for (size_t i = 0; i < 3; i++) *random_seed = advanceRNGState(*random_seed);
+   //if (*next_level == 2) for (size_t i = 0; i < 3; i++) *random_seed = advanceRNGState(*random_seed);
   }
 
   *is_restart_level = 0;
