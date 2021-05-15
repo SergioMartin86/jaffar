@@ -57,6 +57,7 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   // Fix feather fall problem when quickload/quicksaving
   (*fixes)->fix_quicksave_during_feather = 1;
+  (*fixes)->fix_quicksave_during_lvl1_music = 1;
 
   // debug only: check that the sequence table deobfuscation did not mess things up
   load_global_options();
@@ -145,10 +146,10 @@ void SDLPopInstance::initialize(const bool useGUI)
   *rem_min = (*custom)->start_minutes_left; // 60
   *rem_tick = (*custom)->start_ticks_left;  // 719
   *hitp_beg_lev = (*custom)->start_hitp;    // 3
-  *need_level1_music = 1;
-
   *current_level = 0;
   startLevel(1);
+  *need_level1_music = (*custom)->intro_music_time_initial;
+
 }
 
 void SDLPopInstance::startLevel(const word level)
@@ -179,7 +180,6 @@ void SDLPopInstance::startLevel(const word level)
   *hitp_delta = 0;
   Guard->charid = charid_2_guard;
   Guard->direction = dir_56_none;
-  *need_level1_music = 0;
 
   do_startpos();
 
@@ -204,6 +204,10 @@ void SDLPopInstance::startLevel(const word level)
   set_timer_length(timer_1, 20);
   // Setting exit door status
   isExitDoorOpen = isLevelExitDoorOpen();
+
+  if (*need_level1_music != 0 && *current_level == (*custom)->intro_music_level)
+   if ((*fixes)->fix_quicksave_during_lvl1_music)
+    *need_level1_music = (*custom)->intro_music_time_restart;
   // // Skip cutscenes
   // while(*is_cutscene == 1)
   // {
@@ -277,10 +281,9 @@ void SDLPopInstance::performMove(const std::string &move)
   }
   if (move == "CA") // Ctrl+A
   {
-    startLevel(*current_level);
+    *is_restart_level = 1;
     recognizedMove = true;
   }
-  //if (move == "toggle_sound") {  (*key_states)[SDL_SCANCODE_S | WITH_CTRL] = 1; recognizedMove = true; }
 
   if (recognizedMove == false)
     EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
@@ -291,8 +294,11 @@ void SDLPopInstance::advanceFrame()
   *guardhp_delta = 0;
   *hitp_delta = 0;
   timers();
-  *is_restart_level = 0;
+
   play_frame();
+
+  if (*is_restart_level == 1)
+   startLevel(*current_level);
 
   // if we're on lvl 4, check mirror
   if (*current_level == 4) check_mirror();
@@ -312,7 +318,7 @@ void SDLPopInstance::advanceFrame()
    startLevel(*next_level);
   }
 
-
+  *is_restart_level = 0;
   _prevDrawnRoom = *drawn_room;
   isExitDoorOpen = isLevelExitDoorOpen();
 }

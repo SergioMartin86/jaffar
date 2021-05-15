@@ -160,7 +160,10 @@ int main(int argc, char *argv[])
   int currentStep = 1;
 
   // Print command list
-  printw("[Jaffar] Available commands: n: -1 m: +1 | h: -10 | j: +10 | y: -100 | u: +100 | s: quicksave | r: create replay | q: quit  \n");
+  printw("[Jaffar] Available commands:\n");
+  printw("[Jaffar]  n: -1 m: +1 | h: -10 | j: +10 | y: -100 | u: +100 \n");
+  printw("[Jaffar]  g: set RNG | l: loose tile sound | s: quicksave | r: create replay | q: quit  \n");
+  printw("[Jaffar]  1: set lvl1 music \n");
 
   // Flag to display frame information
   bool showFrameInfo = true;
@@ -207,6 +210,7 @@ int main(int argc, char *argv[])
       printw("[Jaffar]  + Exit Door Open: %s\n", showSDLPop.isLevelExitDoorOpen() ? "Yes" : "No");
       printw("[Jaffar]  + Reached Checkpoint: %s (%d)\n", *showSDLPop.checkpoint ? "Yes" : "No", *showSDLPop.checkpoint);
       printw("[Jaffar]  + Feather Fall: %d\n", *showSDLPop.is_feather_fall);
+      printw("[Jaffar]  + Need Lvl1 Music: %d\n", *showSDLPop.need_level1_music);
       printw("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", *showSDLPop.random_seed, *showSDLPop.last_loose_sound);
     }
 
@@ -223,6 +227,10 @@ int main(int argc, char *argv[])
     if (command == 'j') currentStep = currentStep + 10;
     if (command == 'y') currentStep = currentStep - 100;
     if (command == 'u') currentStep = currentStep + 100;
+
+    // Correct current step if requested more than possible
+    if (currentStep < 1) currentStep = 1;
+    if (currentStep > sequenceLength) currentStep = sequenceLength;
 
     // Replay creation command
     if (command == 'r')
@@ -251,9 +259,50 @@ int main(int argc, char *argv[])
       showFrameInfo = false;
     }
 
-    // Correct current step if requested more than possible
-    if (currentStep < 1) currentStep = 1;
-    if (currentStep > sequenceLength) currentStep = sequenceLength;
+    // RNG setting command
+    if (command == 'g')
+    {
+      // Obtaining RNG state
+      printw("Enter new RNG state: ");
+
+      // Setting input as new rng
+      char str[80];
+      getstr(str);
+      *showSDLPop.random_seed = std::stol(str);
+
+      // Replacing current sequence
+      frameSequence[currentStep-1] = showState.saveState();
+    }
+
+    // loose tile sound setting command
+    if (command == 'l')
+    {
+      // Obtaining RNG state
+      printw("Enter new last loose tile sound id: ");
+
+      // Setting input as new rng
+      char str[80];
+      getstr(str);
+      *showSDLPop.last_loose_sound = std::stoi(str);
+
+      // Replacing current sequence
+      frameSequence[currentStep-1] = showState.saveState();
+    }
+
+    // loose tile sound setting command
+    if (command == '1')
+    {
+      // Obtaining RNG state
+      printw("Enter new need level 1 music value: ");
+
+      // Setting input as new rng
+      char str[80];
+      getstr(str);
+      *showSDLPop.need_level1_music = std::stoi(str);
+
+      // Replacing current sequence
+      frameSequence[currentStep-1] = showState.saveState();
+    }
 
   } while (command != 'q');
 
