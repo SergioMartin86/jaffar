@@ -147,7 +147,7 @@ void Train::run()
     {
      printf("[Jaffar]  + Move List: ");
      for (size_t i = 0; i <= _currentStep; i++)
-       printf("%s ", _possibleMoves[_globalWinFrame.moveHistory[i]].c_str());
+       printf("%s ", _possibleMoves[_globalWinFrame.getMove(i)].c_str());
      printf("\n");
     }
   }
@@ -524,7 +524,7 @@ void Train::computeFrames()
         if (_storeMoveList == true)
         {
          newFrame->moveHistory = baseFrame->moveHistory;
-         newFrame->moveHistory[_currentStep] = moveId;
+         newFrame->setMove(_currentStep, moveId);
         }
 
         // Evaluating rules on the new frame
@@ -915,7 +915,7 @@ void Train::printTrainStatus()
   {
    printf("[Jaffar]  + Move List: ");
    for (size_t i = 0; i <= _currentStep; i++)
-     printf("%s ", _possibleMoves[_bestFrame.moveHistory[i]].c_str());
+     printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
    printf("\n");
   }
 }
@@ -1156,8 +1156,6 @@ Train::Train(int argc, char *argv[])
   else if (_workerId == 0)
     printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
 
-  _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
-
   // Parsing max frame DB entries
   size_t frameDBMaxMBytes = 300;
   if (const char *frameDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB"))
@@ -1182,9 +1180,6 @@ Train::Train(int argc, char *argv[])
   if (const char *outputSolutionBestPathEnv = std::getenv("JAFFAR_SOLUTION_BEST_PATH")) _outputSolutionBestPath = std::string(outputSolutionBestPathEnv);
   _outputSolutionCurrentPath = "/tmp/jaffar.current.sol";
   if (const char *outputSolutionCurrentPathEnv = std::getenv("JAFFAR_SOLUTION_CURRENT_PATH")) _outputSolutionCurrentPath = std::string(outputSolutionCurrentPathEnv);
-
-  // Getting maximum local database size
-  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
 
   // Parsing command line arguments
   argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
@@ -1241,6 +1236,13 @@ Train::Train(int argc, char *argv[])
 
   // Parsing max steps
   _maxSteps = program.get<size_t>("--maxSteps");
+
+  // The move list contains two moves per byte
+  _moveListStorageSize = (_maxSteps >> 1) + 1;
+
+  // Calculating DB sizes
+  _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
+  _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
 
   // Parsing config files
   _scriptFiles = program.get<std::vector<std::string>>("jaffarFiles");
@@ -1379,7 +1381,6 @@ Train::Train(int argc, char *argv[])
     const auto hash = _state[0]->computeHash();
 
     auto initialFrame = std::make_unique<Frame>();
-    initialFrame->moveHistory[0] = 0;
     initialFrame->frameStateData = _state[0]->saveState();
     initialFrame->kidMagnets = magnets;
     initialFrame->guardMagnets = magnets;
@@ -1447,9 +1448,9 @@ void Train::showSavingLoop()
         if (_storeMoveList)
         {
          std::string solutionString;
-         solutionString += _possibleMoves[_bestFrame.moveHistory[0]];
+         solutionString += _possibleMoves[_bestFrame.getMove(0)];
          for (size_t i = 1; i <= _currentStep; i++)
-          solutionString += std::string(" ") + _possibleMoves[_bestFrame.moveHistory[i]];
+          solutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
          saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
         }
 
@@ -1471,9 +1472,9 @@ void Train::showSavingLoop()
         if (_storeMoveList)
         {
          std::string solutionString;
-         solutionString += _possibleMoves[_showFrameDB[currentFrameId].moveHistory[0]];
+         solutionString += _possibleMoves[_showFrameDB[currentFrameId].getMove(0)];
          for (size_t i = 1; i <= _currentStep; i++)
-          solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].moveHistory[i]];
+          solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].getMove(i)];
          saveStringToFile(solutionString, _outputSolutionCurrentPath.c_str());
         }
 

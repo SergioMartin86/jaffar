@@ -46,6 +46,10 @@ class Frame
   void serialize(char *output);
   void deserialize(const char *input);
 
+  // Move r/w operations
+  void setMove(const size_t idx, const uint8_t move);
+  uint8_t getMove(const size_t idx);
+
   // Additional local metadata
   bool isWin;
   bool isFail;
@@ -56,3 +60,4 @@ class Frame
 
 extern size_t _ruleCount;
 extern size_t _maxSteps;
+extern size_t _moveListStorageSize;

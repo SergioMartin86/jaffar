@@ -1,6 +1,7 @@
 #include "frame.h"
 #include "train.h"
 
+size_t _moveListStorageSize;
 size_t _ruleCount;
 size_t _maxSteps;
 bool _storeMoveList;
@@ -8,7 +9,8 @@ bool _storeMoveList;
 
 Frame::Frame()
 {
-  moveHistory.resize((_maxSteps + 1));
+  // Two moves fit in one byte
+  moveHistory.resize(_moveListStorageSize);
 }
 
 size_t Frame::getSerializationSize()
@@ -17,7 +19,7 @@ size_t Frame::getSerializationSize()
 
   // Adding move history
   if (_storeMoveList == true)
-   size += (_maxSteps + 1) * sizeof(char);
+   size += _moveListStorageSize * sizeof(char);
 
   // Adding score size
   size += sizeof(float);
@@ -47,8 +49,8 @@ void Frame::serialize(char *output)
   // Adding move history
   if (_storeMoveList == true)
   {
-   memcpy(&output[currentPos], moveHistory.data(), (_maxSteps + 1) * sizeof(char));
-   currentPos += (_maxSteps + 1) * sizeof(char);
+   memcpy(&output[currentPos], moveHistory.data(), _moveListStorageSize * sizeof(char));
+   currentPos += _moveListStorageSize * sizeof(char);
   }
 
   // Adding score
@@ -83,9 +85,9 @@ void Frame::deserialize(const char *input)
   // Copying move history information
   if (_storeMoveList == true)
   {
-   moveHistory.resize((_maxSteps + 1));
-   memcpy(moveHistory.data(), &input[currentPos], (_maxSteps + 1) * sizeof(char));
-   currentPos += (_maxSteps + 1) * sizeof(char);
+   moveHistory.resize(_moveListStorageSize);
+   memcpy(moveHistory.data(), &input[currentPos], _moveListStorageSize * sizeof(char));
+   currentPos += _moveListStorageSize * sizeof(char);
   }
 
   // Adding score
@@ -118,7 +120,9 @@ void Frame::deserialize(const char *input)
 
 Frame &Frame::operator=(Frame sourceFrame)
 {
-  if (_storeMoveList == true) moveHistory = sourceFrame.moveHistory;
+  if (_storeMoveList == true)
+   moveHistory = sourceFrame.moveHistory;
+
   score = sourceFrame.score;
   frameStateData = sourceFrame.frameStateData;
   kidMagnets = sourceFrame.kidMagnets;
@@ -128,3 +132,26 @@ Frame &Frame::operator=(Frame sourceFrame)
 
   return *this;
 }
+
+// Move r/w operations
+void Frame::setMove(const size_t idx, const uint8_t move)
+{
+  size_t basePos = idx / 2;
+  uint8_t baseVal = moveHistory[basePos];
+  uint8_t newVal;
+
+  if (idx % 2 == 0) newVal = (baseVal & 0xF0) | (move & 0x0F);
+  if (idx % 2 == 1) newVal = (baseVal & 0x0F) | (move << 4);
+
+  moveHistory[basePos] = newVal;
+}
+
+uint8_t Frame::getMove(const size_t idx)
+{
+ size_t basePos = idx / 2;
+ uint8_t val = moveHistory[basePos];
+ if (idx % 2 == 0) val = val & 0x0F;
+ if (idx % 2 == 1) val = val >> 4;
+ return val;
+}
+
