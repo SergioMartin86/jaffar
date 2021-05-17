@@ -140,6 +140,7 @@ void Train::run()
     printf("[Jaffar] Win Frame Information:\n");
     _state[0]->loadState(_globalWinFrame.frameStateData);
     _sdlPop[0]->printFrameInfo();
+
     printRuleStatus(_globalWinFrame);
 
     // Print Move History
@@ -165,6 +166,17 @@ void Train::run()
 
   // Barrier to wait for all workers
   MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void Train::printRuleStatus(const Frame &frame)
+{
+ printf("[Jaffar]  + Rule Status: ");
+ for (size_t i = 0; i < frame.rulesStatus.size(); i++)
+ {
+   if (i > 0 && i % 60 == 0) printf("\n                         ");
+   printf("%d", frame.rulesStatus[i] ? 1 : 0);
+ }
+ printf("\n");
 }
 
 void Train::distributeFrames()
@@ -464,7 +476,11 @@ void Train::computeFrames()
       std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
 
       // If the restart flag is activated, then also try hitting Ctrl+A
-      if (baseFrame->isRestart) possibleMoveIds.push_back(14);
+      if (baseFrame->isRestart == true)
+      {
+       possibleMoveIds.push_back(14);
+       baseFrame->isRestart = false;
+      }
 
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
@@ -517,8 +533,6 @@ void Train::computeFrames()
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>();
         newFrame->rulesStatus = baseFrame->rulesStatus;
-        newFrame->kidMagnets = baseFrame->kidMagnets;
-        newFrame->guardMagnets = baseFrame->guardMagnets;
 
         // If required, store move history
         if (_storeMoveList == true)
@@ -530,21 +544,27 @@ void Train::computeFrames()
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
 
-        // If frame has failed, then proceed to the next one
-        if (newFrame->isFail == true) continue;
+        // Checks whether any fail rules were activated
+        bool isFailFrame = checkFail(*newFrame);
+
+        // If frame has failed, discard it and proceed to the next one
+        if (isFailFrame) continue;
 
         // Storing the frame data
         newFrame->frameStateData = _state[threadId]->saveState();
 
-        // Calculating score
-        newFrame->score = getFrameScore(*newFrame);
+        // Calculating current reward
+        newFrame->reward = getFrameReward(*newFrame);
 
         // Check if the frame beats the game
         bool isBeatGame = *_sdlPop[threadId]->current_level == (*_sdlPop[threadId]->custom)->win_level &&
                           *_sdlPop[threadId]->drawn_room == (*_sdlPop[threadId]->custom)->win_room;
 
+        // Check if the frame triggers a win condition
+        bool isWinFrame = checkWin(*newFrame);
+
         // If frame has succeded, then flag it
-        if ((newFrame->isWin == true && _disableWin == false) || isBeatGame)
+        if ((isWinFrame && !_disableWin) || isBeatGame)
         {
           _localWinFound = true;
            #pragma omp critical(winFrame)
@@ -571,8 +591,8 @@ void Train::framePostprocessing()
   // Clearing current frame DB
   _currentFrameDB.clear();
 
-  // Sorting local DB frames by score
-  boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->score > b->score; });
+  // Sorting local DB frames by reward
+  boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
 
   // Swapping database contents
   size_t currentFrameCount = std::min(_nextFrameDB.size(), _maxLocalDatabaseSize);
@@ -588,15 +608,15 @@ void Train::framePostprocessing()
    _nextFrameDB[i].reset();
   _nextFrameDB.clear();
 
-  // Finding local best frame score
+  // Finding local best frame reward
   float localBestFrameScore = -std::numeric_limits<float>::infinity();
-  if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->score;
+  if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->reward;
 
   // Calculating global frame count
   size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
   MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-  // If there are remaining frames, find best global frame score/win
+  // If there are remaining frames, find best global frame reward/win
   if (_globalFrameCounter > 0)
   {
    struct mpiLoc { float val; int loc; };
@@ -612,6 +632,7 @@ void Train::framePostprocessing()
    if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
    MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
    _bestFrame.deserialize(frameBcastBuffer);
+   _bestFrame.reward = getFrameReward(_bestFrame);
 
    // Exchanging the fact that a win frame has been found
    int winRank = -1;
@@ -694,11 +715,6 @@ void Train::evaluateRules(Frame &frame)
   // Getting thread id
   int threadId = omp_get_thread_num();
 
-  // Resetting frame status flags
-  frame.isWin = false;
-  frame.isFail = false;
-  frame.isRestart = false;
-
   for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
   {
     // Evaluate rule only if it's active
@@ -722,6 +738,45 @@ void Train::evaluateRules(Frame &frame)
   }
 }
 
+bool Train::checkFail(const Frame &frame)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
+  if (frame.rulesStatus[ruleId] == true)
+   if (_rules[threadId][ruleId]->_isFailRule == true)
+    return true;
+
+ return false;
+}
+
+bool Train::checkWin(const Frame &frame)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
+  if (frame.rulesStatus[ruleId] == true)
+   if (_rules[threadId][ruleId]->_isWinRule == true)
+    return true;
+
+ return false;
+}
+
+float Train::getRuleRewards(const Frame &frame)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ float reward = 0.0;
+
+ for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
+  if (frame.rulesStatus[ruleId] == true)
+    reward += _rules[threadId][ruleId]->_reward;
+ return reward;
+}
+
 void Train::satisfyRule(Frame &frame, const size_t ruleId)
 {
  // Getting thread id
@@ -738,122 +793,11 @@ void Train::satisfyRule(Frame &frame, const size_t ruleId)
    satisfyRule(frame, subRuleId);
  }
 
- // Setting status to satisfied and running actions for the current rule
+ // Setting status to satisfied
  frame.rulesStatus[ruleId] = true;
- runRuleActions(frame, ruleId);
-}
 
-void Train::runRuleActions(Frame &frame, const size_t ruleId)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- // Perform actions for this
- for (size_t actionId = 0; actionId < _rules[threadId][ruleId]->_actions.size(); actionId++)
- {
-   const auto actionJs = _rules[threadId][ruleId]->_actions[actionId];
-
-   // Getting action type
-   if (isDefined(actionJs, "Type") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Type' key.\n", ruleId, actionId);
-   std::string actionType = actionJs["Type"].get<std::string>();
-
-   // Running the action, depending on the type
-   bool recognizedActionType = false;
-
-   if (actionType == "Add Reward")
-   {
-     // This action is handled during startup, no need to do anything now.
-     recognizedActionType = true;
-   }
-
-   // Storing fail state
-   if (actionType == "Trigger Fail")
-   {
-     frame.isFail = true;
-     recognizedActionType = true;
-   }
-
-   // Storing win state
-   if (actionType == "Trigger Win")
-   {
-     frame.isWin = true;
-     recognizedActionType = true;
-   }
-
-   // Storing restart state
-   if (actionType == "Restart Level")
-   {
-     frame.isRestart = true;
-     recognizedActionType = true;
-   }
-
-   // Parsing room here to avoid duplicating code per each rule
-   int room = 0;
-   if (isDefined(actionJs, "Room")) room = actionJs["Room"].get<int>();
-   if (room > _VISIBLE_ROOM_COUNT) EXIT_WITH_ERROR("[ERROR] Rule %lu, Room %lu is outside visible room scope.\n", ruleId, room);
-
-   if (actionType == "Set Kid Horizontal Magnet Intensity")
-   {
-     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-     int8_t intensityX = actionJs["Value"].get<int8_t>();
-
-     frame.kidMagnets[room].intensityX = intensityX;
-     recognizedActionType = true;
-   }
-
-   if (actionType == "Set Kid Horizontal Magnet Position")
-   {
-     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-     int16_t positionX = actionJs["Value"].get<int16_t>();
-
-     frame.kidMagnets[room].positionX = positionX;
-     recognizedActionType = true;
-   }
-
-   if (actionType == "Set Kid Vertical Magnet Intensity")
-   {
-     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-     int8_t intensityY = actionJs["Value"].get<int8_t>();
-
-     frame.kidMagnets[room].intensityY = intensityY;
-     recognizedActionType = true;
-   }
-
-   if (actionType == "Set Guard Horizontal Magnet Intensity")
-   {
-     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-     int8_t intensityX = actionJs["Value"].get<int8_t>();
-
-     frame.guardMagnets[room].intensityX = intensityX;
-     recognizedActionType = true;
-   }
-
-   if (actionType == "Set Guard Horizontal Magnet Position")
-   {
-     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-     int16_t positionX = actionJs["Value"].get<int16_t>();
-
-     frame.guardMagnets[room].positionX = positionX;
-     recognizedActionType = true;
-   }
-
-   if (actionType == "Set Guard Vertical Magnet Intensity")
-   {
-     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", ruleId, actionId);
-     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", ruleId, actionId);
-     int8_t intensityY = actionJs["Value"].get<int8_t>();
-
-     frame.guardMagnets[room].intensityY = intensityY;
-     recognizedActionType = true;
-   }
-
-   if (recognizedActionType == false) EXIT_WITH_ERROR("[ERROR] Unrecognized action type %s\n", actionType.c_str());
- }
+ // It it contained a restart action, set it now (so it doesn't repeat later)
+ if (_rules[threadId][ruleId]->_isRestartRule) frame.isRestart = true;
 }
 
 void Train::addHashEntry(uint64_t hash)
@@ -880,7 +824,7 @@ void Train::printTrainStatus()
 {
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
-  printf("[Jaffar] Best Score: %f\n", _bestFrame.score);
+  printf("[Jaffar] Best Reward: %f\n", _bestFrame.reward);
   printf("[Jaffar] Database Size: %lu / %lu\n", _globalFrameCounter, _maxLocalDatabaseSize * _workerCount);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
@@ -901,138 +845,207 @@ void Train::printTrainStatus()
   _sdlPop[0]->printFrameInfo();
   printRuleStatus(_bestFrame);
 
-  // Printing Magnet Status
-  int currentRoom = _sdlPop[0]->Kid->room;
-  const auto &kidMagnet = _bestFrame.kidMagnets[currentRoom];
-  const auto &guardMagnet = _bestFrame.guardMagnets[currentRoom];
-  printf("[Jaffar]  + Kid Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) kidMagnet.intensityX, (float) kidMagnet.positionX);
-  printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", (float) kidMagnet.intensityY);
-  printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", (float) guardMagnet.intensityX, (float) guardMagnet.positionX);
-  printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", (float) guardMagnet.intensityY);
+  // Getting kid room
+  int kidCurrentRoom = _sdlPop[0]->Kid->room;
+
+  // Getting magnet values for the kid
+  auto kidMagnet = getKidMagnetValues(_bestFrame, kidCurrentRoom);
+
+  printf("[Jaffar]  + Kid Horizontal Magnet Intensity / Position: %.1f / %.0f\n", kidMagnet.intensityX, kidMagnet.positionX);
+  printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", kidMagnet.intensityY);
+
+  // Getting guard room
+  int guardCurrentRoom = _sdlPop[0]->Guard->room;
+
+  // Getting magnet values for the guard
+  auto guardMagnet = getGuardMagnetValues(_bestFrame, guardCurrentRoom);
+
+  printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", guardMagnet.intensityX, guardMagnet.positionX);
+  printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", guardMagnet.intensityY);
 
   // Print Move History
   if (_storeMoveList)
   {
-   printf("[Jaffar]  + Move List: ");
-   for (size_t i = 0; i <= _currentStep; i++)
+   printf("[Jaffar]  + Last 30 Moves: ");
+   size_t startMove = (size_t)std::max((int)0, (int)_currentStep-30);
+   for (size_t i = startMove; i <= _currentStep; i++)
      printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
    printf("\n");
   }
 }
 
-void Train::printRuleStatus(const Frame &frame)
+magnetInfo_t Train::getKidMagnetValues(const Frame &frame, const int room)
 {
-  printf("[Jaffar]  + Rule Status: [ %d", frame.rulesStatus[0] ? 1 : 0);
-  for (size_t i = 1; i < frame.rulesStatus.size(); i++)
-    printf(", %d", frame.rulesStatus[i] ? 1 : 0);
-  printf(" ]\n");
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ // Storage for magnet information
+ magnetInfo_t magnetInfo;
+ magnetInfo.positionX = 0.0f;
+ magnetInfo.intensityX = 0.0f;
+ magnetInfo.intensityY = 0.0f;
+
+ // Iterating rule vector
+ for (size_t ruleId = 0; ruleId < frame.rulesStatus.size(); ruleId++)
+ {
+  if (frame.rulesStatus[ruleId] == true)
+  {
+    const auto& rule = _rules[threadId][ruleId];
+
+    for (size_t i = 0; i < _rules[threadId][ruleId]->_kidMagnetPositionX.size(); i++)
+     if (rule->_kidMagnetPositionX[i].room == room)
+      magnetInfo.positionX = rule->_kidMagnetPositionX[i].value;
+
+    for (size_t i = 0; i < _rules[threadId][ruleId]->_kidMagnetIntensityX.size(); i++)
+     if (rule->_kidMagnetIntensityX[i].room == room)
+      magnetInfo.intensityX = rule->_kidMagnetIntensityX[i].value;
+
+    for (size_t i = 0; i < _rules[threadId][ruleId]->_kidMagnetIntensityY.size(); i++)
+     if (rule->_kidMagnetIntensityY[i].room == room)
+      magnetInfo.intensityY = rule->_kidMagnetIntensityY[i].value;
+  }
+ }
+
+ return magnetInfo;
 }
 
-float Train::getFrameScore(const Frame &frame)
+magnetInfo_t Train::getGuardMagnetValues(const Frame &frame, const int room)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ // Storage for magnet information
+ magnetInfo_t magnetInfo;
+ magnetInfo.positionX = 0.0f;
+ magnetInfo.intensityX = 0.0f;
+ magnetInfo.intensityY = 0.0f;
+
+ // Iterating rule vector
+ for (size_t ruleId = 0; ruleId < frame.rulesStatus.size(); ruleId++)
+  if (frame.rulesStatus[ruleId] == true)
+  {
+    const auto& rule = _rules[threadId][ruleId];
+
+    for (size_t i = 0; i < _rules[threadId][ruleId]->_guardMagnetPositionX.size(); i++)
+     if (rule->_guardMagnetPositionX[i].room == room)
+      magnetInfo.positionX = rule->_guardMagnetPositionX[i].value;
+
+    for (size_t i = 0; i < _rules[threadId][ruleId]->_guardMagnetIntensityX.size(); i++)
+     if (rule->_guardMagnetIntensityX[i].room == room)
+      magnetInfo.intensityX = rule->_guardMagnetIntensityX[i].value;
+
+    for (size_t i = 0; i < _rules[threadId][ruleId]->_guardMagnetIntensityY.size(); i++)
+     if (rule->_guardMagnetIntensityY[i].room == room)
+      magnetInfo.intensityY = rule->_guardMagnetIntensityY[i].value;
+  }
+
+ return magnetInfo;
+}
+
+float Train::getFrameReward(const Frame &frame)
 {
   // Getting thread id
   int threadId = omp_get_thread_num();
 
-  // Accumulator for total score
-  float score = 0.0f;
+  // Accumulator for total reward
+  float reward = getRuleRewards(frame);
 
-  // Obtaining magnet corresponding to kid's room
-  int currentRoom = _sdlPop[threadId]->Kid->room;
+  // Getting kid room
+  int kidCurrentRoom = _sdlPop[threadId]->Kid->room;
 
-  // Apply magnets if kid is inside visible rooms
-  if (currentRoom >= 0 && currentRoom < _VISIBLE_ROOM_COUNT)
+  // Getting magnet values for the kid
+  auto kidMagnet = getKidMagnetValues(frame, kidCurrentRoom);
+
+  // Getting kid's current frame
+  const auto curKidFrame = _sdlPop[threadId]->Kid->frame;
+
+  // Evaluating kidMagnet's reward on the X axis
+  const float kidDiffX = std::abs(_sdlPop[threadId]->Kid->x - kidMagnet.positionX);
+  reward += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
+
+  // For positive Y axis kidMagnet, rewarding climbing frames
+  if ((float) kidMagnet.intensityY > 0.0f)
   {
-   // Applying Kid Magnets
-
-    const auto &kidMagnet = frame.kidMagnets[currentRoom];
-    const auto curKidFrame = _sdlPop[threadId]->Kid->frame;
-
-    // Evaluating kidMagnet's score on the X axis
-    const float kidDiffX = std::abs(_sdlPop[threadId]->Kid->x - kidMagnet.positionX);
-    score += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
-
-    // For positive Y axis kidMagnet, rewarding climbing frames
-    if ((float) kidMagnet.intensityY > 0.0f)
+    // Jumphang, because it preludes climbing (Score + 1-20)
+    if (curKidFrame >= 67 && curKidFrame <= 80)
     {
-      // Jumphang, because it preludes climbing (Score + 1-20)
-      if (curKidFrame >= 67 && curKidFrame <= 80)
-      {
-        float scoreAdd = (float) kidMagnet.intensityY * (0.0f + (curKidFrame - 66));
-        score += scoreAdd;
-      }
-
-      // Hang, because it preludes climbing (Score +21)
-      if (curKidFrame == 91) score += 21.0f * (float) kidMagnet.intensityY;
-
-      // Climbing (Score +22-38)
-      if (curKidFrame >= 135 && curKidFrame <= 149) score += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
-
-      // Adding absolute reward for Y position
-      score += (float) kidMagnet.intensityY * (256.0f - _sdlPop[threadId]->Kid->y);
+      float rewardAdd = (float) kidMagnet.intensityY * (0.0f + (curKidFrame - 66));
+      reward += rewardAdd;
     }
 
-    // For negative Y axis kidMagnet, rewarding falling/climbing down frames
-    if ((float) kidMagnet.intensityY < 0.0f)
-    {
-      // Turning around, because it generally preludes climbing down
-      if (curKidFrame >= 45 && curKidFrame <= 52) score += -0.5f * (float) kidMagnet.intensityY;
+    // Hang, because it preludes climbing (Score +21)
+    if (curKidFrame == 91) reward += 21.0f * (float) kidMagnet.intensityY;
 
-      // Hanging, because it preludes falling
-      if (curKidFrame >= 87 && curKidFrame <= 99) score += -0.5f * (float) kidMagnet.intensityY;
+    // Climbing (Score +22-38)
+    if (curKidFrame >= 135 && curKidFrame <= 149) reward += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
 
-      // Hang drop, because it preludes falling
-      if (curKidFrame >= 81 && curKidFrame <= 85) score += -1.0f * (float) kidMagnet.intensityY;
+    // Adding absolute reward for Y position
+    reward += (float) kidMagnet.intensityY * (256.0f - _sdlPop[threadId]->Kid->y);
+  }
 
-      // Falling start
-      if (curKidFrame >= 102 && curKidFrame <= 105) score += -1.0f * (float) kidMagnet.intensityY;
+  // For negative Y axis kidMagnet, rewarding falling/climbing down frames
+  if ((float) kidMagnet.intensityY < 0.0f)
+  {
+    // Turning around, because it generally preludes climbing down
+    if (curKidFrame >= 45 && curKidFrame <= 52) reward += -0.5f * (float) kidMagnet.intensityY;
 
-      // Falling itself
-      if (curKidFrame == 106) score += -2.0f + (float) kidMagnet.intensityY;
+    // Hanging, because it preludes falling
+    if (curKidFrame >= 87 && curKidFrame <= 99) reward += -0.5f * (float) kidMagnet.intensityY;
 
-      // Climbing down
-      if (curKidFrame == 148) score += -2.0f + (float) kidMagnet.intensityY;
+    // Hang drop, because it preludes falling
+    if (curKidFrame >= 81 && curKidFrame <= 85) reward += -1.0f * (float) kidMagnet.intensityY;
 
-      // Adding absolute reward for Y position
-      score += (float) -1.0f * kidMagnet.intensityY * (_sdlPop[threadId]->Kid->y);
-    }
+    // Falling start
+    if (curKidFrame >= 102 && curKidFrame <= 105) reward += -1.0f * (float) kidMagnet.intensityY;
 
-    // Applying Guard Magnets
+    // Falling itself
+    if (curKidFrame == 106) reward += -2.0f + (float) kidMagnet.intensityY;
 
-    const auto &guardMagnet = frame.guardMagnets[currentRoom];
-    const auto curGuardFrame = _sdlPop[threadId]->Guard->frame;
+    // Climbing down
+    if (curKidFrame == 148) reward += -2.0f + (float) kidMagnet.intensityY;
 
-    // Evaluating guardMagnet's score on the X axis
-    const float guardDiffX = std::abs(_sdlPop[threadId]->Guard->x - guardMagnet.positionX);
-    score += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
+    // Adding absolute reward for Y position
+    reward += (float) -1.0f * kidMagnet.intensityY * (_sdlPop[threadId]->Kid->y);
+  }
 
-    // For positive Y axis guardMagnet
-    if ((float) guardMagnet.intensityY > 0.0f)
-    {
-     // Do nothing -- guards don't go up (or do they?)
-    }
+  // Getting guard room
+  int guardCurrentRoom = _sdlPop[threadId]->Guard->room;
 
-    // For negative Y axis guardMagnet, rewarding falling/climbing down frames
-    if ((float) guardMagnet.intensityY < 0.0f)
-    {
-      // Falling start
-      if (curGuardFrame >= 102 && curGuardFrame <= 105) score += -1.0f * (float) guardMagnet.intensityY;
+  // Getting magnet values for the guard
+  auto guardMagnet = getGuardMagnetValues(frame, guardCurrentRoom);
 
-      // Falling itself
-      if (curGuardFrame == 106) score += -2.0f + (float) guardMagnet.intensityY;
-    }
+  // Getting guard's current frame
+  const auto curGuardFrame = _sdlPop[threadId]->Guard->frame;
+
+  // Evaluating guardMagnet's reward on the X axis
+  const float guardDiffX = std::abs(_sdlPop[threadId]->Guard->x - guardMagnet.positionX);
+  reward += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
+
+  // For positive Y axis guardMagnet
+  if ((float) guardMagnet.intensityY > 0.0f)
+  {
+   // Adding absolute reward for Y position
+   reward += (float) guardMagnet.intensityY * (256.0f - _sdlPop[threadId]->Guard->y);
+  }
+
+  // For negative Y axis guardMagnet, rewarding falling/climbing down frames
+  if ((float) guardMagnet.intensityY < 0.0f)
+  {
+    // Falling start
+    if (curGuardFrame >= 102 && curGuardFrame <= 105) reward += -1.0f * (float) guardMagnet.intensityY;
+
+    // Falling itself
+    if (curGuardFrame == 106) reward += -2.0f + (float) guardMagnet.intensityY;
+
+    // Adding absolute reward for Y position
+    reward += (float) -1.0f * guardMagnet.intensityY * (_sdlPop[threadId]->Guard->y);
   }
 
   // Apply bonus when kid is inside a non-visible room
-  if (currentRoom == 0 || currentRoom >= _VISIBLE_ROOM_COUNT)
-    score += 128.0f;
+  if (kidCurrentRoom == 0 || kidCurrentRoom >= 25) reward += 128.0f;
 
-  // Now adding rule rewards
-  for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-    if (frame.rulesStatus[ruleId] == true)
-      score += _rules[threadId][ruleId]->_reward;
-
-  // Returning score
-  return score;
+  // Returning reward
+  return reward;
 }
 
 std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
@@ -1348,16 +1361,6 @@ Train::Train(int argc, char *argv[])
   fflush(stdout);
   MPI_Barrier(MPI_COMM_WORLD);
 
-  // Setting magnet default values. This default repels unspecified rooms.
-  std::vector<Magnet> magnets(_VISIBLE_ROOM_COUNT);
-
-  for (size_t i = 0; i < _VISIBLE_ROOM_COUNT; i++)
-  {
-    magnets[i].intensityY = 0;
-    magnets[i].intensityX = 0;
-    magnets[i].positionX = 0;
-  }
-
   // Setting initial status for each rule
   std::vector<char> rulesStatus(_ruleCount);
   for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = false;
@@ -1382,15 +1385,13 @@ Train::Train(int argc, char *argv[])
 
     auto initialFrame = std::make_unique<Frame>();
     initialFrame->frameStateData = _state[0]->saveState();
-    initialFrame->kidMagnets = magnets;
-    initialFrame->guardMagnets = magnets;
     initialFrame->rulesStatus = rulesStatus;
 
     // Evaluating Rules on initial frame
     evaluateRules(*initialFrame);
 
     // Evaluating Score on initial frame
-    initialFrame->score = getFrameScore(*initialFrame);
+    initialFrame->reward = getFrameReward(*initialFrame);
 
     // Registering hash for initial frame
     _hashDatabases[0].insert(hash);

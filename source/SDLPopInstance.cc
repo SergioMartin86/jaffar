@@ -3,6 +3,7 @@
 #include "utils.h"
 #include <dlfcn.h>
 #include <iostream>
+#include <omp.h>
 
 char *__prince_argv[] = {(char *)"prince"};
 
@@ -149,6 +150,9 @@ void SDLPopInstance::initialize(const bool useGUI)
   *current_level = 0;
   startLevel(1);
   *need_level1_music = (*custom)->intro_music_time_initial;
+
+  // Pre-caching all level's files
+  for (size_t i = 0; i < 15; i++) startLevel(i);
 }
 
 void SDLPopInstance::startLevel(const word level)
@@ -214,6 +218,8 @@ void SDLPopInstance::startLevel(const word level)
   //  timers();
   //  play_frame();
   // }
+
+  // Getting thread id
 }
 
 void SDLPopInstance::setSeed(const dword randomSeed)

@@ -6,6 +6,12 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
   if (isDefined(ruleJs, "Label") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Label' key.\n");
   _label = ruleJs["Label"].get<size_t>();
 
+  // Defining default values
+  _reward = 0.0;
+  _isWinRule = false;
+  _isFailRule = false;
+  _isRestartRule = false; // Force Ctrl+A
+
   // Adding conditions. All of them must be satisfied for the rule to count
   if (isDefined(ruleJs, "Conditions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Conditions' key.\n");
   for (size_t i = 0; i < ruleJs["Conditions"].size(); i++)
@@ -51,14 +57,119 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
 
   // Adding actions
   if (isDefined(ruleJs, "Actions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Actions' key.\n");
-  for (size_t i = 0; i < ruleJs["Actions"].size(); i++)
-    _actions.push_back(ruleJs["Actions"][i]);
+  parseActions(ruleJs["Actions"]);
+}
 
-  // By default, rules add no reward, unless an action modifies this
-  _reward = 0.0;
-  for (size_t actionId = 0; actionId < _actions.size(); actionId++)
-    if (_actions[actionId]["Type"] == "Add Reward")
-      _reward = _actions[actionId]["Value"].get<float>();
+void Rule::parseActions(nlohmann::json actionsJs)
+{
+ for (size_t actionId = 0; actionId < actionsJs.size(); actionId++)
+ {
+   const auto actionJs = actionsJs[actionId];
+
+   // Getting action type
+   if (isDefined(actionJs, "Type") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Type' key.\n", _label, actionId);
+   std::string actionType = actionJs["Type"].get<std::string>();
+
+   // Running the action, depending on the type
+   bool recognizedActionType = false;
+
+   if (actionType == "Add Reward")
+   {
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     _reward = actionJs["Value"].get<float>();
+     recognizedActionType = true;
+   }
+
+   // Storing fail state
+   if (actionType == "Trigger Fail")
+   {
+     _isFailRule = true;
+     recognizedActionType = true;
+   }
+
+   // Storing win state
+   if (actionType == "Trigger Win")
+   {
+     _isWinRule = true;
+     recognizedActionType = true;
+   }
+
+   // Storing restart state
+   if (actionType == "Restart Level")
+   {
+     _isRestartRule = true;
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Kid Horizontal Magnet Intensity")
+   {
+     magnet_t newMagnet;
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     newMagnet.value = actionJs["Value"].get<float>();
+     newMagnet.room = actionJs["Room"].get<byte>();
+     _kidMagnetIntensityX.push_back(newMagnet);
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Kid Horizontal Magnet Position")
+   {
+     magnet_t newMagnet;
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     newMagnet.value = actionJs["Value"].get<float>();
+     newMagnet.room = actionJs["Room"].get<byte>();
+     _kidMagnetPositionX.push_back(newMagnet);
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Kid Vertical Magnet Intensity")
+   {
+     magnet_t newMagnet;
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     newMagnet.value = actionJs["Value"].get<float>();
+     newMagnet.room = actionJs["Room"].get<byte>();
+     _kidMagnetIntensityY.push_back(newMagnet);
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Guard Horizontal Magnet Intensity")
+   {
+     magnet_t newMagnet;
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     int8_t intensityX = actionJs["Value"].get<int8_t>();
+     newMagnet.value = actionJs["Value"].get<float>();
+     newMagnet.room = actionJs["Room"].get<byte>();
+     _guardMagnetIntensityX.push_back(newMagnet);
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Guard Horizontal Magnet Position")
+   {
+     magnet_t newMagnet;
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     newMagnet.value = actionJs["Value"].get<float>();
+     newMagnet.room = actionJs["Room"].get<byte>();
+     _guardMagnetPositionX.push_back(newMagnet);
+     recognizedActionType = true;
+   }
+
+   if (actionType == "Set Guard Vertical Magnet Intensity")
+   {
+     magnet_t newMagnet;
+     if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
+     if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
+     newMagnet.value = actionJs["Value"].get<float>();
+     newMagnet.room = actionJs["Room"].get<byte>();
+     _guardMagnetIntensityY.push_back(newMagnet);
+     recognizedActionType = true;
+   }
+
+   if (recognizedActionType == false) EXIT_WITH_ERROR("[ERROR] Unrecognized rule %lu, action %lu type: %s\n", _label, actionId, actionType.c_str());
+  }
 }
 
 bool Rule::evaluate()

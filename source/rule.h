@@ -25,6 +25,13 @@ enum datatype_t
   dt_dword = 5
 };
 
+// Contains the value of the magnets for a given character
+struct magnet_t
+{
+  byte room;
+  float value;
+};
+
 // Modifier that specifies whether to store move list
 extern bool _storeMoveList;
 
@@ -42,9 +49,18 @@ class Rule
   // Stores the reward associated with meeting this rule
   float _reward;
 
-  // Actions are seldom executed, so this is optimized for flexibility
-  // Here, the json is stored, and the parsing is handled on runtime
-  std::vector<nlohmann::json> _actions;
+  // Special condition flags
+  bool _isWinRule;
+  bool _isFailRule;
+  bool _isRestartRule;
+
+  // Stores magnet information
+  std::vector<magnet_t> _kidMagnetPositionX;
+  std::vector<magnet_t> _kidMagnetIntensityX;
+  std::vector<magnet_t> _kidMagnetIntensityY;
+  std::vector<magnet_t> _guardMagnetPositionX;
+  std::vector<magnet_t> _guardMagnetIntensityX;
+  std::vector<magnet_t> _guardMagnetIntensityY;
 
   // Stores dependencies with other rules
   std::vector<size_t> _dependenciesLabels;
@@ -62,6 +78,9 @@ class Rule
   datatype_t getPropertyType(const std::string &property);
   void *getPropertyPointer(const std::string &property, SDLPopInstance *sdlPop);
   operator_t getOperationType(const std::string &operation);
+
+  // Function to parse the json-encoded actions
+  void parseActions(nlohmann::json actionsJs);
 };
 
 class Condition
