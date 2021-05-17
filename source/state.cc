@@ -111,6 +111,7 @@ State::State(SDLPopInstance *sdlPop, const std::string& saveString)
 
   // Update the SDLPop instance with the savefile contents
   loadState(saveString);
+  _sdlPop->startLevel(*_sdlPop->next_level);
 
   // Backing up current RNG state
   auto rngState = *_sdlPop->random_seed;
