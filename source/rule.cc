@@ -139,7 +139,6 @@ void Rule::parseActions(nlohmann::json actionsJs)
      magnet_t newMagnet;
      if (isDefined(actionJs, "Room") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Room' key.\n", _label, actionId);
      if (isDefined(actionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu Action %lu missing 'Value' key.\n", _label, actionId);
-     int8_t intensityX = actionJs["Value"].get<int8_t>();
      newMagnet.value = actionJs["Value"].get<float>();
      newMagnet.room = actionJs["Room"].get<byte>();
      _guardMagnetIntensityX.push_back(newMagnet);

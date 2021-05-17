@@ -183,7 +183,6 @@ void SDLPopInstance::startLevel(const word level)
   *hitp_delta = 0;
   Guard->charid = charid_2_guard;
   Guard->direction = dir_56_none;
-
   do_startpos();
 
   // (level_number != 1)
@@ -196,7 +195,7 @@ void SDLPopInstance::startLevel(const word level)
 
   stop_sounds();
 
-  draw_level_first();
+//  draw_level_first();
 
   show_copyprot(0);
   *enable_copyprot = 1;
@@ -211,15 +210,6 @@ void SDLPopInstance::startLevel(const word level)
   if (*need_level1_music != 0 && *current_level == (*custom)->intro_music_level)
    if ((*fixes)->fix_quicksave_during_lvl1_music)
     *need_level1_music = (*custom)->intro_music_time_restart;
-  // // Skip cutscenes
-  // while(*is_cutscene == 1)
-  // {
-  //  (*key_states)[SDL_SCANCODE_RETURN] = 1;
-  //  timers();
-  //  play_frame();
-  // }
-
-  // Getting thread id
 }
 
 void SDLPopInstance::setSeed(const dword randomSeed)

@@ -381,18 +381,20 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 2, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 2, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 9, "Value": 1.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 9, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 9, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 9, "Value": 55 }
     ]
    },
    
    {
     "Label": 2018,
-    "Description": "After activating exit door, go right.",
+    "Description": "If reached the left platform, give reward and go to the right .",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
-     { "Property": "Kid Room", "Op": "==", "Value":  9 }
+     { "Property": "Kid Room", "Op": "==", "Value":  9 },
+     { "Property": "Kid Position X", "Op": "<", "Value":  80 }
     ],
     
     "Dependencies": [ ],
@@ -403,7 +405,7 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 9, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 9, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 22, "Value": 55 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 9, "Value": 200 }
     ]
    },
    

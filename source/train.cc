@@ -159,11 +159,6 @@ void Train::run()
   // Stopping show thread
   if (_workerId == 0) pthread_join(_showThreadId, NULL);
 
-  // If it has finalized with a win, save the winning frame
-  if (_outputSaveBestSeconds > 0.0)
-   if (_winFrameFound == true)
-    saveStringToFile(_globalWinFrame.frameStateData, _outputSaveBestPath.c_str());
-
   // Barrier to wait for all workers
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -1088,17 +1083,7 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
 
   // Start running animation, all movement without shift
   if (Kid.frame < 4)
-    return {
-      0,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-    };
+    return {0, 2, 3, 4, 5, 6, 7, 8, 9};
 
   // Starting jump up, check directions, jump and shift
   if (Kid.frame >= frame_67_start_jump_up_1 && Kid.frame < frame_70_jumphang)
@@ -1486,6 +1471,24 @@ void Train::showSavingLoop()
         currentFrameId = (currentFrameId + 1) % SHOW_FRAME_COUNT;
       }
     }
+  }
+
+  // If it has finalized with a win, save the winning frame
+  if (_outputSaveBestSeconds > 0.0)
+  {
+   auto lastFrame = _winFrameFound ? _globalWinFrame : _bestFrame;
+
+   saveStringToFile(lastFrame.frameStateData, _outputSaveBestPath.c_str());
+
+   // Storing the solution sequence
+   if (_storeMoveList)
+   {
+    std::string solutionString;
+    solutionString += _possibleMoves[lastFrame.getMove(0)];
+    for (size_t i = 1; i <= _currentStep; i++)
+     solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
+    saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+   }
   }
 }
 
