@@ -54,9 +54,6 @@ class Train
   size_t _workerId;
   size_t _workerCount;
 
-  // Flag that indicates whether to ignore win rules
-  bool _disableWin;
-
   // Store the number of openMP threads in use
   int _threadCount;
 

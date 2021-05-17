@@ -551,15 +551,11 @@ void Train::computeFrames()
         // Calculating current reward
         newFrame->reward = getFrameReward(*newFrame);
 
-        // Check if the frame beats the game
-        bool isBeatGame = *_sdlPop[threadId]->current_level == (*_sdlPop[threadId]->custom)->win_level &&
-                          *_sdlPop[threadId]->drawn_room == (*_sdlPop[threadId]->custom)->win_room;
-
         // Check if the frame triggers a win condition
         bool isWinFrame = checkWin(*newFrame);
 
         // If frame has succeded, then flag it
-        if ((isWinFrame && !_disableWin) || isBeatGame)
+        if (isWinFrame)
         {
           _localWinFound = true;
            #pragma omp critical(winFrame)
@@ -1197,11 +1193,6 @@ Train::Train(int argc, char *argv[])
     .default_value(false)
     .implicit_value(true);
 
-  program.add_argument("--disableWin")
-    .help("Do not finish execution upon finding a winning condition.")
-    .default_value(false)
-    .implicit_value(true);
-
   program.add_argument("jaffarFiles")
     .help("path to the Jaffar configuration script (.jaffar) file(s) to run.")
     .remaining()
@@ -1220,9 +1211,6 @@ Train::Train(int argc, char *argv[])
 
   // Establishing whether to store move history
   _storeMoveList = program.get<bool>("--disableHistory") == false;
-
-  // Establising whether to disable win conditions
-  _disableWin = program.get<bool>("--disableWin");
 
   // Getting savefile path
   auto saveFilePath = program.get<std::string>("--savFile");
