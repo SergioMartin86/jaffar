@@ -16,9 +16,6 @@
 #include <string>
 #include <vector>
 
-// Number of local databases for cyclic discarding of old hashes
-#define HASH_DATABASE_COUNT 20
-
 // Number of frames to cache for showing purposes
 #define SHOW_FRAME_COUNT 1000
 
@@ -87,11 +84,9 @@ class Train
   // Hash information
   std::vector<absl::flat_hash_set<uint64_t>> _hashDatabases;
   absl::flat_hash_set<uint64_t> _newHashes;
-  size_t _hashDatabaseSizeThreshold;
+  size_t _hashAgeThreshold;
   size_t _globalHashCollisions;
   size_t _globalHashEntries;
-  size_t _hashDatabaseSwapCount;
-  size_t _localStepSwapCounter;
 
   // Per-step local hash collision counter
   size_t _newCollisionCounter;

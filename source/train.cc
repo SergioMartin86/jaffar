@@ -15,7 +15,6 @@ void Train::run()
     printf("[Jaffar] Using configuration file(s): "); for (size_t i = 0; i < _scriptFiles.size(); i++) printf("%s ", _scriptFiles[i].c_str()); printf("\n");
     printf("[Jaffar] Starting search with %lu workers.\n", _workerCount);
     printf("[Jaffar] Frame DB entries per worker: %lu\n", _maxLocalDatabaseSize);
-    printf("[Jaffar] Hash DBs per worker: %d x %lu.\n", HASH_DATABASE_COUNT, _hashDatabaseSizeThreshold);
 
     if (_outputSaveBestSeconds > 0)
     {
@@ -504,7 +503,7 @@ void Train::computeFrames()
         // Checking for the existence of the hash in the hash databases
         bool collisionDetected = false;
 
-        for (size_t i = 0; i < HASH_DATABASE_COUNT; i++)
+        for (size_t i = 0; i < _workerCount; i++)
          if (collisionDetected == false)
           collisionDetected |= _hashDatabases[i].contains(hash);
 
@@ -651,9 +650,6 @@ void Train::framePostprocessing()
 
 void Train::updateHashDatabases()
 {
- // Pouring all new hashes into the regular hash databases
- for (const auto &hash : _newHashes) addHashEntry(hash);
-
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();
  std::vector<int> globalNewHashEntryCounts(_workerCount);
@@ -670,25 +666,27 @@ void Train::updateHashDatabases()
 
  // Serializing new hash entries
  std::vector<uint64_t> localNewHashVector;
- localNewHashVector.reserve(localNewHashEntryCount);
- for (const auto &hash : _newHashes) localNewHashVector.push_back(hash);
+ localNewHashVector.resize(localNewHashEntryCount);
+ size_t curPos = 0;
+ for (const auto &hash : _newHashes) localNewHashVector[curPos++] = hash;
 
  // Freeing new hashes vector
- _newHashes.clear();
+  _newHashes.clear();
 
  // Gathering new hash entries
  size_t globalNewHashEntryCount = currentDispl;
  std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
  MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
 
- // Adding new hash entries
- for (size_t i = 0; i < globalNewHashEntryCount; i++)
-   addHashEntry(globalNewHashVector[i]);
+ // Pouring all new hashes into the regular hash databases
+ #pragma omp parallel
+ {
+  int threadId = omp_get_thread_num();
 
- // Gathering global swap counter
- size_t globalStepSwapCounter;
- MPI_Allreduce(&_localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
- _hashDatabaseSwapCount = globalStepSwapCounter;
+  #pragma omp for
+  for (size_t i = 0; i < globalNewHashEntryCount; i++)
+   _hashDatabases[threadId].insert(globalNewHashVector[i]);
+ }
 
  // Finding global collision counter
  size_t globalNewCollisionCounter;
@@ -697,7 +695,7 @@ void Train::updateHashDatabases()
 
  // Calculating global hash entry count
  size_t localHashDBSize = 0;
- for (size_t i = 0; i < HASH_DATABASE_COUNT; i++) localHashDBSize += _hashDatabases[i].size();
+ for (size_t i = 0; i < _workerCount; i++) localHashDBSize += _hashDatabases[i].size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 
@@ -791,26 +789,6 @@ void Train::satisfyRule(Frame &frame, const size_t ruleId)
  if (_rules[threadId][ruleId]->_isRestartRule) frame.isRestart = true;
 }
 
-void Train::addHashEntry(uint64_t hash)
-{
-  // Inserting hash
-  _hashDatabases[0].insert(hash);
-
-  // If the current initial hash database reached critical mass, cycle it around
-  if (_hashDatabases[0].size() > _hashDatabaseSizeThreshold)
-  {
-    // Cycling databases, discarding the oldest hashes
-    for (int i = HASH_DATABASE_COUNT - 1; i > 0; i--)
-      _hashDatabases[i] = std::move(_hashDatabases[i - 1]);
-
-    // Cleaning primary hash DB
-    _hashDatabases[0].clear();
-
-    // Increasing swapping counter
-    _localStepSwapCounter++;
-  }
-}
-
 void Train::printTrainStatus()
 {
   printf("[Jaffar] ----------------------------------------------------------------\n");
@@ -827,8 +805,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash DB Entries: %lu / %lu\n", _globalHashEntries, (size_t)HASH_DATABASE_COUNT * _hashDatabaseSizeThreshold * _workerCount);
-  printf("[Jaffar] Hash DB Swaps: %lu\n", _hashDatabaseSwapCount);
+  printf("[Jaffar] Hash DB Entries: %lu\n", _globalHashEntries);
 
   printf("[Jaffar] Best Frame Information:\n");
 
@@ -1119,6 +1096,7 @@ Train::Train(int argc, char *argv[])
   int mpiRank;
   MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
   _workerId = (size_t)mpiRank;
+  _threadCount = omp_get_max_threads();
 
   // Setting SDL env variables to use the dummy renderer
   setenv("SDL_VIDEODRIVER", "dummy", 1);
@@ -1134,8 +1112,6 @@ Train::Train(int argc, char *argv[])
   // Initializing counters
   _stepFramesProcessedCounter = 0;
   _totalFramesProcessedCounter = 0;
-  _hashDatabaseSwapCount = 0;
-  _localStepSwapCounter = 0;
   _newCollisionCounter = 0;
   _localStepFramesProcessedCounter = 0;
 
@@ -1143,19 +1119,17 @@ Train::Train(int argc, char *argv[])
   _currentStep = 0;
 
   // Parsing max hash DB entries
-  _hashDatabases.resize(HASH_DATABASE_COUNT);
-  size_t hashDBMaxMBytes = 50;
-  if (const char *hashDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB"))
-    hashDBMaxMBytes = std::stol(hashDBMaxMBytesEnv);
+  if (const char *hashAgeThresholdString = std::getenv("JAFFAR_HASH_AGE_THRESHOLD"))
+   _hashAgeThreshold = std::stol(hashAgeThresholdString);
   else if (_workerId == 0)
-    printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
+   EXIT_WITH_ERROR("[Jaffar] JAFFAR_HASH_AGE_THRESHOLD environment variable not defined.\n");
 
   // Parsing max frame DB entries
-  size_t frameDBMaxMBytes = 300;
+  size_t frameDBMaxMBytes = 0;
   if (const char *frameDBMaxMBytesEnv = std::getenv("JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB"))
     frameDBMaxMBytes = std::stol(frameDBMaxMBytesEnv);
   else if (_workerId == 0)
-    printf("[Jaffar] Warning: JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
+   EXIT_WITH_ERROR("[Jaffar] JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB environment variable not defined. Using conservative default...\n");
 
   // Parsing file output frequency
   _outputSaveBestSeconds = -1.0;
@@ -1226,8 +1200,10 @@ Train::Train(int argc, char *argv[])
   // The move list contains two moves per byte
   _moveListStorageSize = (_maxSteps >> 1) + 1;
 
+  // Creating hash databases (one per thread)
+  _hashDatabases.resize(_threadCount);
+
   // Calculating DB sizes
-  _hashDatabaseSizeThreshold = floor(((double)hashDBMaxMBytes * 1024.0 * 1024.0) / ((double)HASH_DATABASE_COUNT * (double)sizeof(uint64_t)));
   _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
 
   // Parsing config files
@@ -1258,7 +1234,6 @@ Train::Train(int argc, char *argv[])
   }
 
   // Getting number of omp threads and resizing containers based on that
-  _threadCount = omp_get_max_threads();
   _sdlPop.resize(_threadCount);
   _state.resize(_threadCount);
   _rules.resize(_threadCount);
