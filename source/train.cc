@@ -651,26 +651,54 @@ void Train::framePostprocessing()
 
 void Train::updateHashDatabases()
 {
-  // Pouring all new hashes into the regular hash databases
-  for (const auto &hash : _newHashes) addHashEntry(hash);
+ // Pouring all new hashes into the regular hash databases
+ for (const auto &hash : _newHashes) addHashEntry(hash);
 
-  // Freeing new hashes vector
-  _newHashes.clear();
+ // Gathering number of new hash entries
+ int localNewHashEntryCount = (int)_newHashes.size();
+ std::vector<int> globalNewHashEntryCounts(_workerCount);
+ MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
-  // Gathering global swap counter
-  size_t globalStepSwapCounter;
-  MPI_Allreduce(&_localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
-  _hashDatabaseSwapCount = globalStepSwapCounter;
+ // Calculating displacements for new hash entries
+ std::vector<int> globalNewHashEntryDispls(_workerCount);
+ int currentDispl = 0;
+ for (size_t i = 0; i < _workerCount; i++)
+ {
+   globalNewHashEntryDispls[i] = currentDispl;
+   currentDispl += globalNewHashEntryCounts[i];
+ }
 
-  // Finding global collision counter
-  size_t globalNewCollisionCounter;
-  MPI_Allreduce(&_newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
-  _globalHashCollisions += globalNewCollisionCounter;
+ // Serializing new hash entries
+ std::vector<uint64_t> localNewHashVector;
+ localNewHashVector.reserve(localNewHashEntryCount);
+ for (const auto &hash : _newHashes) localNewHashVector.push_back(hash);
 
-  // Calculating global hash entry count
-  size_t localHashDBSize = 0;
-  for (size_t i = 0; i < HASH_DATABASE_COUNT; i++) localHashDBSize += _hashDatabases[i].size();
-  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ // Freeing new hashes vector
+ _newHashes.clear();
+
+ // Gathering new hash entries
+ size_t globalNewHashEntryCount = currentDispl;
+ std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
+ MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+
+ // Adding new hash entries
+ for (size_t i = 0; i < globalNewHashEntryCount; i++)
+   addHashEntry(globalNewHashVector[i]);
+
+ // Gathering global swap counter
+ size_t globalStepSwapCounter;
+ MPI_Allreduce(&_localStepSwapCounter, &globalStepSwapCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _hashDatabaseSwapCount = globalStepSwapCounter;
+
+ // Finding global collision counter
+ size_t globalNewCollisionCounter;
+ MPI_Allreduce(&_newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+ _globalHashCollisions += globalNewCollisionCounter;
+
+ // Calculating global hash entry count
+ size_t localHashDBSize = 0;
+ for (size_t i = 0; i < HASH_DATABASE_COUNT; i++) localHashDBSize += _hashDatabases[i].size();
+ MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 
 void Train::evaluateRules(Frame &frame)
