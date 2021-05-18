@@ -650,6 +650,31 @@ void Train::framePostprocessing()
 
 void Train::updateHashDatabases()
 {
+ // Discarding older hashes
+ size_t discardHashCount = 0;
+
+
+ // Removing old hashses
+ #pragma omp parallel
+ {
+  int threadId = omp_get_thread_num();
+  for (auto hashItr = _hashDatabases[threadId].cbegin(); hashItr != _hashDatabases[threadId].cend();)
+  {
+    if (_currentStep - hashItr->second > 50)
+    {
+     _hashDatabases[threadId].erase(hashItr++);
+     #pragma omp atomic
+     discardHashCount++;
+    }
+    else
+    {
+     hashItr++;
+    }
+  }
+ }
+
+ printf("Discarded Hashes: %lu\n", discardHashCount);
+
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();
  std::vector<int> globalNewHashEntryCounts(_workerCount);
@@ -671,7 +696,7 @@ void Train::updateHashDatabases()
  for (const auto &hash : _newHashes) localNewHashVector[curPos++] = hash;
 
  // Freeing new hashes vector
-  _newHashes.clear();
+ _newHashes.clear();
 
  // Gathering new hash entries
  size_t globalNewHashEntryCount = currentDispl;
@@ -685,7 +710,7 @@ void Train::updateHashDatabases()
 
   #pragma omp for
   for (size_t i = 0; i < globalNewHashEntryCount; i++)
-   _hashDatabases[threadId].insert(globalNewHashVector[i]);
+   _hashDatabases[threadId].insert({globalNewHashVector[i], _currentStep});
  }
 
  // Finding global collision counter
@@ -695,7 +720,7 @@ void Train::updateHashDatabases()
 
  // Calculating global hash entry count
  size_t localHashDBSize = 0;
- for (size_t i = 0; i < _workerCount; i++) localHashDBSize += _hashDatabases[i].size();
+ for (int i = 0; i < _threadCount; i++) localHashDBSize += _hashDatabases[i].size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 
@@ -1359,7 +1384,7 @@ Train::Train(int argc, char *argv[])
     initialFrame->reward = getFrameReward(*initialFrame);
 
     // Registering hash for initial frame
-    _hashDatabases[0].insert(hash);
+    _hashDatabases[0].insert({ hash, 0 });
 
     // Copying initial frame into the best frame
     _bestFrame = *initialFrame;
