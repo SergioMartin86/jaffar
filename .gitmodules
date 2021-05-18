@@ -1,9 +1,6 @@
 [submodule "extern/SDLPoP"]
 	path = extern/SDLPoP
 	url = https://github.com/SergioMartin86/SDLPoP.git
-[submodule "extern/abseil"]
-	path = extern/abseil
-	url = https://github.com/abseil/abseil-cpp.git
 [submodule "extern/json"]
 	path = extern/json
 	url = https://github.com/nlohmann/json.git
