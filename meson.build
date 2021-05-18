@@ -74,7 +74,8 @@ deps = [
 sdlPopLib = shared_library('sdlPopLib',
   sdlPopFiles,
   c_args: [ '-DDISABLE_ALL_FIXES' ],
-  dependencies : [ sdl2_dep, sdl2_image_dep ]
+  dependencies : [ sdl2_dep, sdl2_image_dep ],
+  link_args: [ '-lm' ]
   )
   
 executable('jaffar-train',
