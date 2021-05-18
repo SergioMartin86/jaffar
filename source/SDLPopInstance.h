@@ -123,7 +123,8 @@ class SDLPopInstance
   void printFrameInfo();
 
   // Function to transfer cache file contents to reduce pressure on I/O
-  void transferCachedFiles(const SDLPopInstance* srcSDLPop);
+  std::string serializeFileCache();
+  void deserializeFileCache(const std::string& cache);
 
   // Check if exit door is open
   bool isLevelExitDoorOpen();

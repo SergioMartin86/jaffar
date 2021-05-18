@@ -172,5 +172,5 @@ class Train
   double _frameDistributionTime;
   double _frameComputationTime;
   double _framePostprocessingTime;
-  double _hashExchangeTime;
+  double _hashPostprocessingTime;
 };

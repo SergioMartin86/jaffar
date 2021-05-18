@@ -100,7 +100,7 @@ void Train::run()
     updateHashDatabases();
     MPI_Barrier(MPI_COMM_WORLD);                                                                                                   // Profiling
     auto hashExchangeTimeEnd = std::chrono::steady_clock::now();                                                                   // Profiling
-    _hashExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count(); // Profiling
+    _hashPostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count(); // Profiling
 
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle end
@@ -654,36 +654,8 @@ void Train::updateHashDatabases()
   // Pouring all new hashes into the regular hash databases
   for (const auto &hash : _newHashes) addHashEntry(hash);
 
-  // Gathering number of new hash entries
-  int localNewHashEntryCount = (int)_newHashes.size();
-  std::vector<int> globalNewHashEntryCounts(_workerCount);
-  MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-
-  // Calculating displacements for new hash entries
-  std::vector<int> globalNewHashEntryDispls(_workerCount);
-  int currentDispl = 0;
-  for (size_t i = 0; i < _workerCount; i++)
-  {
-    globalNewHashEntryDispls[i] = currentDispl;
-    currentDispl += globalNewHashEntryCounts[i];
-  }
-
-  // Serializing new hash entries
-  std::vector<uint64_t> localNewHashVector;
-  localNewHashVector.reserve(localNewHashEntryCount);
-  for (const auto &hash : _newHashes) localNewHashVector.push_back(hash);
-
   // Freeing new hashes vector
   _newHashes.clear();
-
-  // Gathering new hash entries
-  size_t globalNewHashEntryCount = currentDispl;
-  std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
-  MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
-
-  // Adding new hash entries
-  for (size_t i = 0; i < globalNewHashEntryCount; i++)
-    addHashEntry(globalNewHashVector[i]);
 
   // Gathering global swap counter
   size_t globalStepSwapCounter;
@@ -823,7 +795,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
   printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
-  printf("[Jaffar] Hash Exchange Time:        %3.3fs\n", _hashExchangeTime / 1.0e+9);
+  printf("[Jaffar] Hash Postprocessing Time:  %3.3fs\n", _hashPostprocessingTime / 1.0e+9);
   printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
@@ -1263,11 +1235,27 @@ Train::Train(int argc, char *argv[])
   _state.resize(_threadCount);
   _rules.resize(_threadCount);
 
-  // Creating Barebones SDL Pop Instance, one per openMP Thread
+  // Creating a first instance of SDLPop that will serve as cache for all the others
+  std::string fileCache;
+
+  // Serializing the file cache to reduce pressure on I/O
+  if (_workerId == 0)
+  {
+   _sdlPop[0] = new SDLPopInstance("libsdlPopLib.so", true);
+   fileCache = _sdlPop[0]->serializeFileCache();
+  }
+
+  // Broadcasting cache
+  size_t fileCacheSize = fileCache.size();
+  MPI_Bcast(&fileCacheSize, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+  fileCache.resize(fileCacheSize);
+  MPI_Bcast(&fileCache[0], fileCacheSize, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+  // Creating SDL Pop Instance, one per openMP Thread
   for (int threadId = 0; threadId < _threadCount; threadId++)
   {
     _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
-    _sdlPop[threadId]->transferCachedFiles(_sdlPop[0]);
+    _sdlPop[threadId]->deserializeFileCache(fileCache);
     _sdlPop[threadId]->initialize(false);
 
     // Exiting SDL for thread safety reasons

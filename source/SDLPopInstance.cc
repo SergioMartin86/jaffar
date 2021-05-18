@@ -150,6 +150,9 @@ void SDLPopInstance::initialize(const bool useGUI)
   *current_level = 0;
   startLevel(1);
   *need_level1_music = (*custom)->intro_music_time_initial;
+
+  // Pre-caching all level's files
+  for (size_t i = 0; i < 15; i++) startLevel(i);
 }
 
 void SDLPopInstance::startLevel(const word level)
@@ -241,16 +244,75 @@ void SDLPopInstance::draw()
   do_simple_wait(timer_1);
 }
 
-void SDLPopInstance::transferCachedFiles(const SDLPopInstance* srcSDLPop)
+std::string SDLPopInstance::serializeFileCache()
 {
- *_cachedFileCounter = *srcSDLPop->_cachedFileCounter;
+ size_t cacheSize = 0;
+
+ // Cache File Counter
+ cacheSize += sizeof(size_t);
+
+ // Cache File paths
+ cacheSize += *_cachedFileCounter * sizeof(char) * POP_MAX_PATH;
+
+ // Cache File buffer sizes
+ cacheSize += *_cachedFileCounter * sizeof(size_t);
+
+ // Size Per file:
+ for (size_t i = 0; i < *_cachedFileCounter; i++)
+  cacheSize += (*_cachedFileBufferSizes)[i];
+
+ // Allocating cache string
+ std::string cache;
+ cache.resize(cacheSize);
+
+ // Copying file counter
+ size_t curPosition = 0;
+ memcpy(&cache[curPosition], _cachedFileCounter, sizeof(size_t));
+ curPosition += sizeof(size_t);
+
+ // Copying file paths
+ memcpy(&cache[curPosition], _cachedFilePathTable, *_cachedFileCounter * sizeof(char) * POP_MAX_PATH);
+ curPosition += *_cachedFileCounter * sizeof(char) * POP_MAX_PATH;
+
+ // Copying buffer sizes
+ memcpy(&cache[curPosition], _cachedFileBufferSizes, *_cachedFileCounter * sizeof(size_t));
+ curPosition += *_cachedFileCounter * sizeof(size_t);
+
+ // Per file:
  for (size_t i = 0; i < *_cachedFileCounter; i++)
  {
-  size_t fileSize = (*srcSDLPop->_cachedFileBufferSizes)[i];
-  (*_cachedFileBufferSizes)[i] = fileSize;
-  (*_cachedFileBufferTable)[i] = (char*) malloc(fileSize);
-  memcpy((*_cachedFileBufferTable)[i], (*srcSDLPop->_cachedFileBufferTable)[i], fileSize);
-  memcpy((*_cachedFilePathTable)[i], (*srcSDLPop->_cachedFilePathTable)[i], POP_MAX_PATH);
+  // Copying buffer sizes
+  memcpy(&cache[curPosition], (*_cachedFileBufferTable)[i], (*_cachedFileBufferSizes)[i] * sizeof(char));
+  curPosition += (*_cachedFileBufferSizes)[i] * sizeof(char);
+ }
+
+ return cache;
+}
+
+void SDLPopInstance::deserializeFileCache(const std::string& cache)
+{
+ // Copying file counter
+ size_t curPosition = 0;
+ memcpy(_cachedFileCounter, &cache[curPosition], sizeof(size_t));
+ curPosition += sizeof(size_t);
+
+ // Copying file paths
+ memcpy(_cachedFilePathTable, &cache[curPosition], *_cachedFileCounter * sizeof(char) * POP_MAX_PATH);
+ curPosition += *_cachedFileCounter * sizeof(char) * POP_MAX_PATH;
+
+ // Copying buffer sizes
+ memcpy(_cachedFileBufferSizes, &cache[curPosition], *_cachedFileCounter * sizeof(size_t));
+ curPosition += *_cachedFileCounter * sizeof(size_t);
+
+ // Per file:
+ for (size_t i = 0; i < *_cachedFileCounter; i++)
+ {
+  // Allocating file content buffer
+  (*_cachedFileBufferTable)[i] = (char*) malloc((*_cachedFileBufferSizes)[i]);
+
+  // Copying buffer sizes
+  memcpy((*_cachedFileBufferTable)[i], &cache[curPosition], (*_cachedFileBufferSizes)[i] * sizeof(char));
+  curPosition += (*_cachedFileBufferSizes)[i] * sizeof(char);
  }
 }
 
