@@ -1254,7 +1254,8 @@ Train::Train(int argc, char *argv[])
   // Creating SDL Pop Instance, one per openMP Thread
   for (int threadId = 0; threadId < _threadCount; threadId++)
   {
-    _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
+    if ( (_workerId == 0 && threadId == 0) == false) 
+     _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
     _sdlPop[threadId]->deserializeFileCache(fileCache);
     _sdlPop[threadId]->initialize(false);
 
