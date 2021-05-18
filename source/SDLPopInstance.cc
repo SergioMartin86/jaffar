@@ -444,7 +444,7 @@ bool SDLPopInstance::isLevelExitDoorOpen()
 SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibraries)
 {
   if (multipleLibraries)
-   _dllHandle = dlmopen (LM_ID_NEWLM, libraryFile, RTLD_NOW | RTLD_LOCAL);
+   _dllHandle = dlmopen (LM_ID_NEWLM, libraryFile, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
   else
    _dllHandle = dlopen (libraryFile, RTLD_NOW);
 
@@ -646,6 +646,7 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   fixes = (fixes_options_type**)dlsym(_dllHandle, "fixes");
   copyprot_plac = (word *) dlsym(_dllHandle, "copyprot_plac");
 
+  dlclose(_dllHandle);
 }
 
 SDLPopInstance::~SDLPopInstance()

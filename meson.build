@@ -1,7 +1,7 @@
 project('jaffar', 'c', 'cpp',
   version: '1.1.0',
   license: 'GPL-3.0-only',
-  default_options : ['cpp_std=c++17', 'default_library=shared', 'buildtype=release', 'c_args=-DSDL_VIDEO_DRIVER_DUMMY'],
+  default_options : ['cpp_std=c++17', 'default_library=static', 'buildtype=release', 'c_args=-DSDL_VIDEO_DRIVER_DUMMY'],
 )
 
 cc = meson.get_compiler('c')
@@ -10,7 +10,8 @@ cxx = meson.get_compiler('cpp')
 inc = include_directories([
  'extern/SDLPoP/src',
  'extern/metrohash64',
- 'extern/argparse'
+ 'extern/argparse',
+ 'extern/json/single_include'
   ])
 
 sdlPopFiles = [
@@ -36,17 +37,19 @@ sdlPopFiles = [
   'extern/SDLPoP/src/stb_vorbis.c'
 ]
 
-metrohash64Files = [
-  'extern/metrohash64/metrohash64.cc',
-]
-
 jaffarFiles = [
   'source/SDLPopInstance.cc',
   'source/state.cc',
   'source/rule.cc',
   'source/frame.cc',
-  'source/utils.cc'
+  'source/utils.cc',
+  'extern/metrohash64/metrohash64.cc'
 ]
+
+default_library='static'
+abs_base = subproject('abseil').get_variable('absl_base_dep')
+abs_cont = subproject('abseil').get_variable('absl_container_dep')
+default_library='shared'
 
 sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('sdl2_image')
@@ -61,28 +64,24 @@ boost_dep = dependency('boost')
 deps = [
   mpi_dep,
   boost_dep,
+  sdl2_dep,
+  sdl2_image_dep,
   dependency('openmp', required: true),
-  dependency('sdl2'),
-  dependency('sdl2_image'),
-  subproject('json').get_variable('nlohmann_json_dep'),
-  subproject('abseil').get_variable('absl_base_dep'),
-  subproject('abseil').get_variable('absl_container_dep')
+  abs_base,
+  abs_cont
 ]
-
-metroHash64Lib = library('metroHash64Lib',
-  metrohash64Files)
   
-sdlPopLib = library('sdlPopLib',
+sdlPopLib = shared_library('sdlPopLib',
   sdlPopFiles,
   c_args: [ '-DDISABLE_ALL_FIXES' ],
-  dependencies : deps)
+  dependencies : [ sdl2_dep, sdl2_image_dep ]
+  )
   
 executable('jaffar-train',
   'source/train.cc',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
-  link_with: [ sdlPopLib, metroHash64Lib ],
   link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
@@ -92,7 +91,7 @@ executable('jaffar-play',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
-  link_with: [ metroHash64Lib ],
+  link_with: [ ],
   link_args: [ '-ldl', '-lncurses' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
@@ -102,7 +101,7 @@ executable('jaffar-show-snapshot',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
-  link_with: [ sdlPopLib, metroHash64Lib ],
+  link_with: [ ],
   link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
