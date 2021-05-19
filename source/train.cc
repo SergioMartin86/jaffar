@@ -501,16 +501,17 @@ void Train::computeFrames()
         auto hash = _state[threadId]->computeHash();
 
         // Checking for the existence of the hash in the hash databases
-        bool collisionDetected = false;
-
-        for (size_t i = 0; i < _workerCount; i++)
-         if (collisionDetected == false)
-          collisionDetected |= _hashDatabases[i].contains(hash);
+        bool collisionDetected = _hashDatabase.contains(hash);
 
         // If no collision detected with the normal databases, check the new hash DB
         if (collisionDetected == false)
-         #pragma omp critical(newHashTable)
-          collisionDetected |= _newHashes.contains(hash);
+         #pragma omp critical
+         {
+           collisionDetected |= _newHashes.contains(hash);
+
+           // If now there, add it now
+           if (collisionDetected == false) _newHashes.insert(hash);
+         }
 
         // If collision detected, increase collision counter
         if (collisionDetected)
@@ -519,10 +520,6 @@ void Train::computeFrames()
 
         // If collision detected, discard this frame
         if (collisionDetected) continue;
-
-        // If collision not detected, register new hash
-        #pragma omp critical(newHashTable)
-         _newHashes.insert(hash);
 
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>();
@@ -651,29 +648,9 @@ void Train::framePostprocessing()
 void Train::updateHashDatabases()
 {
  // Discarding older hashes
- size_t discardHashCount = 0;
-
-
- // Removing old hashses
- #pragma omp parallel
- {
-  int threadId = omp_get_thread_num();
-  for (auto hashItr = _hashDatabases[threadId].cbegin(); hashItr != _hashDatabases[threadId].cend();)
-  {
-    if (_currentStep - hashItr->second > 50)
-    {
-     _hashDatabases[threadId].erase(hashItr++);
-     #pragma omp atomic
-     discardHashCount++;
-    }
-    else
-    {
-     hashItr++;
-    }
-  }
- }
-
- printf("Discarded Hashes: %lu\n", discardHashCount);
+ for (auto hashItr = _hashDatabase.cbegin(); hashItr != _hashDatabase.cend();)
+  if (_currentStep - hashItr->second > _hashAgeThreshold) _hashDatabase.erase(hashItr++);
+  else hashItr++;
 
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();
@@ -703,15 +680,8 @@ void Train::updateHashDatabases()
  std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
  MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
 
- // Pouring all new hashes into the regular hash databases
- #pragma omp parallel
- {
-  int threadId = omp_get_thread_num();
-
-  #pragma omp for
-  for (size_t i = 0; i < globalNewHashEntryCount; i++)
-   _hashDatabases[threadId].insert({globalNewHashVector[i], _currentStep});
- }
+ for (size_t i = 0; i < globalNewHashEntryCount; i++)
+  _hashDatabase.insert({globalNewHashVector[i], _currentStep});
 
  // Finding global collision counter
  size_t globalNewCollisionCounter;
@@ -719,8 +689,7 @@ void Train::updateHashDatabases()
  _globalHashCollisions += globalNewCollisionCounter;
 
  // Calculating global hash entry count
- size_t localHashDBSize = 0;
- for (int i = 0; i < _threadCount; i++) localHashDBSize += _hashDatabases[i].size();
+ size_t localHashDBSize = _hashDatabase.size();
  MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 
@@ -1225,9 +1194,6 @@ Train::Train(int argc, char *argv[])
   // The move list contains two moves per byte
   _moveListStorageSize = (_maxSteps >> 1) + 1;
 
-  // Creating hash databases (one per thread)
-  _hashDatabases.resize(_threadCount);
-
   // Calculating DB sizes
   _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
 
@@ -1384,7 +1350,7 @@ Train::Train(int argc, char *argv[])
     initialFrame->reward = getFrameReward(*initialFrame);
 
     // Registering hash for initial frame
-    _hashDatabases[0].insert({ hash, 0 });
+    _hashDatabase.insert({ hash, 0 });
 
     // Copying initial frame into the best frame
     _bestFrame = *initialFrame;
