@@ -645,8 +645,6 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   _cachedFileCounter = (cachedFileCounter_t*)dlsym(_dllHandle, "_cachedFileCounter");
   fixes = (fixes_options_type**)dlsym(_dllHandle, "fixes");
   copyprot_plac = (word *) dlsym(_dllHandle, "copyprot_plac");
-
-  dlclose(_dllHandle);
 }
 
 SDLPopInstance::~SDLPopInstance()

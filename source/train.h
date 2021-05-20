@@ -87,7 +87,6 @@ class Train
   absl::flat_hash_set<uint64_t> _newHashes;
   size_t _hashAgeThreshold;
   size_t _globalHashCollisions;
-  size_t _globalHashEntries;
 
   // Per-step local hash collision counter
   size_t _newCollisionCounter;

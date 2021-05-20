@@ -657,15 +657,6 @@ void Train::updateHashDatabases()
  std::vector<int> globalNewHashEntryCounts(_workerCount);
  MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
- // Calculating displacements for new hash entries
- std::vector<int> globalNewHashEntryDispls(_workerCount);
- int currentDispl = 0;
- for (size_t i = 0; i < _workerCount; i++)
- {
-   globalNewHashEntryDispls[i] = currentDispl;
-   currentDispl += globalNewHashEntryCounts[i];
- }
-
  // Serializing new hash entries
  std::vector<uint64_t> localNewHashVector;
  localNewHashVector.resize(localNewHashEntryCount);
@@ -675,22 +666,29 @@ void Train::updateHashDatabases()
  // Freeing new hashes vector
  _newHashes.clear();
 
- // Gathering new hash entries
- size_t globalNewHashEntryCount = currentDispl;
- std::vector<uint64_t> globalNewHashVector(globalNewHashEntryCount);
- MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDispls.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+ // We use one broadcast operation per worker (as opposed to allgatherv) to reduce the amount of memory used at any given time
+ for (size_t curWorkerId = 0; curWorkerId < _workerCount; curWorkerId++)
+ {
+  size_t workerNewHashCount = globalNewHashEntryCounts[curWorkerId];
 
- for (size_t i = 0; i < globalNewHashEntryCount; i++)
-  _hashDatabase.insert({globalNewHashVector[i], _currentStep});
+  // Allocating memory
+  std::vector<uint64_t> workerNewHashVector(workerNewHashCount);
+
+  // Depending on the caller rank, we use a fresh buffer or the new hash vector
+  void* hashBuffer = _workerId == curWorkerId ? localNewHashVector.data() : workerNewHashVector.data();
+
+  // Broadcasting worker's new hashes
+  MPI_Bcast(hashBuffer, workerNewHashCount, MPI_UNSIGNED_LONG, curWorkerId, MPI_COMM_WORLD);
+
+  // Adding new hashes into the database
+  for (size_t i = 0; i < workerNewHashCount; i++)
+   _hashDatabase.insert({ ((uint64_t*)hashBuffer)[i], _currentStep});
+ }
 
  // Finding global collision counter
  size_t globalNewCollisionCounter;
  MPI_Allreduce(&_newCollisionCounter, &globalNewCollisionCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
  _globalHashCollisions += globalNewCollisionCounter;
-
- // Calculating global hash entry count
- size_t localHashDBSize = _hashDatabase.size();
- MPI_Allreduce(&localHashDBSize, &_globalHashEntries, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 
 void Train::evaluateRules(Frame &frame)
@@ -799,7 +797,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash DB Entries: %lu\n", _globalHashEntries);
+  printf("[Jaffar] Hash DB Entries: %lu\n", _hashDatabase.size());
 
   printf("[Jaffar] Best Frame Information:\n");
 
