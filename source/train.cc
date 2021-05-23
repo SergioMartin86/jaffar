@@ -179,8 +179,21 @@ void Train::distributeFrames()
   size_t localBaseFrameCount = _currentFrameDB.size();
 
   // Gathering all of te worker's base frame counts
-  std::vector<size_t> localBaseFrameCounts(_workerCount);
-  MPI_Allgather(&localBaseFrameCount, 1, MPI_UNSIGNED_LONG, localBaseFrameCounts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+  MPI_Allgather(&localBaseFrameCount, 1, MPI_UNSIGNED_LONG, _localBaseFrameCounts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+
+  // Getting maximum frame count of all
+  _maxFrameCount = 0;
+  _maxFrameWorkerId = 0;
+  for (size_t i = 0; i < _workerCount; i++)
+   if (_localBaseFrameCounts[i] > _maxFrameCount)
+    { _maxFrameCount = _localBaseFrameCounts[i]; _maxFrameWorkerId = i; }
+
+  // Getting minimum frame count of all
+  _minFrameCount = _maxFrameCount;
+  _minFrameWorkerId = 0;
+  for (size_t i = 0; i < _workerCount; i++)
+   if (_localBaseFrameCounts[i] < _minFrameCount)
+    { _minFrameCount = _localBaseFrameCounts[i]; _minFrameWorkerId = i; }
 
   // Figuring out work distribution
   std::vector<size_t> localNextFrameCounts = splitVector(_globalFrameCounter, _workerCount);
@@ -208,7 +221,7 @@ void Train::distributeFrames()
 
   for (size_t sendWorkerId = 0; sendWorkerId < _workerCount; sendWorkerId++)
   {
-    auto sendFramesCount = localBaseFrameCounts[sendWorkerId];
+    auto sendFramesCount = _localBaseFrameCounts[sendWorkerId];
 
     while (sendFramesCount > 0)
     {
@@ -796,8 +809,12 @@ void Train::printTrainStatus()
   printf("[Jaffar] Hash Postprocessing Time:  %3.3fs\n", _hashPostprocessingTime / 1.0e+9);
   printf("[Jaffar] Frame Postprocessing Time: %3.3fs\n", _framePostprocessingTime / 1.0e+9);
 
+  printf("[Jaffar] Frame DB Entries: Min %lu (Worker: %lu) / Max %lu (Worker: %lu)\n", _minFrameCount, _minFrameWorkerId, _maxFrameCount, _maxFrameWorkerId);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
   printf("[Jaffar] Hash DB Entries: %lu\n", _hashDatabase.size());
+
+  printf("[Jaffar] Frame DB Size: Min %.3fmb  / Max: %.3fmb\n", (double)(_minFrameCount * Frame::getSerializationSize()) / (1024.0 * 1024.0), (double)(_maxFrameCount * Frame::getSerializationSize()) / (1024.0 * 1024.0));
+  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_hashDatabase.size() * sizeof(std::pair<uint64_t, uint32_t>)) / (1024.0 * 1024.0));
 
   printf("[Jaffar] Best Frame Information:\n");
 
@@ -1330,6 +1347,9 @@ Train::Train(int argc, char *argv[])
   // Setting win status
   _winFrameFound = false;
   _localWinFound = false;
+
+  // Initializing frame counts per worker
+  _localBaseFrameCounts.resize(_workerCount);
 
   // Creating initial frame on the root rank
   if (_workerId == 0)

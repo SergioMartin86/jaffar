@@ -1,5 +1,7 @@
 #include "rule.h"
 
+extern size_t _currentStep;
+
 Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
 {
   // Adding identifying label for the rule
@@ -40,6 +42,7 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
     if (dtype == dt_int) condition = new _vCondition<int>(operation, property, conditionJs["Value"].get<int>());
     if (dtype == dt_word) condition = new _vCondition<word>(operation, property, conditionJs["Value"].get<word>());
     if (dtype == dt_dword) condition = new _vCondition<dword>(operation, property, conditionJs["Value"].get<dword>());
+    if (dtype == dt_ulong) condition = new _vCondition<size_t>(operation, property, conditionJs["Value"].get<size_t>());
 
     // Adding condition to the list
     _conditions.push_back(condition);
@@ -243,6 +246,8 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Needs Level 1 Music") return dt_word;
   if (property == "United With Shadow") return dt_short;
 
+  if (property == "Current Step") return dt_ulong;
+
   EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
   return dt_byte;
@@ -295,6 +300,8 @@ void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlP
   if (property == "Is Feather Fall") return sdlPop->is_feather_fall;
   if (property == "Needs Level 1 Music") return sdlPop->need_level1_music;
   if (property == "United With Shadow") return sdlPop->united_with_shadow;
+
+  if (property == "Current Step") return &_currentStep;
 
   EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 

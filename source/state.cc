@@ -5,6 +5,7 @@
 
 extern nlohmann::json _scriptJs;
 
+size_t _currentStep;
 char quick_control[] = "........";
 float replay_curr_tick = 0.0;
 

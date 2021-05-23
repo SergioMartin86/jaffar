@@ -22,7 +22,8 @@ enum datatype_t
   dt_short = 2,
   dt_int = 3,
   dt_word = 4,
-  dt_dword = 5
+  dt_dword = 5,
+  dt_ulong = 6
 };
 
 // Contains the value of the magnets for a given character

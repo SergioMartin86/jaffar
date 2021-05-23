@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+// Current train step is a global variable so every part of the code can see it
+extern size_t _currentStep;
+
 class State
 {
   public:

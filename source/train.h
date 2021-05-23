@@ -68,8 +68,12 @@ class Train
   size_t _stepFramesProcessedCounter;
   size_t _totalFramesProcessedCounter;
 
-  // Step counter
-  size_t _currentStep;
+  // Frame counters per worker
+  std::vector<size_t> _localBaseFrameCounts;
+  size_t _maxFrameCount;
+  size_t _maxFrameWorkerId;
+  size_t _minFrameCount;
+  size_t _minFrameWorkerId;
 
   // Frame databases
   size_t _maxLocalDatabaseSize;
