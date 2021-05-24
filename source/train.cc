@@ -399,6 +399,11 @@ void Train::distributeFrames()
    else rightNeighborId = rightNeighborId + 1;
   }
 
+  // Truncating database to maximum local size
+  size_t maxCount = std::min(_maxLocalDatabaseSize, _nextFrameDB.size());
+  for (size_t i = maxCount; i < _nextFrameDB.size(); i++) _nextFrameDB[i].reset();
+  _nextFrameDB.resize(maxCount);
+
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
 }
