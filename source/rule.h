@@ -89,7 +89,6 @@ class Condition
   public:
   Condition(const operator_t opType)
   {
-    _immediateAssigned = false;
     _opType = opType;
   }
 
@@ -98,16 +97,13 @@ class Condition
 
   protected:
   operator_t _opType;
-  bool _immediateAssigned;
 };
 
 template <typename T>
 class _vCondition : public Condition
 {
   public:
-  _vCondition(const operator_t opType, void *property, T immediate);
-  void setProperty(const T *property);
-  void setImmediate(const T immediate);
+  _vCondition(const operator_t opType, void *property1, void *property2, T immediate);
   bool evaluate() override;
 
   private:
@@ -120,12 +116,13 @@ class _vCondition : public Condition
 
   bool (*_opFcPtr)(const T, const T);
 
-  T *_property;
+  T *_property1;
+  T *_property2;
   T _immediate;
 };
 
 template <typename T>
-_vCondition<T>::_vCondition(const operator_t opType, void *property, T immediate) : Condition(opType)
+_vCondition<T>::_vCondition(const operator_t opType, void *property1, void* property2, T immediate) : Condition(opType)
 {
   if (_opType == op_equal) _opFcPtr = _opEqual;
   if (_opType == op_not_equal) _opFcPtr = _opNotEqual;
@@ -134,12 +131,14 @@ _vCondition<T>::_vCondition(const operator_t opType, void *property, T immediate
   if (_opType == op_less) _opFcPtr = _opLess;
   if (_opType == op_less_or_equal) _opFcPtr = _opLessOrEqual;
 
-  _property = (T *)property;
+  _property1 = (T *)property1;
+  _property2 = (T *)property2;
   _immediate = immediate;
 }
 
 template <typename T>
 bool _vCondition<T>::evaluate()
 {
-  return _opFcPtr(*_property, _immediate);
+  if (_property2 != NULL) return _opFcPtr(*_property1, *_property2);
+  return _opFcPtr(*_property1, _immediate);
 }

@@ -32,20 +32,50 @@ Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
 
     // Parsing second operand (number)
     if (isDefined(conditionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition missing 'Value' key.\n", _label);
-    if (conditionJs["Value"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition operand 2 must be an integer number.\n", _label);
 
-    // Creating new condition object
-    Condition *condition;
-    if (dtype == dt_byte) condition = new _vCondition<byte>(operation, property, conditionJs["Value"].get<byte>());
-    if (dtype == dt_sbyte) condition = new _vCondition<sbyte>(operation, property, conditionJs["Value"].get<sbyte>());
-    if (dtype == dt_short) condition = new _vCondition<short>(operation, property, conditionJs["Value"].get<short>());
-    if (dtype == dt_int) condition = new _vCondition<int>(operation, property, conditionJs["Value"].get<int>());
-    if (dtype == dt_word) condition = new _vCondition<word>(operation, property, conditionJs["Value"].get<word>());
-    if (dtype == dt_dword) condition = new _vCondition<dword>(operation, property, conditionJs["Value"].get<dword>());
-    if (dtype == dt_ulong) condition = new _vCondition<size_t>(operation, property, conditionJs["Value"].get<size_t>());
+    bool valueFound = false;
+    if (conditionJs["Value"].is_number())
+    {
+     // Creating new condition object
+     Condition *condition;
+     if (dtype == dt_byte) condition = new _vCondition<byte>(operation, property, NULL, conditionJs["Value"].get<byte>());
+     if (dtype == dt_sbyte) condition = new _vCondition<sbyte>(operation, property, NULL, conditionJs["Value"].get<sbyte>());
+     if (dtype == dt_short) condition = new _vCondition<short>(operation, property, NULL, conditionJs["Value"].get<short>());
+     if (dtype == dt_int) condition = new _vCondition<int>(operation, property, NULL, conditionJs["Value"].get<int>());
+     if (dtype == dt_word) condition = new _vCondition<word>(operation, property, NULL, conditionJs["Value"].get<word>());
+     if (dtype == dt_dword) condition = new _vCondition<dword>(operation, property, NULL, conditionJs["Value"].get<dword>());
+     if (dtype == dt_ulong) condition = new _vCondition<size_t>(operation, property, NULL, conditionJs["Value"].get<size_t>());
 
-    // Adding condition to the list
-    _conditions.push_back(condition);
+     // Adding condition to the list
+     _conditions.push_back(condition);
+
+     valueFound = true;
+    }
+
+    if (conditionJs["Value"].is_string())
+    {
+     // Creating new property
+     datatype_t valueType = getPropertyType(conditionJs["Value"].get<std::string>());
+     if (valueType != dtype) EXIT_WITH_ERROR("[ERROR] Rule %lu, property (%s) and value (%s) types must coincide.\n", _label, conditionJs["Property"].get<std::string>(), conditionJs["Value"].get<std::string>());
+
+     // Getting value pointer
+     auto valuePtr = getPropertyPointer(conditionJs["Value"].get<std::string>(), sdlPop);
+
+     // Adding condition to the list
+     Condition *condition;
+     if (dtype == dt_byte) condition = new _vCondition<byte>(operation, property, valuePtr, 0);
+     if (dtype == dt_sbyte) condition = new _vCondition<sbyte>(operation, property, valuePtr, 0);
+     if (dtype == dt_short) condition = new _vCondition<short>(operation, property, valuePtr, 0);
+     if (dtype == dt_int) condition = new _vCondition<int>(operation, property, valuePtr, 0);
+     if (dtype == dt_word) condition = new _vCondition<word>(operation, property, valuePtr, 0);
+     if (dtype == dt_dword) condition = new _vCondition<dword>(operation, property, valuePtr, 0);
+     if (dtype == dt_ulong) condition = new _vCondition<size_t>(operation, property, valuePtr, 0);
+     _conditions.push_back(condition);
+
+     valueFound = true;
+    }
+
+    if (valueFound == false) EXIT_WITH_ERROR("[ERROR] Rule %lu contains an invalid 'Value' key.\n", _label, conditionJs["Value"].dump().c_str());
   }
 
   // Adding Dependencies. All of them must be achieved for the rule to count
