@@ -196,18 +196,8 @@ void Train::distributeFrames()
     { _minFrameCount = _localBaseFrameCounts[i]; _minFrameWorkerId = i; }
 
   // Figuring out work distribution
-  std::vector<size_t> localNextFrameCounts = splitVector(_globalFrameCounter, _workerCount);
-
-  // Figuring out frame offsets
-  size_t currentOffset = 0;
-  std::vector<size_t> localNextFrameStart(_workerCount);
-  std::vector<size_t> localNextFrameEnd(_workerCount);
-  for (size_t i = 0; i < _workerCount; i++)
-  {
-    localNextFrameStart[i] = currentOffset;
-    localNextFrameEnd[i] = currentOffset + localNextFrameCounts[i] - 1;
-    currentOffset += localNextFrameCounts[i];
-  }
+  std::vector<size_t> targetLocalNextFrameCounts = splitVector(_globalFrameCounter, _workerCount);
+  std::vector<size_t> remainLocalNextFrameCounts = targetLocalNextFrameCounts;
 
   // Determining all-to-all send/recv counts
   std::vector<std::vector<int>> allToAllSendCounts(_workerCount);
@@ -216,31 +206,24 @@ void Train::distributeFrames()
   for (size_t i = 0; i < _workerCount; i++) allToAllRecvCounts[i].resize(_workerCount, 0);
 
   // Iterating over sending ranks
-  size_t recvWorkerId = 0;
-  auto recvFramesCount = localNextFrameCounts[0];
-
   for (size_t sendWorkerId = 0; sendWorkerId < _workerCount; sendWorkerId++)
   {
     auto sendFramesCount = _localBaseFrameCounts[sendWorkerId];
+    size_t recvWorkerId = 0;
 
     while (sendFramesCount > 0)
     {
-      if (sendFramesCount <= recvFramesCount)
-      {
-        allToAllSendCounts[sendWorkerId][recvWorkerId] += sendFramesCount;
-        allToAllRecvCounts[recvWorkerId][sendWorkerId] += sendFramesCount;
-        recvFramesCount -= sendFramesCount;
-        sendFramesCount = 0;
-      }
-      else
-      {
-        allToAllSendCounts[sendWorkerId][recvWorkerId] += recvFramesCount;
-        allToAllRecvCounts[recvWorkerId][sendWorkerId] += recvFramesCount;
-        sendFramesCount -= recvFramesCount;
-        recvFramesCount = 0;
-        recvWorkerId++;
-        recvFramesCount = localNextFrameCounts[recvWorkerId];
-      }
+     size_t maxRecv = std::min(remainLocalNextFrameCounts[recvWorkerId], 4096ul);
+     size_t maxSend = std::min(sendFramesCount, 4096ul);
+     size_t exchangeCount = std::min(maxRecv, maxSend);
+
+     sendFramesCount -= exchangeCount;
+     remainLocalNextFrameCounts[recvWorkerId] -= exchangeCount;
+     allToAllSendCounts[sendWorkerId][recvWorkerId] += exchangeCount;
+     allToAllRecvCounts[recvWorkerId][sendWorkerId] += exchangeCount;
+
+     recvWorkerId++;
+     if (recvWorkerId == _workerCount) recvWorkerId = 0;
     }
   }
 
