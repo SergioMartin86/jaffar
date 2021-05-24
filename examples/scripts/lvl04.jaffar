@@ -239,7 +239,9 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 220.0 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 220.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Position", "Room": 4, "Value": 220.0 }
     ]
    },
    
@@ -371,7 +373,7 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 24, "Value": 128.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 24, "Value": 110.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 24, "Value": 1.0 }
     ]
    },
