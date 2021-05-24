@@ -616,14 +616,14 @@ void Train::framePostprocessing()
   while(globalCurrentFramesCut > framesToCut && framesToCut > 0 && currentCutoffScore > 5.0f)
   {
    // Calculating the number of frames cut with current cutoff
-   while (_nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
+   while (passingFramesIdx < localFrameDatabaseSize && _nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
    size_t localCurrentFramesCut = localFrameDatabaseSize - passingFramesIdx;
 
    // Getting global frame cutoff
    MPI_Allreduce(&localCurrentFramesCut, &globalCurrentFramesCut, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
    //if (_workerId == 0) printf("Cutoff Score: %f - Frames Cut: %lu/%lu\n", currentCutoffScore, globalCurrentFramesCut, framesToCut);
-   currentCutoffScore = currentCutoffScore * 0.9999f;
+   if (globalCurrentFramesCut > framesToCut) currentCutoffScore = currentCutoffScore * 0.9999f;
   }
 
   // Copying frames which pass the cutoff into the database

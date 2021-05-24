@@ -155,8 +155,7 @@
      { "Property": "Current Level", "Op": "==", "Value":  4 },
      { "Property": "Kid Room", "Op": "==", "Value": 7 },
      { "Property": "Guard Room", "Op": "==", "Value": 7 },
-     { "Property": "Guard Position X", "Op": ">", "Value": 60 },
-     { "Property": "Kid Position X", "Op": "<", "Value": 60 }
+     { "Property": "Guard Position X", "Op": ">", "Value": 50 }
     ],
    
     "Dependencies": [ ],
