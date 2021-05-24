@@ -224,6 +224,7 @@ void State::loadState(const std::string &data)
     curPos += item.size;
   }
 
+  _sdlPop->isExitDoorOpen = _sdlPop->isLevelExitDoorOpen();
   *_sdlPop->different_room = 1;
   // Show the room where the prince is, even if the player moved the view away
   // from it (with the H,J,U,N keys).

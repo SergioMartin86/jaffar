@@ -239,102 +239,101 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 220.0 }
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Position", "Room": 4, "Value": 220.0 }
     ]
    },
    
    {
-    "Label": 4009,
-    "Description": "Exit door and then return.",
+    "Label": 4004,
+    "Description": "Going up and right now.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
-     { "Property": "Current Step", "Op": "==", "Value":  10 }
+     { "Property": "Guard Room", "Op": "==", "Value":  4 },
+     { "Property": "Guard Position X", "Op": ">", "Value":  125 }
     ],
     
     "Dependencies": [ ],
     "Satisfies": [ 4003 ],
     
     "Actions":
-    [ 
-     { "Type": "Add Reward", "Value": 10000 }
+    [
+     { "Type": "Add Reward", "Value": 10000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 220.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 4, "Value": 1.0 }
     ]
    },
    
    {
-    "Label": 4010,
-    "Description": "Keep returning.",
+    "Label": 4005,
+    "Description": "Rewarding kid for advancing to screen 11 (chomper room).",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
-     { "Property": "Kid Position Y", "Op": ">", "Value":  70 },
      { "Property": "Kid Room", "Op": "==", "Value":  11 }
     ],
     
-    "Dependencies": [ ],
-    "Satisfies": [ 4009 ],
+    "Dependencies": [ 4004 ],
+    "Satisfies": [ ],
     
     "Actions":
-    [ 
+    [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 110.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11, "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 11, "Value": 1.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 4, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 205.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 1.0 }
     ]
    },
    
    {
-    "Label": 4011,
-    "Description": "Making Kid go left after climbing on the chomper room",
+    "Label": 4006,
+    "Description": "Rewarding kid for going down and making it go left now.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
      { "Property": "Kid Room", "Op": "==", "Value":  11 },
-     { "Property": "Kid Position Y", "Op": "<", "Value":  70 }
+     { "Property": "Kid Position Y", "Op": ">", "Value":  70 }
     ],
     
-    "Dependencies": [ ],
-    "Satisfies": [ 4010 ],
+    "Dependencies": [ 4004 ],
+    "Satisfies": [ 4005 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 7, "Value": 55.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 7, "Value": 0.0 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 55.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 1.0 }
     ]
    },
    
    {
-    "Label": 4012,
-    "Description": "Going back.",
+    "Label": 4007,
+    "Description": "Exit door and then return.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
      { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
-     { "Property": "Kid Position Y", "Op": "<", "Value":  70 },
      { "Property": "Kid Room", "Op": "==", "Value":  4 }
     ],
     
-    "Dependencies": [ ],
-    "Satisfies": [ 4011 ],
+    "Dependencies": [ 4006 ],
+    "Satisfies": [ ],
     
     "Actions":
-    [
-     { "Type": "Add Reward", "Value": 1000 },
+    [ 
+     { "Type": "Add Reward", "Value": 10000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 55.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 }
     ]
    },
-   
+
    {
-    "Label": 4013,
+    "Label": 4009,
     "Description": "Going back.",
     "Conditions":
     [
@@ -345,7 +344,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4012 ],
+    "Satisfies": [ 4007, 4006, 4005, 4004 ],
     
     "Actions":
     [
@@ -357,7 +356,7 @@
    },
    
    {
-    "Label": 4014,
+    "Label": 4010,
     "Description": "Going back to exit room.",
     "Conditions":
     [
@@ -367,7 +366,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4013 ],
+    "Satisfies": [ 4009 ],
     
     "Actions":
     [
@@ -379,7 +378,7 @@
    },
 
    {
-    "Label": 4015,
+    "Label": 4011,
     "Description": "If Kid gets to the next level to climb up the exit door (frame 217), then give reward.",
     "Conditions":
     [
@@ -388,32 +387,14 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4014 ],
+    "Satisfies": [ 4010 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 }
     ]
    },
-      
-   {
-    "Label": 4998,
-    "Description": "If Kid dies, then fail.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-
+   
    {
     "Label": 4999,
     "Description": "If Kid exits the level, then win.",
@@ -424,12 +405,51 @@
     ],
      
     "Dependencies": [ ],
-    "Satisfies": [ 4015 ],
+    "Satisfies": [ 4011 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Trigger Win" }
+    ]
+   },
+   
+   {
+    "Label": 4990,
+    "Description": "Fail if kid died.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [  ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
+    "Label": 4991,
+    "Description": "Fail if guard died.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  7 },
+     { "Property": "Guard Room", "Op": "==", "Value":  7 },
+     { "Property": "Current Step", "Op": "<", "Value":  70 },
+     { "Property": "Guard Current HP", "Op": "==", "Value":  0 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [  ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
     ]
    }
   ]  

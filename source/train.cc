@@ -594,7 +594,7 @@ void Train::framePostprocessing()
   // Sorting local DB frames by reward
   boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
 
-  // Swapping database contents
+  // Truncating database to local maximum
   size_t currentFrameCount = std::min(_nextFrameDB.size(), _maxLocalDatabaseSize);
   _currentFrameDB.resize(currentFrameCount);
 
