@@ -594,27 +594,46 @@ void Train::framePostprocessing()
   // Sorting local DB frames by reward
   boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
 
-  // Truncating database to local maximum
-  size_t currentFrameCount = std::min(_nextFrameDB.size(), _maxLocalDatabaseSize);
-  _currentFrameDB.resize(currentFrameCount);
+  // Calculating global frame count
+  size_t localFrameDatabaseSize = _nextFrameDB.size();
+  MPI_Allreduce(&localFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-  #pragma omp parallel for
-  for (size_t i = 0; i < currentFrameCount; i++)
-   _currentFrameDB[i] = std::move(_nextFrameDB[i]);
-
-  // Clearing next frame DB
-  #pragma omp parallel for
-  for (size_t i = currentFrameCount; i < _nextFrameDB.size(); i++)
-   _nextFrameDB[i].reset();
-  _nextFrameDB.clear();
+  // Calculating how many frames need to be cut
+  size_t framesToCut = _globalFrameCounter >_maxGlobalDatabaseSize ? _globalFrameCounter - _maxGlobalDatabaseSize : 0;
 
   // Finding local best frame reward
   float localBestFrameScore = -std::numeric_limits<float>::infinity();
-  if (_currentFrameDB.empty() == false) localBestFrameScore = _currentFrameDB[0]->reward;
+  if (_nextFrameDB.empty() == false) localBestFrameScore = _nextFrameDB[0]->reward;
 
-  // Calculating global frame count
-  size_t newLocalFrameDatabaseSize = _currentFrameDB.size();
-  MPI_Allreduce(&newLocalFrameDatabaseSize, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+  // Finding global best frame reward
+  float globalBestFrameScore;
+  MPI_Allreduce(&localBestFrameScore, &globalBestFrameScore, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+
+  // Approximating to the cutoff score logarithmically
+  size_t globalCurrentFramesCut = _globalFrameCounter;
+  float currentCutoffScore = framesToCut > 0 ? globalBestFrameScore : -1.0f;
+  size_t passingFramesIdx = 0;
+  while(globalCurrentFramesCut > framesToCut && framesToCut > 0 && currentCutoffScore > 5.0f)
+  {
+   // Calculating the number of frames cut with current cutoff
+   while (_nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
+   size_t localCurrentFramesCut = localFrameDatabaseSize - passingFramesIdx;
+
+   // Getting global frame cutoff
+   MPI_Allreduce(&localCurrentFramesCut, &globalCurrentFramesCut, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+   //if (_workerId == 0) printf("Cutoff Score: %f - Frames Cut: %lu/%lu\n", currentCutoffScore, globalCurrentFramesCut, framesToCut);
+   currentCutoffScore = currentCutoffScore * 0.9999f;
+  }
+
+  // Copying frames which pass the cutoff into the database
+  _currentFrameDB.clear();
+  for (size_t i = 0; i < localFrameDatabaseSize; i++)
+   if (_nextFrameDB[i]->reward >= currentCutoffScore)
+   _currentFrameDB.push_back(std::move(_nextFrameDB[i]));
+
+  // Clearing next frame DB
+  _nextFrameDB.clear();
 
   // If there are remaining frames, find best global frame reward/win
   if (_globalFrameCounter > 0)
@@ -799,7 +818,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
   printf("[Jaffar] Best Reward: %f\n", _bestFrame.reward);
-  printf("[Jaffar] Database Size: %lu / %lu\n", _globalFrameCounter, _maxLocalDatabaseSize * _workerCount);
+  printf("[Jaffar] Database Size: %lu / ~%lu\n", _globalFrameCounter, _maxLocalDatabaseSize * _workerCount);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
@@ -1211,6 +1230,7 @@ Train::Train(int argc, char *argv[])
 
   // Calculating DB sizes
   _maxLocalDatabaseSize = floor(((double)frameDBMaxMBytes * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
+  _maxGlobalDatabaseSize = _maxLocalDatabaseSize * _workerCount;
 
   // Parsing config files
   _scriptFiles = program.get<std::vector<std::string>>("jaffarFiles");

@@ -76,6 +76,7 @@ class Train
   size_t _minFrameWorkerId;
 
   // Frame databases
+  size_t _maxGlobalDatabaseSize;
   size_t _maxLocalDatabaseSize;
   std::vector<std::unique_ptr<Frame>> _currentFrameDB;
   std::vector<std::unique_ptr<Frame>> _nextFrameDB;
