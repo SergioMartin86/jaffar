@@ -261,148 +261,197 @@ void Train::distributeFrames()
   // Removing frame database
   _currentFrameDB.resize(currentFrameDBSize - ownExperienceCount);
 
+  // Storage for MPI requests
+  MPI_Request reqs[2];
+
   // Exchanging frames with all other workers at a one by one basis
   // This could be done more efficiently in terms of message traffic and performance by using an MPI_Alltoallv operation
   // However, this operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
   // Given this bot needs as much memory as possible, the more memory efficient pair-wise communication is used
-  size_t nSteps = _workerCount/2;
+  size_t nSteps = _workerCount / 2;
+
+  // Perform right-wise communication first
   size_t leftNeighborId = _workerId == 0 ? _workerCount - 1 : _workerId - 1;
   size_t rightNeighborId = _workerId == _workerCount - 1 ? 0 : _workerId + 1;
   for (size_t step = 0; step < nSteps; step++)
   {
-   // Getting counts for the current worker
-   int leftRecvCount = allToAllRecvCounts[_workerId][leftNeighborId];
-   int leftSendCount = allToAllSendCounts[_workerId][leftNeighborId];
+    // Variables to keep track of current send and recv positions
+    size_t currentSendPosition;
+    size_t currentRecvPosition;
 
-   int rightRecvCount = allToAllRecvCounts[_workerId][rightNeighborId];
-   int rightSendCount = allToAllSendCounts[_workerId][rightNeighborId];
+    // Getting counts for the current worker
+    int leftRecvCount = allToAllRecvCounts[_workerId][leftNeighborId];
+    int rightSendCount = allToAllSendCounts[_workerId][rightNeighborId];
 
-   // Calculating buffer size as the max between the frames we send and receive
-   size_t bufferSize = std::max( { rightSendCount, leftRecvCount, leftSendCount, rightRecvCount });
+    // Reserving exchange buffers
+    char *leftRecvFrameExchangeBuffer = (char *)malloc(_frameSerializedSize * leftRecvCount);
+    char *rightSendFrameExchangeBuffer = (char *)malloc(_frameSerializedSize * rightSendCount);
 
-   // Getting all workers to agree in a possible max buffer size
-   MPI_Allreduce(MPI_IN_PLACE, &bufferSize, 1, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
+    // Serializing always the last frame and reducing vector size to minimize memory usage
+    currentSendPosition = 0;
+    if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
+      for (int i = 0; i < rightSendCount; i++)
+      {
+        // Getting current frame count
+        const size_t count = _currentFrameDB.size();
 
-   // Reserving exchange buffer
-   char* rightwiseFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * bufferSize);
-   char* leftwiseFrameExchangeBuffer = (char*) malloc(_frameSerializedSize * bufferSize);
+        // Getting last frame
+        const auto &frame = _currentFrameDB[count - 1];
 
-   // Serializing always the last frame and reducing vector size to minimize memory usage
+        // Serializing frame
+        frame->serialize(&rightSendFrameExchangeBuffer[currentSendPosition]);
 
-   if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
-   {
-    size_t baseDBSize = _currentFrameDB.size();
+        // Advancing send buffer pointer
+        currentSendPosition += _frameSerializedSize;
 
-    #pragma omp parallel for
-    for (int i = 0; i < rightSendCount; i++)
-    {
-     // Advancing send buffer pointer
-     size_t currentSendPosition = _frameSerializedSize * i;
+        // Removing last frame by resizing
+        _currentFrameDB.resize(count - 1);
+      }
 
-     // Getting last frame
-     const auto& frame = _currentFrameDB[baseDBSize - i - 1];
+    // Posting receive requests
+    MPI_Irecv(leftRecvFrameExchangeBuffer, leftRecvCount, _mpiFrameType, leftNeighborId, 0, MPI_COMM_WORLD, &reqs[0]);
 
-     // Serializing frame
-     frame->serialize(&rightwiseFrameExchangeBuffer[currentSendPosition]);
-    }
+    // Making sure receives are posted before sends to prevent intermediate buffering
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    // Removing last frame by resizing
-    _currentFrameDB.resize(baseDBSize - rightSendCount);
-   }
+    // Posting send requests
+    MPI_Isend(rightSendFrameExchangeBuffer, rightSendCount, _mpiFrameType, rightNeighborId, 0, MPI_COMM_WORLD, &reqs[1]);
 
-   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
-   {
-    size_t baseDBSize = _currentFrameDB.size();
+    // Waiting for requests to finish
+    MPI_Waitall(2, reqs, MPI_STATUS_IGNORE);
 
-    #pragma omp parallel for
-    for (int i = 0; i < leftSendCount; i++)
-    {
-     // Advancing send buffer pointer
-     size_t currentSendPosition = _frameSerializedSize * i;
+    // Freeing send buffers
+    free(rightSendFrameExchangeBuffer);
 
-     // Getting last frame
-     const auto& frame = _currentFrameDB[baseDBSize - i - 1];
+    // Waiting for everyone to have cleaned their buffers before creating new frames
+    MPI_Barrier(MPI_COMM_WORLD);
 
-     // Serializing frame
-     frame->serialize(&leftwiseFrameExchangeBuffer[currentSendPosition]);
-    }
+    currentRecvPosition = 0;
+    if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
+      for (int frameId = 0; frameId < leftRecvCount; frameId++)
+      {
+        // Creating new frame
+        auto newFrame = std::make_unique<Frame>();
 
-    // Removing last frame by resizing
-    _currentFrameDB.resize(baseDBSize - leftSendCount);
-   }
+        // Deserializing frame
+        newFrame->deserialize(&leftRecvFrameExchangeBuffer[currentRecvPosition]);
 
-   // Exchanging frames with neighbors
-   if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
-    MPI_Sendrecv_replace(rightwiseFrameExchangeBuffer, bufferSize, _mpiFrameType, rightNeighborId, 0, leftNeighborId,  0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        // Adding new frame into the data base
+        _nextFrameDB.push_back(std::move(newFrame));
 
-   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
-    MPI_Sendrecv_replace(leftwiseFrameExchangeBuffer,  bufferSize,  _mpiFrameType, leftNeighborId,  0, rightNeighborId, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        // Advancing send buffer pointer
+        currentRecvPosition += _frameSerializedSize;
+      }
 
-   // Deserializing contiguous buffer into the new frame database
-   if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
-   {
-    size_t baseDBSize = _nextFrameDB.size();
+    // Freeing left right receive buffer
+    free(leftRecvFrameExchangeBuffer);
 
-    // Resizing receive DB
-    _nextFrameDB.resize(baseDBSize + leftRecvCount);
+    // Waiting for everyone to have cleaned their buffers before continuing
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    #pragma omp parallel for
-    for (int frameId = 0; frameId < leftRecvCount; frameId++)
-    {
-     // Advancing recv buffer pointer
-     size_t currentRecvPosition = _frameSerializedSize * frameId;
+    // Shifting neighbors by one
+    if (leftNeighborId == 0)
+      leftNeighborId = _workerCount - 1;
+    else
+      leftNeighborId = leftNeighborId - 1;
 
-     // Creating new frame
-     auto newFrame = std::make_unique<Frame>();
-
-     // Deserializing frame
-     newFrame->deserialize(&rightwiseFrameExchangeBuffer[currentRecvPosition]);
-
-     // Adding new frame into the data base
-     _nextFrameDB[baseDBSize + frameId] = std::move(newFrame);
-    }
-   }
-
-   if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
-   {
-    size_t baseDBSize = _nextFrameDB.size();
-
-    // Resizing receive DB
-    _nextFrameDB.resize(baseDBSize + rightRecvCount);
-
-    #pragma omp parallel for
-    for (int frameId = 0; frameId < rightRecvCount; frameId++)
-    {
-     // Advancing recv buffer pointer
-     size_t currentRecvPosition = _frameSerializedSize * frameId;
-
-     // Creating new frame
-     auto newFrame = std::make_unique<Frame>();
-
-     // Deserializing frame
-     newFrame->deserialize(&leftwiseFrameExchangeBuffer[currentRecvPosition]);
-
-     // Adding new frame into the data base
-     _nextFrameDB[baseDBSize + frameId] = std::move(newFrame);
-    }
-   }
-
-   // Freeing exchange buffer
-   free(rightwiseFrameExchangeBuffer);
-   free(leftwiseFrameExchangeBuffer);
-
-   // Shifting neighbors by one
-   if (leftNeighborId == 0) leftNeighborId = _workerCount-1;
-   else leftNeighborId = leftNeighborId - 1;
-
-   if (rightNeighborId == _workerCount-1) rightNeighborId = 0;
-   else rightNeighborId = rightNeighborId + 1;
+    if (rightNeighborId == _workerCount - 1)
+      rightNeighborId = 0;
+    else
+      rightNeighborId = rightNeighborId + 1;
   }
 
-  // Truncating database to maximum local size
-  size_t maxCount = std::min(_maxLocalDatabaseSize, _nextFrameDB.size());
-  for (size_t i = maxCount; i < _nextFrameDB.size(); i++) _nextFrameDB[i].reset();
-  _nextFrameDB.resize(maxCount);
+  // Perform left-wise communication second
+  leftNeighborId = _workerId == 0 ? _workerCount - 1 : _workerId - 1;
+  rightNeighborId = _workerId == _workerCount - 1 ? 0 : _workerId + 1;
+  for (size_t step = 0; step < nSteps; step++)
+  {
+    // Variables to keep track of current send and recv positions
+    size_t currentSendPosition;
+    size_t currentRecvPosition;
+
+    // Getting counts for the current worker
+    int leftSendCount = allToAllSendCounts[_workerId][leftNeighborId];
+    int rightRecvCount = allToAllRecvCounts[_workerId][rightNeighborId];
+
+    // Reserving exchange buffers
+    char *leftSendFrameExchangeBuffer = (char *)malloc(_frameSerializedSize * leftSendCount);
+    char *rightRecvFrameExchangeBuffer = (char *)malloc(_frameSerializedSize * rightRecvCount);
+
+    // Serializing always the last frame and reducing vector size to minimize memory usage
+    currentSendPosition = 0;
+    if ((leftNeighborId == rightNeighborId && rightNeighborId > _workerId) == false)
+      for (int i = 0; i < leftSendCount; i++)
+      {
+        // Getting current frame count
+        const size_t count = _currentFrameDB.size();
+
+        // Getting last frame
+        const auto &frame = _currentFrameDB[count - 1];
+
+        // Serializing frame
+        frame->serialize(&leftSendFrameExchangeBuffer[currentSendPosition]);
+
+        // Advancing send buffer pointer
+        currentSendPosition += _frameSerializedSize;
+
+        // Removing last frame by resizing
+        _currentFrameDB.resize(count - 1);
+      }
+
+    // Posting receive requests
+    MPI_Irecv(rightRecvFrameExchangeBuffer, rightRecvCount, _mpiFrameType, rightNeighborId, 0, MPI_COMM_WORLD, &reqs[0]);
+
+    // Making sure receives are posted before sends to prevent intermediate buffering
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Posting send requests
+    MPI_Isend(leftSendFrameExchangeBuffer, leftSendCount, _mpiFrameType, leftNeighborId, 0, MPI_COMM_WORLD, &reqs[1]);
+
+    // Waiting for requests to finish
+    MPI_Waitall(2, reqs, MPI_STATUS_IGNORE);
+
+    // Freeing send buffers
+    free(leftSendFrameExchangeBuffer);
+
+    // Waiting for everyone to have cleaned their buffers before creating new frames
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Deserializing contiguous buffer into the new frame database
+    currentRecvPosition = 0;
+    if ((leftNeighborId == rightNeighborId && rightNeighborId < _workerId) == false)
+      for (int frameId = 0; frameId < rightRecvCount; frameId++)
+      {
+        // Creating new frame
+        auto newFrame = std::make_unique<Frame>();
+
+        // Deserializing frame
+        newFrame->deserialize(&rightRecvFrameExchangeBuffer[currentRecvPosition]);
+
+        // Adding new frame into the data base
+        _nextFrameDB.push_back(std::move(newFrame));
+
+        // Advancing send buffer pointer
+        currentRecvPosition += _frameSerializedSize;
+      }
+
+    // Freeing right receive buffer
+    free(rightRecvFrameExchangeBuffer);
+
+    // Waiting for everyone to have cleaned their buffers before continuing
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Shifting neighbors by one
+    if (leftNeighborId == 0)
+      leftNeighborId = _workerCount - 1;
+    else
+      leftNeighborId = leftNeighborId - 1;
+
+    if (rightNeighborId == _workerCount - 1)
+      rightNeighborId = 0;
+    else
+      rightNeighborId = rightNeighborId + 1;
+  }
 
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
