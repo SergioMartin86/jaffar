@@ -609,7 +609,7 @@ void Train::framePostprocessing()
    MPI_Allreduce(&localCurrentFramesCut, &globalCurrentFramesCut, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
    //if (_workerId == 0) printf("Cutoff Score: %f - Frames Cut: %lu/%lu\n", currentCutoffScore, globalCurrentFramesCut, framesToCut);
-   if (globalCurrentFramesCut > framesToCut) currentCutoffScore = currentCutoffScore * 0.999999f;
+   if (globalCurrentFramesCut > framesToCut) currentCutoffScore = currentCutoffScore * 0.9999f;
   }
 
   // Copying frames which pass the cutoff into the database
