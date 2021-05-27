@@ -156,6 +156,7 @@ class Train
   void showSavingLoop();
 
   // Functions that check special flags for a given frame
+  void checkSpecialActions(const Frame &frame);
   bool checkFail(const Frame &frame);
   bool checkWin(const Frame &frame);
 

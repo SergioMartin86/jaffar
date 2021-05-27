@@ -537,6 +537,9 @@ void Train::computeFrames()
         // If frame has failed, discard it and proceed to the next one
         if (isFailFrame) continue;
 
+        // Check special actions for this state
+        checkSpecialActions(*newFrame);
+
         // Storing the frame data
         newFrame->frameStateData = _state[threadId]->saveState();
 
@@ -606,7 +609,7 @@ void Train::framePostprocessing()
    MPI_Allreduce(&localCurrentFramesCut, &globalCurrentFramesCut, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
    //if (_workerId == 0) printf("Cutoff Score: %f - Frames Cut: %lu/%lu\n", currentCutoffScore, globalCurrentFramesCut, framesToCut);
-   if (globalCurrentFramesCut > framesToCut) currentCutoffScore = currentCutoffScore * 0.9999f;
+   if (globalCurrentFramesCut > framesToCut) currentCutoffScore = currentCutoffScore * 0.999999f;
   }
 
   // Copying frames which pass the cutoff into the database
@@ -731,6 +734,24 @@ void Train::evaluateRules(Frame &frame)
       // If it's achieved, update its status and run its actions
       if (isSatisfied) satisfyRule(frame, ruleId);
     }
+  }
+}
+
+void Train::checkSpecialActions(const Frame &frame)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
+  if (frame.rulesStatus[ruleId] == true)
+  {
+   // Checking if this rule makes guard disappear
+   if (_rules[threadId][ruleId]->_isRemoveGuard == true)
+   {
+    _sdlPop[threadId]->Guard->y = 250;
+    _sdlPop[threadId]->Guard->x = 250;
+    _sdlPop[threadId]->Guard->alive = 0;
+   }
   }
 }
 
