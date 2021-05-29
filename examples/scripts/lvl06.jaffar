@@ -63,6 +63,26 @@
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 15, "Value": 55.0 }
     ]
    },
+   
+   {
+    "Label": 6102,
+    "Description": "[Checkpoint] If on right position to continue, clean database",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  6 },
+     { "Property": "Kid Room", "Op": "==", "Value":  15 },
+     { "Property": "Kid Position X", "Op": "==", "Value":  118 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  15 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [  ],
+
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
 
    {
     "Label": 6003,

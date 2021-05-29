@@ -67,6 +67,27 @@
    },
   
    {
+    "Label": 11120,
+    "Description": "[Checkpoint] Once climbed, flush database",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Kid Room", "Op": "==", "Value": 14 },
+     { "Property": "Kid Position X", "Op": "==", "Value": 101 },
+     { "Property": "Kid Position Y", "Op": "==", "Value": 181 },
+     { "Property": "Kid Frame", "Op": "==", "Value": 15 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 11002,
     "Description": "Reward Kid for arriving in the ceiling, and keep going right.",
     "Conditions":
@@ -216,6 +237,25 @@
    },
    
    {
+    "Label": 11108,
+    "Description": "[Checkpoint] If climbed, flush.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Kid Room", "Op": "==", "Value": 22 },
+     { "Property": "Kid Position Y", "Op": "==", "Value": 55 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 11009,
     "Description": "Keep going to the right.",
     "Conditions":
@@ -238,6 +278,27 @@
    },
    
    {
+    "Label": 11208,
+    "Description": "[Checkpoint] If climbed, flush.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Kid Room", "Op": "==", "Value": 24 },
+     { "Property": "Kid Position Y", "Op": "==", "Value": 118 },
+     { "Property": "Kid Position X", "Op": "==", "Value": 143 },
+     { "Property": "Kid Frame", "Op": "==", "Value": 15 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 11010,
     "Description": "Keep going to the right.",
     "Conditions":
@@ -255,6 +316,25 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 24, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 200.0 }
+    ]
+   },
+   
+   {
+    "Label": 11310,
+    "Description": "[Checkpoint] Climbed before guard.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Kid Room", "Op": "==", "Value": 16 },
+     { "Property": "Kid Position Y", "Op": "==", "Value": 55 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+      { "Type": "Flush Database" }
     ]
    },
 

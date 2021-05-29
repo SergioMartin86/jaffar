@@ -104,6 +104,26 @@
    }, 
    
    {
+    "Label": 4032,
+    "Description": "[Checkpoint] Reset on optimal jump",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  5 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  40 },
+     { "Property": "Kid Position X", "Op": "==", "Value":  115 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 4023,
     "Description": "Rewarding kid for advancing to screen 6.",
     "Conditions":
@@ -306,7 +326,8 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 55.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 11, "Value": 0.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 11, "Value": 0.0 },
+     { "Type": "Flush Database" }
     ]
    },
    

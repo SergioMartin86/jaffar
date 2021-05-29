@@ -54,6 +54,7 @@ class Rule
   bool _isWinRule;
   bool _isFailRule;
   bool _isRestartRule;
+  bool _isFlushRule;
   bool _isRemoveGuard;
 
   // Stores magnet information

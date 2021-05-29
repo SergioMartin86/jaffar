@@ -88,12 +88,12 @@
    
    {
     "Label": 2004,
-    "Description": "Reward kid for climbing. Set magnet to go to the left.",
+    "Description": "[Checkpoint] Reward kid for climbing. Set magnet to go to the left.",
     "Conditions":
     [ 
      { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  6 },
-     { "Property": "Kid Position Y", "Op": "<", "Value":  60 }
+     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
     
     "Dependencies": [ ],
@@ -103,7 +103,8 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 6, "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 6,  "Value": 0.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 6,  "Value": 0.0 },
+     { "Type": "Flush Database" }
     ]
    },
    
@@ -195,7 +196,7 @@
    
    {
     "Label": 2010,
-    "Description": "Keep going left.",
+    "Description": "[Checkpoint] Keep going left.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  2 },
@@ -210,7 +211,8 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 18, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 55 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 55 },
+     { "Type": "Flush Database" }
     ]
    },
    
@@ -257,6 +259,26 @@
    },
    
    {
+    "Label": 2022,
+    "Description": "[Checkpoint] Reward climbing up.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "==", "Value":  13 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 2012 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 2013,
     "Description": "Keep going left.",
     "Conditions":
@@ -266,7 +288,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 2012 ],
+    "Satisfies": [ 2022 ],
     
     "Actions":
     [
@@ -388,6 +410,26 @@
    },
    
    {
+    "Label": 2031,
+    "Description": "[Checkpoint] Reward climbing up.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "==", "Value":  9 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 2030 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 2018,
     "Description": "If reached the left platform, give reward and go to the right .",
     "Conditions":
@@ -398,7 +440,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 2030 ],
+    "Satisfies": [ 2031 ],
     
     "Actions":
     [

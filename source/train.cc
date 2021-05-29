@@ -438,6 +438,10 @@ void Train::distributeFrames()
 
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
+
+  // Removing excess local frames
+  if (_currentFrameDB.size() > _maxLocalDatabaseSize)
+   _currentFrameDB.resize(_maxLocalDatabaseSize);
 }
 
 void Train::computeFrames()
@@ -531,6 +535,12 @@ void Train::computeFrames()
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
 
+        // Check whether the frame needs to be flushed because it didn't reach a certain checkpoint
+        bool isFlushedFrame = checkFlush(*newFrame);
+
+        // If frame is to be flushed, discard it and proceed to the next one
+        if (isFlushedFrame) continue;
+
         // Checks whether any fail rules were activated
         bool isFailFrame = checkFail(*newFrame);
 
@@ -557,6 +567,9 @@ void Train::computeFrames()
            _localWinFrame = *newFrame;
         }
 
+        // Contributing to flush mask
+        addFlushMask(*newFrame);
+
         // Adding novel frame in the next frame database
         newThreadFrames.push_back(std::move(newFrame));
       }
@@ -574,6 +587,10 @@ void Train::computeFrames()
 
 void Train::framePostprocessing()
 {
+  // Updating flushing mask globally
+  auto localFlushMask = _flushingMask;
+  MPI_Allreduce(localFlushMask.data(), _flushingMask.data(), _ruleCount, MPI_UINT8_T, MPI_BOR, MPI_COMM_WORLD);
+
   // Clearing current frame DB
   _currentFrameDB.clear();
 
@@ -592,12 +609,11 @@ void Train::framePostprocessing()
   if (_nextFrameDB.empty() == false) localBestFrameScore = _nextFrameDB[0]->reward;
 
   // Finding global best frame reward
-  float globalBestFrameScore;
-  MPI_Allreduce(&localBestFrameScore, &globalBestFrameScore, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&localBestFrameScore, &_globalBestFrameScore, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
 
   // Approximating to the cutoff score logarithmically
   size_t globalCurrentFramesCut = _globalFrameCounter;
-  float currentCutoffScore = framesToCut > 0 ? globalBestFrameScore : -1.0f;
+  float currentCutoffScore = framesToCut > 0 ? _globalBestFrameScore : -1.0f;
   size_t passingFramesIdx = 0;
   while(globalCurrentFramesCut > framesToCut && framesToCut > 0 && currentCutoffScore > 5.0f)
   {
@@ -781,6 +797,29 @@ bool Train::checkWin(const Frame &frame)
  return false;
 }
 
+bool Train::checkFlush(const Frame &frame)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
+  if (_flushingMask[ruleId] == 1 && frame.rulesStatus[ruleId] == false)
+   return true;
+
+ return false;
+}
+
+void Train::addFlushMask(const Frame &frame)
+{
+ // Getting thread id
+ int threadId = omp_get_thread_num();
+
+ for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
+  if (frame.rulesStatus[ruleId] == true)
+   if (_rules[threadId][ruleId]->_isFlushRule == true)
+    _flushingMask[ruleId] = 1;
+}
+
 float Train::getRuleRewards(const Frame &frame)
 {
  // Getting thread id
@@ -821,7 +860,7 @@ void Train::printTrainStatus()
 {
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
-  printf("[Jaffar] Best Reward: %f\n", _bestFrame.reward);
+  printf("[Jaffar] Best Reward: %f\n", _globalBestFrameScore);
   printf("[Jaffar] Database Size: %lu / ~%lu\n", _globalFrameCounter, _maxLocalDatabaseSize * _workerCount);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
@@ -1352,6 +1391,9 @@ Train::Train(int argc, char *argv[])
     }
   }
 
+  // Allocating database flushing mask
+  _flushingMask.resize(_ruleCount, 0);
+
   printf("[Jaffar] MPI Rank %lu/%lu: SDLPop initialized.\n", _workerId, _workerCount);
   fflush(stdout);
   MPI_Barrier(MPI_COMM_WORLD);
@@ -1367,6 +1409,7 @@ Train::Train(int argc, char *argv[])
   // Setting initial values
   _hasFinalized = false;
   _globalHashCollisions = 0;
+  _globalBestFrameScore = 0;
 
   // Setting win status
   _winFrameFound = false;
