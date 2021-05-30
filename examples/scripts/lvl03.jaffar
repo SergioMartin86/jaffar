@@ -228,8 +228,7 @@
       { "Type": "Add Reward", "Value": 10000 },
       { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
       { "Type": "Set Kid Vertical Magnet Intensity", "Room": 7, "Value": 0.0 },
-      { "Type": "Restart Level" },
-      { "Type": "Flush Database" }
+      { "Type": "Restart Level" }
      ]
     },
     
@@ -273,6 +272,27 @@
       { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 1, "Value": 1.0 },
       { "Type": "Set Kid Horizontal Magnet Position", "Room": 1,  "Value": 0.0 },
       { "Type": "Set Kid Vertical Magnet Intensity", "Room": 1,  "Value": 1.0 }
+     ]
+    },
+    
+    {
+     "Label": 3111,
+     "Description": "Rewarding kid for advancing to the second screen. Keep going left and rewarding climbing.",
+     "Conditions":
+     [
+      { "Property": "Current Level", "Op": "==", "Value":  3 },
+      { "Property": "Kid Room", "Op": "==", "Value":  1 },
+      { "Property": "Kid Position Y", "Op": "==", "Value":  5 },
+      { "Property": "Kid Position X", "Op": "<", "Value":  128 }
+     ],
+     
+     "Dependencies": [ ],
+     "Satisfies": [ ],
+     
+     "Actions":
+     [
+      { "Type": "Add Reward", "Value": 500 },
+      { "Type": "Flush Database" }
      ]
     },
     
