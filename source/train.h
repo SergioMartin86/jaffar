@@ -20,6 +20,9 @@
 // Number of frames to cache for showing purposes
 #define SHOW_FRAME_COUNT 1000
 
+// Hash database age cutoff frequency
+#define HASHDB_AGE_CUTOFF_FREQ 10
+
 // Struct to hold all of the frame's magnet information
 struct magnetInfo_t
 {

@@ -679,9 +679,10 @@ void Train::framePostprocessing()
 void Train::updateHashDatabases()
 {
  // Discarding older hashes
- for (auto hashItr = _hashDatabase.cbegin(); hashItr != _hashDatabase.cend();)
-  if (_currentStep - hashItr->second > _hashAgeThreshold) _hashDatabase.erase(hashItr++);
-  else hashItr++;
+ if (_currentStep % HASHDB_AGE_CUTOFF_FREQ == 0)
+  for (auto hashItr = _hashDatabase.cbegin(); hashItr != _hashDatabase.cend();)
+   if (_currentStep - hashItr->second > _hashAgeThreshold) _hashDatabase.erase(hashItr++);
+   else hashItr++;
 
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();
