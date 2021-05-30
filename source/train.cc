@@ -438,10 +438,6 @@ void Train::distributeFrames()
 
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
-
-  // Removing excess local frames
-  if (_currentFrameDB.size() > _maxLocalDatabaseSize)
-   _currentFrameDB.resize(_maxLocalDatabaseSize);
 }
 
 void Train::computeFrames()
@@ -609,7 +605,7 @@ void Train::framePostprocessing()
   if (_nextFrameDB.empty() == false) localBestFrameScore = _nextFrameDB[0]->reward;
 
   // Finding global best frame reward
-  MPI_Allreduce(&localBestFrameScore, &_globalBestFrameScore, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&localBestFrameScore, &_globalBestFrameScore, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 
   // Approximating to the cutoff score logarithmically
   size_t globalCurrentFramesCut = _globalFrameCounter;
