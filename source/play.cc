@@ -192,6 +192,7 @@ int main(int argc, char *argv[])
     {
       printw("[Jaffar] ----------------------------------------------------------------\n");
       printw("[Jaffar] Current Step #: %d / %d\n", currentStep, sequenceLength);
+      printw("[Jaffar]  + IGT: %2lu:%02lu.%03lu\n", showSDLPop.getElapsedMins(), showSDLPop.getElapsedSecs(), showSDLPop.getElapsedMilisecs());
       printw("[Jaffar]  + Move: %s\n", moveList[currentStep - 1].c_str());
 
       printw("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Fall.x: %d, Fall.y: %d, Frame: %3d, HP: %d/%d, Direction: %d\n",
