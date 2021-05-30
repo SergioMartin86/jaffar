@@ -531,6 +531,12 @@ void Train::computeFrames()
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
 
+        // Check whether the frame needs to be flushed because it didn't reach a certain checkpoint
+        bool isFlushedFrame = checkFlush(*newFrame);
+
+        // If frame is to be flushed, discard it and proceed to the next one
+        if (isFlushedFrame) continue;
+
         // Checks whether any fail rules were activated
         bool isFailFrame = checkFail(*newFrame);
 
@@ -623,8 +629,7 @@ void Train::framePostprocessing()
   _currentFrameDB.clear();
   for (size_t i = 0; i < localFrameDatabaseSize; i++)
    if (_nextFrameDB[i]->reward >= currentCutoffScore)
-    if (checkFlush(*_nextFrameDB[i]) == false)
-     _currentFrameDB.push_back(std::move(_nextFrameDB[i]));
+   _currentFrameDB.push_back(std::move(_nextFrameDB[i]));
 
   // Clearing next frame DB
   _nextFrameDB.clear();
