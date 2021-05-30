@@ -410,6 +410,7 @@ void SDLPopInstance::advanceFrame()
 void SDLPopInstance::printFrameInfo()
 {
   printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", *current_level, *next_level);
+  printf("[Jaffar]  + IGT: %2lu:%02lu.%03lu\n", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
   printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Kid->room), int(Kid->x), int(Kid->y), int(Kid->frame), int(*hitp_curr), int(*hitp_max), int(Kid->curr_seq));
   printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Guard->room), int(Guard->x), int(Guard->y), int(Guard->frame), int(*guardhp_curr), int(*guardhp_max), int(Guard->curr_seq));
   printf("[Jaffar]  + Exit Room Timer: %d\n", *exit_room_timer);
