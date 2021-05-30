@@ -195,6 +195,25 @@
    },
    
    {
+    "Label": 2108,
+    "Description": "[Checkpoint] Flush on climb.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "==", "Value":  11 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 2010,
     "Description": "[Checkpoint] Keep going left.",
     "Conditions":
@@ -211,8 +230,7 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 18, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 55 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 55 }
     ]
    },
    
