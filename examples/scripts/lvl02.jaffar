@@ -382,6 +382,25 @@
    },
    
    {
+    "Label": 2116,
+    "Description": "[Checkpoint] Resetting DB on climb.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "==", "Value":  21 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Flush Database" }
+    ]
+   },
+   
+   {
     "Label": 2017,
     "Description": "Go up now, preventing the kid from going back to the previous screen",
     "Conditions":
