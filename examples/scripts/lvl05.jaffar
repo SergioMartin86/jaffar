@@ -86,26 +86,7 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 8, "Value": 1.0 }
     ]
    }, 
-   
-   {
-    "Label": 5102,
-    "Description": "[Checkpoint] Flush database on climb.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
-     { "Property": "Kid Room", "Op": "==", "Value":  8 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 5001 ],
-    
-    "Actions":
-    [
-      { "Type": "Flush Database" }
-    ]
-   }, 
-   
+
    {
     "Label": 5003,
     "Description": "Rewarding kid for advancing to screen 12.",
