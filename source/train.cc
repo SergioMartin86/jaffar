@@ -600,39 +600,42 @@ void Train::framePostprocessing()
   // Calculating how many frames need to be cut
   size_t framesToCut = _globalFrameCounter >_maxGlobalDatabaseSize ? _globalFrameCounter - _maxGlobalDatabaseSize : 0;
 
+  // Approximating to the cutoff score logarithmically
+  size_t globalCurrentFramesCut = _globalFrameCounter;
+
+  // Declaring an initially permissive threshold
+  float currentCutoffScore = -1.0f;
+
+  int passingFramesIdx = 0;
+  if (framesToCut > 0)
+  {
+   float upperBound = _globalBestFrameScore;
+   float lowerBound = 0;
+
+   // With 25 steps of binary search, we're pretty sure we found a balance
+   for (size_t i = 0; i < 25; i++)
+   {
+    // Setting cutoff at the middle
+    currentCutoffScore = std::floor((upperBound + lowerBound) * 0.5f);
+
+    // Adjusting index to the last frame to satisfy the cutoff in the sorted database
+    while (passingFramesIdx < localFrameDatabaseSize && _nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
+    if (passingFramesIdx == localFrameDatabaseSize) passingFramesIdx--;
+    while (passingFramesIdx > 0 && _nextFrameDB[passingFramesIdx]->reward <= currentCutoffScore) passingFramesIdx--;
+    size_t localCurrentFramesCut = localFrameDatabaseSize - passingFramesIdx;
+
+    // Getting global frame cutoff
+    MPI_Allreduce(&localCurrentFramesCut, &globalCurrentFramesCut, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+    // Moving the lower/upper bounds, depending on the case
+    if (globalCurrentFramesCut > framesToCut) upperBound = currentCutoffScore;
+    if (globalCurrentFramesCut < framesToCut) lowerBound = currentCutoffScore;
+   }
+  }
+
   // Finding local best frame reward
   float localBestFrameScore = -std::numeric_limits<float>::infinity();
   if (_nextFrameDB.empty() == false) localBestFrameScore = _nextFrameDB[0]->reward;
-
-  // Finding global best frame reward
-  MPI_Allreduce(&localBestFrameScore, &_globalBestFrameScore, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-
-  // Approximating to the cutoff score logarithmically
-  size_t globalCurrentFramesCut = _globalFrameCounter;
-  float currentCutoffScore = framesToCut > 0 ? _globalBestFrameScore : -1.0f;
-  size_t passingFramesIdx = 0;
-  while(globalCurrentFramesCut > framesToCut && framesToCut > 0 && currentCutoffScore > 5.0f)
-  {
-   // Calculating the number of frames cut with current cutoff
-   while (passingFramesIdx < localFrameDatabaseSize && _nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
-   size_t localCurrentFramesCut = localFrameDatabaseSize - passingFramesIdx;
-
-   // Getting global frame cutoff
-   MPI_Allreduce(&localCurrentFramesCut, &globalCurrentFramesCut, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
-
-   //if (_workerId == 0) printf("Cutoff Score: %f - Frames Cut: %lu/%lu\n", currentCutoffScore, globalCurrentFramesCut, framesToCut);
-   if (globalCurrentFramesCut > framesToCut) currentCutoffScore = currentCutoffScore * 0.99999f;
-   else  currentCutoffScore = currentCutoffScore / 0.99999f; // Reverting the last step
-  }
-
-  // Copying frames which pass the cutoff into the database
-  _currentFrameDB.clear();
-  for (size_t i = 0; i < localFrameDatabaseSize; i++)
-   if (_nextFrameDB[i]->reward >= currentCutoffScore)
-   _currentFrameDB.push_back(std::move(_nextFrameDB[i]));
-
-  // Clearing next frame DB
-  _nextFrameDB.clear();
 
   // If there are remaining frames, find best global frame reward/win
   if (_globalFrameCounter > 0)
@@ -647,7 +650,7 @@ void Train::framePostprocessing()
 
    // Serializing, broadcasting, and deserializing best frame
    char frameBcastBuffer[_frameSerializedSize];
-   if (_workerId == (size_t)globalBestFrameRank) _currentFrameDB[0]->serialize(frameBcastBuffer);
+   if (_workerId == (size_t)globalBestFrameRank) _nextFrameDB[0]->serialize(frameBcastBuffer);
    MPI_Bcast(frameBcastBuffer, 1, _mpiFrameType, globalBestFrameRank, MPI_COMM_WORLD);
    _bestFrame.deserialize(frameBcastBuffer);
    _bestFrame.reward = getFrameReward(_bestFrame);
@@ -670,6 +673,19 @@ void Train::framePostprocessing()
      _winFrameFound = true;
    }
   }
+
+  // Copying frames which pass the cutoff into the database
+  _currentFrameDB.clear();
+  for (size_t i = 0; i < localFrameDatabaseSize; i++)
+   if (_nextFrameDB[i]->reward >= currentCutoffScore)
+   _currentFrameDB.push_back(std::move(_nextFrameDB[i]));
+
+  // Clearing next frame DB
+  _nextFrameDB.clear();
+
+
+  // Finding global best frame reward
+  MPI_Allreduce(&localBestFrameScore, &_globalBestFrameScore, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
 
   // Summing frame processing counters
   MPI_Allreduce(&_localStepFramesProcessedCounter, &_stepFramesProcessedCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);

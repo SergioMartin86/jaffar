@@ -3,6 +3,25 @@
   
   "Rules":
   [
+    {
+    "Label": 5100,
+    "Description": "Setting magnet to make kid go to the right on the first screen and luring guard",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  5 },
+     { "Property": "Kid Room", "Op": "==", "Value":  7 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 7, "Value": 220.0 }
+    ]
+   },
+   
    {
     "Label": 5000,
     "Description": "Setting magnet to make kid go to the right on the first screen and luring guard",
@@ -79,14 +98,33 @@
     
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 10000 },
+     { "Type": "Add Reward", "Value": 2000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 8, "Value": 55.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 8, "Value": 1.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 8, "Value": 1.0 }
     ]
    }, 
-
+   
+   {
+    "Label": 5102,
+    "Description": "[Checkpoint] Flush database on climb.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  5 },
+     { "Property": "Kid Room", "Op": "==", "Value":  8 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 5001 ],
+    
+    "Actions":
+    [
+      { "Type": "Flush Database" }
+    ]
+   }, 
+   
    {
     "Label": 5003,
     "Description": "Rewarding kid for advancing to screen 12.",
@@ -146,7 +184,7 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 2, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 55.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 }
     ]
    },
@@ -157,6 +195,7 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  5 },
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
      { "Property": "Kid Room", "Op": "==", "Value":  15 }
     ],
     
@@ -173,42 +212,61 @@
    },
    
    {
-    "Label": 5007,
-    "Description": "Rewarding kid for advancing to the last screen 18.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
-     { "Property": "Kid Room", "Op": "==", "Value":  18 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 5006 ],
-    
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 15, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 128.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 18 , "Value": 1.0 }
-    ]
-   },
-   
-   {
     "Label": 5008,
     "Description": "Opening Exit door.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
-     { "Property": "Kid Room", "Op": "!=", "Value":  7 }
+     { "Property": "Current Step", "Op": ">", "Value":  50 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 5007 ],
+    "Satisfies": [ 5006 ],
     
     "Actions":
     [ 
      { "Type": "Add Reward", "Value": 1000 }
+    ]
+   },
+   
+   {
+    "Label": 5007,
+    "Description": "Rewarding kid for advancing to the last screen 18.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  5 },
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
+     { "Property": "Kid Room", "Op": "==", "Value":  18 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 5008 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 15, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 115.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 18 , "Value": 1.0 }
+    ]
+   },
+   
+   {
+    "Label": 5017,
+    "Description": "Rewarding kid for starting to climb door.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  5 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  217 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 5008 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 2000 }
     ]
    },
    
@@ -240,7 +298,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 5008 ],
+    "Satisfies": [ 5017 ],
     
     "Actions":
     [
