@@ -104,28 +104,6 @@
    }, 
    
    {
-    "Label": 4032,
-    "Description": "[Checkpoint] Reset on optimal jump",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Kid Room", "Op": "==", "Value":  5 },
-     { "Property": "Kid Frame", "Op": "==", "Value":  40 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  115 },
-     { "Property": "Kid Position X", "Op": "==", "Value":  144 },
-     { "Property": "Kid Frame", "Op": "==", "Value":  40 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Flush Database" }
-    ]
-   },
-   
-   {
     "Label": 4023,
     "Description": "Rewarding kid for advancing to screen 6.",
     "Conditions":
