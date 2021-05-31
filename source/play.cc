@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 
   // Printing info
   printw("[Jaffar] Playing sequence file: %s\n", solutionFile.c_str());
-  printw("[Jaffar] Sequence length: %d frames\n", sequenceLength);
+  printw("[Jaffar] Sequence Size: %d moves.\n", sequenceLength-1);
   printw("[Jaffar] Generating frame sequence...\n");
 
   refresh();

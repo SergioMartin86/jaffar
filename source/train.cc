@@ -115,7 +115,7 @@ void Train::run()
     // Terminate if a winning rule was found
     if (_winFrameFound == true)
     {
-      if (_workerId == 0) printf("[Jaffar] Winning frame reached after %lu steps, finishing...\n", _currentStep);
+      if (_workerId == 0) printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep+1);
       terminate = true;
     }
 
