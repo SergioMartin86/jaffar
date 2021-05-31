@@ -111,7 +111,9 @@
      { "Property": "Current Level", "Op": "==", "Value":  4 },
      { "Property": "Kid Room", "Op": "==", "Value":  5 },
      { "Property": "Kid Frame", "Op": "==", "Value":  40 },
-     { "Property": "Kid Position X", "Op": "==", "Value":  115 }
+     { "Property": "Kid Position Y", "Op": "==", "Value":  115 },
+     { "Property": "Kid Position X", "Op": "==", "Value":  144 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  40 }
     ],
     
     "Dependencies": [ ],
