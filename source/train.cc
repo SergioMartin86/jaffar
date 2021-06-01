@@ -612,8 +612,8 @@ void Train::framePostprocessing()
    float upperBound = _globalBestFrameScore;
    float lowerBound = 0;
 
-   // With 25 steps of binary search, we're pretty sure we found a balance
-   for (size_t i = 0; i < 25; i++)
+   // With 64 steps of binary search, we're pretty sure we found a balance
+   for (size_t i = 0; i < 64; i++)
    {
     // Setting cutoff at the middle
     currentCutoffScore = std::floor((upperBound + lowerBound) * 0.5f);
