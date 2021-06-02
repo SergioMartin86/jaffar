@@ -438,6 +438,14 @@ void Train::distributeFrames()
 
   // Swapping database pointers
   _currentFrameDB = std::move(_nextFrameDB);
+
+  // If global frames exceed 1.3x the maximum allowed, sor and truncate all excessive frames
+  if (_globalFrameCounter > 1.3 * _maxGlobalDatabaseSize)
+   if (_currentFrameDB.size() > _maxLocalDatabaseSize)
+   {
+    boost::sort::block_indirect_sort(_currentFrameDB.begin(), _currentFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+    _currentFrameDB.resize(_maxLocalDatabaseSize);
+   }
 }
 
 void Train::computeFrames()
@@ -612,8 +620,8 @@ void Train::framePostprocessing()
    float upperBound = _globalBestFrameScore;
    float lowerBound = 0;
 
-   // With 64 steps of binary search, we're pretty sure we found a balance
-   for (size_t i = 0; i < 64; i++)
+   // With 24 steps of binary search, we're pretty sure we found a balance
+   for (size_t i = 0; i < 24; i++)
    {
     // Setting cutoff at the middle
     currentCutoffScore = std::floor((upperBound + lowerBound) * 0.5f);
@@ -683,6 +691,9 @@ void Train::framePostprocessing()
   // Clearing next frame DB
   _nextFrameDB.clear();
 
+  // Updating global frame counter
+  size_t localBaseFrameCount = _currentFrameDB.size();
+  MPI_Allreduce(&localBaseFrameCount, &_globalFrameCounter, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
   // Finding global best frame reward
   MPI_Allreduce(&localBestFrameScore, &_globalBestFrameScore, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
