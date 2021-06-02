@@ -65,7 +65,7 @@
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 5, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 1, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 1, "Value": 200.0 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 1, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 1, "Value": 5.0 },
      { "Type": "Set Guard Horizontal Magnet Position", "Room": 1, "Value": 200.0 }
     ]
    },
@@ -197,7 +197,8 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 128.0 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 128.0 },
+     { "Type": "Flush Database" }
     ]
    },
    
@@ -252,7 +253,7 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  8 },
-     { "Property": "Kid Room", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  3 },
      { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
      { "Property": "Kid Position Y", "Op": ">", "Value":  90 }
     ],
