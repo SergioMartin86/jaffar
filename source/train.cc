@@ -1032,10 +1032,7 @@ float Train::getFrameReward(const Frame &frame)
   {
     // Jumphang, because it preludes climbing (Score + 1-20)
     if (curKidFrame >= 67 && curKidFrame <= 80)
-    {
-      float rewardAdd = (float) kidMagnet.intensityY * (0.0f + (curKidFrame - 66));
-      reward += rewardAdd;
-    }
+     reward += (float) kidMagnet.intensityY * (curKidFrame - 66);
 
     // Hang, because it preludes climbing (Score +21)
     if (curKidFrame == 91) reward += 21.0f * (float) kidMagnet.intensityY;

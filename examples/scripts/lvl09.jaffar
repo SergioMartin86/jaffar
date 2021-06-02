@@ -84,8 +84,7 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 4, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 2, "Value": 200.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 2, "Value": 1.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 2, "Value": 1.0 }
     ]
    },
    
@@ -150,7 +149,7 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 15, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 15, "Value": 115 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 15, "Value": 1.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 15, "Value": 10.0 }
     ]
    },
    
@@ -165,10 +164,11 @@
     ],
    
     "Dependencies": [ ],
-    "Satisfies": [ 9005 ],
+    "Satisfies": [ 9006 ],
 
     "Actions":
     [
+      { "Type": "Add Reward", "Value": 1000 },
       { "Type": "Flush Database" }
     ]
    },
@@ -183,7 +183,7 @@
     ],
    
     "Dependencies": [ ],
-    "Satisfies": [ 9006 ],
+    "Satisfies": [ 9106 ],
 
     "Actions":
     [
@@ -210,7 +210,7 @@
 
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Add Reward", "Value": 3000 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 16, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 200.0 }
@@ -232,7 +232,7 @@
 
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Add Reward", "Value": 2000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 20, "Value": 200.0 }
