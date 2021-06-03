@@ -33,6 +33,9 @@ size_t Frame::getSerializationSize()
   // Adding restart condition
   size += sizeof(bool);
 
+  // Adding reward
+  size += sizeof(float);
+
   return size;
 }
 
@@ -58,6 +61,10 @@ void Frame::serialize(char *output)
   // Copying restart flag
   memcpy(&output[currentPos], &isRestart, sizeof(bool));
   currentPos += sizeof(bool);
+
+  // Copying reward
+  memcpy(&output[currentPos], &reward, sizeof(float));
+  currentPos += sizeof(float);
 }
 
 void Frame::deserialize(const char *input)
@@ -84,6 +91,10 @@ void Frame::deserialize(const char *input)
   // Copying restart flag
   memcpy(&isRestart, &input[currentPos], sizeof(bool));
   currentPos += sizeof(bool);
+
+  // Copying reward flag
+  memcpy(&reward, &input[currentPos], sizeof(float));
+  currentPos += sizeof(float);
 }
 
 Frame &Frame::operator=(Frame sourceFrame)
@@ -93,6 +104,7 @@ Frame &Frame::operator=(Frame sourceFrame)
   frameStateData = sourceFrame.frameStateData;
   rulesStatus = sourceFrame.rulesStatus;
   isRestart = sourceFrame.isRestart;
+  reward = sourceFrame.reward;
   return *this;
 }
 
