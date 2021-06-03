@@ -237,25 +237,6 @@
    },
    
    {
-    "Label": 11108,
-    "Description": "[Checkpoint] If climbed, flush.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value": 22 },
-     { "Property": "Kid Position Y", "Op": "==", "Value": 55 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Flush Database" }
-    ]
-   },
-   
-   {
     "Label": 11009,
     "Description": "Keep going to the right.",
     "Conditions":
@@ -274,27 +255,6 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 22, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 24, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 24, "Value": 200.0 }
-    ]
-   },
-   
-   {
-    "Label": 11208,
-    "Description": "[Checkpoint] If climbed, flush.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value": 24 },
-     { "Property": "Kid Position Y", "Op": "==", "Value": 118 },
-     { "Property": "Kid Position X", "Op": "==", "Value": 143 },
-     { "Property": "Kid Frame", "Op": "==", "Value": 15 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Flush Database" }
     ]
    },
    
