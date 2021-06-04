@@ -148,6 +148,25 @@
    },
    
    {
+    "Label": 13198,
+    "Description": "If Jaffar falls or is hit, then fail.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  13 },
+     { "Property": "Guard Position Y", "Op": "!=", "Value":  55 },
+     { "Property": "Guard Room", "Op": "==", "Value":  "Kid Room" }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
     "Label": 13999,
     "Description": "If Kid advances to the next level then win.",
     "Conditions":
