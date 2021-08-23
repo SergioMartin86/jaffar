@@ -418,6 +418,9 @@ void SDLPopInstance::printFrameInfo()
   printf("[Jaffar]  + Reached Checkpoint: %s\n", *checkpoint ? "Yes" : "No");
   printf("[Jaffar]  + Feather Fall: %d\n", *is_feather_fall);
   printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", *random_seed, *last_loose_sound);
+
+  // Level-Specific Settings
+  if (*current_level == 9) printf("[Jaffar]  + Rightmost Door: %d\n", level->bg[349]);
 }
 
 bool SDLPopInstance::isLevelExitDoorOpen()

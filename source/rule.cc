@@ -295,6 +295,9 @@ datatype_t Rule::getPropertyType(const std::string &property)
 
   if (property == "Current Step") return dt_ulong;
 
+  // Level-Specific Properties
+  if (property == "Level 9 Rightmost Door State") return dt_byte;
+
   EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
   return dt_byte;
@@ -347,6 +350,9 @@ void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlP
   if (property == "Is Feather Fall") return sdlPop->is_feather_fall;
   if (property == "Needs Level 1 Music") return sdlPop->need_level1_music;
   if (property == "United With Shadow") return sdlPop->united_with_shadow;
+
+  // Level-Specific Properties
+  if (property == "Level 9 Rightmost Door State") return &sdlPop->level->bg[349];
 
   if (property == "Current Step") return &_currentStep;
 
