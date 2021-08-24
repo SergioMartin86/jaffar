@@ -1114,6 +1114,8 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
   // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
   //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
 
+  return {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 };
+
   // Getting thread id
   int threadId = omp_get_thread_num();
 
