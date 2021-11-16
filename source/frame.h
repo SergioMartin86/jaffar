@@ -2,6 +2,7 @@
 
 #define _FRAME_DATA_SIZE 2710
 #define _MAX_MOVE_SIZE 4
+#define _MAX_FRAME_DIFF 150
 
 #include "nlohmann/json.hpp"
 #include "rule.h"
@@ -21,11 +22,21 @@ class Frame
   // The score calculated for this frame
   float reward;
 
-  // Stores the game state data
-  std::string frameStateData;
-
   // Rule status vector
   std::vector<char> rulesStatus;
+
+  // Positions of the difference with respect to a base frame
+  uint16_t frameDiffCount;
+
+  // Positions of the difference with respect to a base frame
+  uint16_t frameDiffPositions[_MAX_FRAME_DIFF];
+
+  // Values of the difference with respect to a base frame
+  uint8_t frameDiffValues[_MAX_FRAME_DIFF];
+
+  // Differentiation functions
+  void computeFrameDifference(const std::string& baseFrameData, const std::string& newFrameData);
+  std::string getFrameDataFromDifference(const std::string& baseFrameData) const;
 
   // Serialization functions
   static size_t getSerializationSize();

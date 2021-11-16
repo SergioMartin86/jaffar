@@ -137,7 +137,7 @@ void Train::run()
   if (_workerId == 0 && _winFrameFound == true)
   {
     printf("[Jaffar] Win Frame Information:\n");
-    _state[0]->loadState(_globalWinFrame.frameStateData);
+    _state[0]->loadState(_globalWinFrame.getFrameDataFromDifference(_sourceFrameData));
     _sdlPop[0]->printFrameInfo();
 
     printRuleStatus(_globalWinFrame);
@@ -493,7 +493,7 @@ void Train::computeFrames()
         std::string move = _possibleMoves[moveId].c_str();
 
         // Loading frame state
-        _state[threadId]->loadState(baseFrame->frameStateData);
+        _state[threadId]->loadState(baseFrame->getFrameDataFromDifference(_sourceFrameData));
 
         // Perform the selected move
         _sdlPop[threadId]->performMove(move);
@@ -557,7 +557,7 @@ void Train::computeFrames()
         checkSpecialActions(*newFrame);
 
         // Storing the frame data
-        newFrame->frameStateData = _state[threadId]->saveState();
+        newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->saveState());
 
         // Calculating current reward
         newFrame->reward = getFrameReward(*newFrame);
@@ -907,7 +907,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Best Frame Information:\n");
 
-  _state[0]->loadState(_bestFrame.frameStateData);
+  _state[0]->loadState(_bestFrame.getFrameDataFromDifference(_sourceFrameData));
   _sdlPop[0]->printFrameInfo();
   printRuleStatus(_bestFrame);
 
@@ -1120,7 +1120,8 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
   int threadId = omp_get_thread_num();
 
   // Loading frame state
-  _state[threadId]->loadState(frame.frameStateData);
+  std::string frameData = frame.getFrameDataFromDifference(_sourceFrameData);
+  _state[threadId]->loadState(frameData);
 
   // Getting Kid information
   const auto &Kid = *_sdlPop[threadId]->Kid;
@@ -1285,8 +1286,7 @@ Train::Train(int argc, char *argv[])
   auto saveFilePath = program.get<std::string>("--savFile");
 
   // Loading save file contents
-  std::string saveString;
-  bool status = loadStringFromFile(saveString, saveFilePath.c_str());
+  bool status = loadStringFromFile(_sourceFrameData, saveFilePath.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
 
   // Parsing max steps
@@ -1359,7 +1359,7 @@ Train::Train(int argc, char *argv[])
     SDL_Quit();
 
     // Initializing State Handler
-    _state[threadId] = new State(_sdlPop[threadId], saveString);
+    _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
 
    // Adding rules, pointing to the thread-specific sdlpop instances
    for (size_t scriptId = 0; scriptId < scriptFilesJs.size(); scriptId++)
@@ -1453,7 +1453,7 @@ Train::Train(int argc, char *argv[])
     const auto hash = _state[0]->computeHash();
 
     auto initialFrame = std::make_unique<Frame>();
-    initialFrame->frameStateData = _state[0]->saveState();
+    initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->saveState());
     initialFrame->rulesStatus = rulesStatus;
 
     // Evaluating Rules on initial frame
@@ -1512,7 +1512,7 @@ void Train::showSavingLoop()
       if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
       {
         // Saving best frame data
-        saveStringToFile(_bestFrame.frameStateData, _outputSaveBestPath.c_str());
+        saveStringToFile(_bestFrame.getFrameDataFromDifference(_sourceFrameData), _outputSaveBestPath.c_str());
 
         // Storing the solution sequence
         if (_storeMoveList)
@@ -1536,7 +1536,7 @@ void Train::showSavingLoop()
       if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
       {
         // Saving best frame data
-        saveStringToFile(_showFrameDB[currentFrameId].frameStateData, _outputSaveCurrentPath.c_str());
+        saveStringToFile(_showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData), _outputSaveCurrentPath.c_str());
 
         // Storing the solution sequence
         if (_storeMoveList)
@@ -1562,7 +1562,7 @@ void Train::showSavingLoop()
   {
    auto lastFrame = _winFrameFound ? _globalWinFrame : _bestFrame;
 
-   saveStringToFile(lastFrame.frameStateData, _outputSaveBestPath.c_str());
+   saveStringToFile(lastFrame.getFrameDataFromDifference(_sourceFrameData), _outputSaveBestPath.c_str());
 
    // Storing the solution sequence
    if (_storeMoveList)
