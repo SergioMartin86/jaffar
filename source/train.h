@@ -6,8 +6,8 @@
 #include "nlohmann/json.hpp"
 #include "rule.h"
 #include "state.h"
+#include "cbuffer.hpp"
 #include <absl/container/flat_hash_set.h>
-#include <absl/container/flat_hash_map.h>
 #include <algorithm>
 #include <chrono>
 #include <memory>
@@ -92,7 +92,7 @@ class Train
   float _globalBestFrameScore;
 
   // Hash information
-  absl::flat_hash_map<uint64_t, uint16_t> _hashDatabase;
+  cBuffer<absl::flat_hash_set<uint64_t>*> _hashDatabases;
   absl::flat_hash_set<uint64_t> _newHashes;
   size_t _hashAgeThreshold;
   size_t _globalHashCollisions;

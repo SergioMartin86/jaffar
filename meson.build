@@ -11,7 +11,8 @@ inc = include_directories([
  'extern/SDLPoP/src',
  'extern/metrohash64',
  'extern/argparse',
- 'extern/json/single_include'
+ 'extern/json/single_include',
+ 'extern/cbuffer'
   ])
 
 sdlPopFiles = [

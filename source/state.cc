@@ -50,13 +50,13 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   AddItem(&dest, *sdlPop->Guard, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->Char, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->Opp, State::PER_FRAME_STATE);
-  AddItem(&dest, *sdlPop->guardhp_curr, State::HASHABLE);
+  AddItem(&dest, *sdlPop->guardhp_curr, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->guardhp_max, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->demo_index, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->demo_time, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->curr_guard_color, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->guard_notice_timer, State::HASHABLE);
-  AddItem(&dest, *sdlPop->guard_skill, State::HASHABLE);
+  AddItem(&dest, *sdlPop->guard_skill, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->shadow_initialized, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->guard_refrac, State::HASHABLE);
   AddItem(&dest, *sdlPop->justblocked, State::HASHABLE);
@@ -154,8 +154,8 @@ uint64_t State::computeHash() const
     hash.Update(uint8_t(x & 0x1f));
   }
 
-  hash.Update(_sdlPop->level->guards_x);
-  hash.Update(_sdlPop->level->guards_dir);
+//  hash.Update(_sdlPop->level->guards_x);
+  //hash.Update(_sdlPop->level->guards_dir);
   hash.Update(*_sdlPop->mobs, sizeof(mob_type) * (*_sdlPop->mobs_count));
   if (_sdlPop->Guard->alive) hash.Update(*_sdlPop->Guard);
 
@@ -194,6 +194,13 @@ uint64_t State::computeHash() const
     case tiles_30_torch_with_debris:
       break;
     case tiles_11_loose:
+     if (*_sdlPop->current_level == 7)
+     {
+      hash.Update(trob);
+      hash.Update(_sdlPop->level->bg[idx]);
+      hash.Update(_sdlPop->level->fg[idx]);
+     }
+     break;
     case tiles_16_level_door_left:
     case tiles_18_chomper:
     case tiles_2_spike:

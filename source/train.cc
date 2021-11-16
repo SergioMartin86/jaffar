@@ -505,7 +505,9 @@ void Train::computeFrames()
         auto hash = _state[threadId]->computeHash();
 
         // Checking for the existence of the hash in the hash databases
-        bool collisionDetected = _hashDatabase.contains(hash);
+        bool collisionDetected = false;
+        for (ssize_t i = _hashAgeThreshold-1; i >= 0 && collisionDetected == false; i--)
+         collisionDetected |= _hashDatabases[i]->contains(hash);
 
         // If no collision detected with the normal databases, check the new hash DB
         if (collisionDetected == false)
@@ -705,12 +707,6 @@ void Train::framePostprocessing()
 
 void Train::updateHashDatabases()
 {
- // Discarding older hashes
- if (_currentStep % HASHDB_AGE_CUTOFF_FREQ == 0)
-  for (auto hashItr = _hashDatabase.cbegin(); hashItr != _hashDatabase.cend();)
-   if (_currentStep - hashItr->second > _hashAgeThreshold) _hashDatabase.erase(hashItr++);
-   else hashItr++;
-
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();
  std::vector<int> globalNewHashEntryCounts(_workerCount);
@@ -724,6 +720,10 @@ void Train::updateHashDatabases()
 
  // Freeing new hashes vector
  _newHashes.clear();
+
+ // Creating new fresh hash database, discarding an old one
+ delete _hashDatabases[0];
+ _hashDatabases.add(new absl::flat_hash_set<uint64_t>());
 
  // We use one broadcast operation per worker (as opposed to allgatherv) to reduce the amount of memory used at any given time
  for (size_t curWorkerId = 0; curWorkerId < _workerCount; curWorkerId++)
@@ -740,8 +740,7 @@ void Train::updateHashDatabases()
   MPI_Bcast(hashBuffer, workerNewHashCount, MPI_UNSIGNED_LONG, curWorkerId, MPI_COMM_WORLD);
 
   // Adding new hashes into the database
-  for (size_t i = 0; i < workerNewHashCount; i++)
-   _hashDatabase.insert({ ((uint64_t*)hashBuffer)[i], _currentStep});
+  for (size_t i = 0; i < workerNewHashCount; i++) _hashDatabases[_hashAgeThreshold-1]->insert(((uint64_t*)hashBuffer)[i]);
  }
 
  // Finding global collision counter
@@ -898,10 +897,13 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Frame DB Entries: Min %lu (Worker: %lu) / Max %lu (Worker: %lu)\n", _minFrameCount, _minFrameWorkerId, _maxFrameCount, _maxFrameWorkerId);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _globalHashCollisions);
-  printf("[Jaffar] Hash DB Entries: %lu\n", _hashDatabase.size());
+
+  size_t hashDatabasesEntries = 0;
+  for (size_t i = 0; i < _hashDatabases.size(); i++) hashDatabasesEntries += _hashDatabases[i]->size();
+  printf("[Jaffar] Hash DB Entries: %lu\n", hashDatabasesEntries);
 
   printf("[Jaffar] Frame DB Size: Min %.3fmb  / Max: %.3fmb\n", (double)(_minFrameCount * Frame::getSerializationSize()) / (1024.0 * 1024.0), (double)(_maxFrameCount * Frame::getSerializationSize()) / (1024.0 * 1024.0));
-  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_hashDatabase.size() * sizeof(std::pair<uint64_t, uint32_t>)) / (1024.0 * 1024.0));
+  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(hashDatabasesEntries * sizeof(uint64_t)) / (1024.0 * 1024.0));
 
   printf("[Jaffar] Best Frame Information:\n");
 
@@ -1440,6 +1442,10 @@ Train::Train(int argc, char *argv[])
   // Initializing frame counts per worker
   _localBaseFrameCounts.resize(_workerCount);
 
+  // Adding hash databases (one per move up to the given threshold).
+  _hashDatabases.resize(_hashAgeThreshold);
+  for (size_t i = 0; i < _hashAgeThreshold; i++) _hashDatabases.add(new absl::flat_hash_set<uint64_t>());
+
   // Creating initial frame on the root rank
   if (_workerId == 0)
   {
@@ -1457,7 +1463,7 @@ Train::Train(int argc, char *argv[])
     initialFrame->reward = getFrameReward(*initialFrame);
 
     // Registering hash for initial frame
-    _hashDatabase.insert({ hash, 0 });
+    _hashDatabases[_hashAgeThreshold-1]->insert({ hash, 0 });
 
     // Copying initial frame into the best frame
     _bestFrame = *initialFrame;
