@@ -12,8 +12,11 @@ Frame::Frame()
   // Two moves fit in one byte
   moveHistory.resize(_moveListStorageSize);
 
-  // Setting i nitial value of the restart flag
+  // Setting initial value of the restart flag
   isRestart = false;
+
+  // Setting initially with no differences wrt base frame
+  frameDiffCount = 0;
 }
 
 size_t Frame::getSerializationSize()
@@ -147,11 +150,15 @@ void Frame::computeFrameDifference(const std::string& baseFrameData, const std::
  for (uint16_t i = 0; i < baseFrameData.size(); i++)
   if (baseFrameData[i] != newFrameData[i])
   {
-   if (frameDiffCount == _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[ERROR] Frame exceeded maximum frame differences: %u\n", _MAX_FRAME_DIFF);
-   frameDiffPositions[frameDiffCount] = i;
-   frameDiffValues[frameDiffCount] = newFrameData[i];
+   if (frameDiffCount < _MAX_FRAME_DIFF)
+   {
+    frameDiffPositions[frameDiffCount] = i;
+    frameDiffValues[frameDiffCount] = newFrameData[i];
+   }
    frameDiffCount++;
   }
+
+ if (frameDiffCount >= _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[ERROR] Frame exceeded maximum frame differences: %u/%u\n", frameDiffCount, _MAX_FRAME_DIFF);
 }
 
 std::string Frame::getFrameDataFromDifference(const std::string& baseFrameData) const

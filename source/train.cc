@@ -495,11 +495,17 @@ void Train::computeFrames()
         // Loading frame state
         _state[threadId]->loadState(baseFrame->getFrameDataFromDifference(_sourceFrameData));
 
+        // Getting current level
+        auto curLevel = *_sdlPop[threadId]->current_level;
+
         // Perform the selected move
         _sdlPop[threadId]->performMove(move);
 
         // Advance a single frame
         _sdlPop[threadId]->advanceFrame();
+
+        // Getting new level (if changed)
+        auto newLevel = *_sdlPop[threadId]->current_level;
 
         // Compute hash value
         auto hash = _state[threadId]->computeHash();
@@ -556,8 +562,8 @@ void Train::computeFrames()
         // Check special actions for this state
         checkSpecialActions(*newFrame);
 
-        // Storing the frame data
-        newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->saveState());
+        // Storing the frame data, only if if belongs to the same level
+        if (curLevel == newLevel) newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->saveState());
 
         // Calculating current reward
         newFrame->reward = getFrameReward(*newFrame);
