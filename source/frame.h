@@ -1,7 +1,6 @@
 #pragma once
 
 #define _FRAME_DATA_SIZE 2710
-#define _MAX_MOVE_SIZE 4
 #define _MAX_FRAME_DIFF 176
 
 #include "nlohmann/json.hpp"
@@ -53,3 +52,4 @@ class Frame
 extern size_t _ruleCount;
 extern size_t _maxSteps;
 extern size_t _moveListStorageSize;
+extern size_t _maxFrameDiff;

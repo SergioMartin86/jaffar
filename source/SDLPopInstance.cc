@@ -229,13 +229,14 @@ size_t SDLPopInstance::getElapsedMilisecs()
  return ceil( ((double)((720 - *rem_tick) % 12) * (60.0 / 720.0)) * 1000.0 );
 }
 
-void SDLPopInstance::draw()
+void SDLPopInstance::draw(ssize_t mins, ssize_t secs, ssize_t ms)
 {
   restore_room_after_quick_load();
   draw_game_frame();
 
   char IGTText[512];
-  sprintf(IGTText, "IGT %2lu:%02lu.%03lu", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
+  if (mins >= 0) sprintf(IGTText, "IGT %2lu:%02lu.%03lu", mins, secs, ms);
+  else sprintf(IGTText, "Cumulative IGT %2lu:%02lu.%03lu", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
   display_text_bottom(IGTText);
   update_screen();
   do_simple_wait(timer_1);

@@ -20,9 +20,6 @@
 // Number of frames to cache for showing purposes
 #define SHOW_FRAME_COUNT 1000
 
-// Hash database age cutoff frequency
-#define HASHDB_AGE_CUTOFF_FREQ 10
-
 // Struct to hold all of the frame's magnet information
 struct magnetInfo_t
 {
@@ -66,7 +63,7 @@ class Train
   std::vector<State *> _state;
   std::vector<std::vector<Rule *>> _rules;
 
-  // Remember source frame data for differential load/save
+  // Storage for source frame data for differential load/save
   std::string _sourceFrameData;
 
   // Frame counter

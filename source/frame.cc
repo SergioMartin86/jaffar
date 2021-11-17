@@ -5,7 +5,7 @@ size_t _moveListStorageSize;
 size_t _ruleCount;
 size_t _maxSteps;
 bool _storeMoveList;
-
+size_t _maxFrameDiff;
 
 Frame::Frame()
 {
@@ -143,6 +143,7 @@ void Frame::computeFrameDifference(const std::string& baseFrameData, const std::
    frameDiffCount++;
   }
 
+ if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
  if (frameDiffCount >= _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[ERROR] Frame exceeded maximum frame differences: %u/%u\n", frameDiffCount, _MAX_FRAME_DIFF);
 }
 

@@ -111,7 +111,7 @@ class SDLPopInstance
   void setSeed(const dword randomSeed);
 
   // Draw a single frame
-  void draw();
+  void draw(ssize_t mins = -1, ssize_t secs = -1, ssize_t ms = -1);
 
   // Perform a single move
   void performMove(const std::string &move);

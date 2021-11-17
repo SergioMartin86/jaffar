@@ -139,7 +139,7 @@ void Train::run()
   {
     printf("[Jaffar] Win Frame Information:\n");
     size_t curMins = _currentStep / 720;
-    size_t curSecs = (_currentStep - (curMins * 60)) / 12;
+    size_t curSecs = (_currentStep - (curMins * 720)) / 12;
     size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
     _state[0]->loadState(_globalWinFrame.getFrameDataFromDifference(_sourceFrameData));
@@ -851,11 +851,11 @@ void Train::printTrainStatus()
   printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
 
   size_t curMins = _currentStep / 720;
-  size_t curSecs = (_currentStep - (curMins * 60)) / 12;
+  size_t curSecs = (_currentStep - (curMins * 720)) / 12;
   size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
 
   size_t maxMins = _maxSteps / 720;
-  size_t maxSecs = (_maxSteps - (maxMins * 60)) / 12;
+  size_t maxSecs = (_maxSteps - (maxMins * 720)) / 12;
   size_t maxMilliSecs = ceil((double)(_maxSteps - (maxMins * 720) - (maxSecs * 12)) / 0.012);
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
@@ -864,7 +864,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
-
+  printf("[Jaffar] Max Frame Diff: %lu\n", _maxFrameDiff);
   printf("[Jaffar] Frame Distribution Time:   %3.3fs\n", _frameDistributionTime / 1.0e+9);
   printf("[Jaffar] Frame Computation Time:    %3.3fs\n", _frameComputationTime / 1.0e+9);
   printf("[Jaffar] Hash Postprocessing Time:  %3.3fs\n", _hashPostprocessingTime / 1.0e+9);
@@ -1410,6 +1410,9 @@ Train::Train(int argc, char *argv[])
   _hasFinalized = false;
   _globalHashCollisions = 0;
   _globalBestFrameScore = 0;
+
+  // Maximum difference between explored frames and the pivot frame
+  _maxFrameDiff = 0;
 
   // Setting win status
   _winFrameFound = false;

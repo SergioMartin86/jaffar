@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
   SDL_SetWindowTitle(*showSDLPop.window_, "Jaffar Play");
 
   // Printing initial frame info
-  showSDLPop.draw();
+  showSDLPop.draw(0,0,0);
 
   // Variable for current step in view
   int currentStep = 1;
@@ -174,6 +174,11 @@ int main(int argc, char *argv[])
    printw("[Jaffar]  g: set RNG | l: loose tile sound | s: quicksave | r: create replay | q: quit  \n");
    printw("[Jaffar]  1: set lvl1 music \n");
   }
+  else
+  {
+   printw("[Jaffar] Press key to start reproduction...\n");
+   getKeyPress();
+  }
 
   // Flag to display frame information
   bool showFrameInfo = true;
@@ -185,24 +190,24 @@ int main(int argc, char *argv[])
     // Loading requested step
     showState.loadState(frameSequence[currentStep - 1]);
 
+    // Calculating times
+    size_t timeStep = currentStep - 1;
+    size_t curMins = timeStep / 720;
+    size_t curSecs = (timeStep - (curMins * 720)) / 12;
+    size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+
+    size_t maxStep = sequenceLength - 1;
+    size_t maxMins = maxStep / 720;
+    size_t maxSecs = (maxStep - (maxMins * 720)) / 12;
+    size_t maxMilliSecs = ceil((double)(maxStep - (maxMins * 720) - (maxSecs * 12)) / 0.012);
+
     // Draw requested step
-    showSDLPop.draw();
+    showSDLPop.draw(curMins, curSecs, curMilliSecs);
 
     if (showFrameInfo)
     {
       printw("[Jaffar] ----------------------------------------------------------------\n");
       printw("[Jaffar] Current Step #: %d / %d\n", currentStep, sequenceLength);
-
-      size_t timeStep = currentStep - 1;
-      size_t curMins = timeStep / 720;
-      size_t curSecs = (timeStep - (curMins * 60)) / 12;
-      size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
-
-      size_t maxStep = sequenceLength - 1;
-      size_t maxMins = maxStep / 720;
-      size_t maxSecs = (maxStep - (maxMins * 60)) / 12;
-      size_t maxMilliSecs = ceil((double)(maxStep - (maxMins * 720) - (maxSecs * 12)) / 0.012);
-
       printw("[Jaffar]  + Current IGT:    %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
       printw("[Jaffar]  + Cumulative IGT: %2lu:%02lu.%03lu\n", showSDLPop.getElapsedMins(), showSDLPop.getElapsedSecs(), showSDLPop.getElapsedMilisecs());
       printw("[Jaffar]  + Move: %s\n", moveList[currentStep - 1].c_str());
@@ -246,7 +251,7 @@ int main(int argc, char *argv[])
     if (isReproduce)
     {
      currentStep = currentStep + 1;
-     if (currentStep > sequenceLength) break;
+     if (currentStep == sequenceLength) isReproduce = false;
      continue;
     }
 
