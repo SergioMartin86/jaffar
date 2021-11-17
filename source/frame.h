@@ -2,7 +2,7 @@
 
 #define _FRAME_DATA_SIZE 2710
 #define _MAX_MOVE_SIZE 4
-#define _MAX_FRAME_DIFF 200
+#define _MAX_FRAME_DIFF 176
 
 #include "nlohmann/json.hpp"
 #include "rule.h"
@@ -42,9 +42,6 @@ class Frame
   static size_t getSerializationSize();
   void serialize(char *output);
   void deserialize(const char *input);
-
-  // Additional local metadata
-  bool isRestart;
 
   // Move r/w operations
   void setMove(const size_t idx, const uint8_t move);

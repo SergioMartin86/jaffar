@@ -119,9 +119,6 @@ class Train
   // SDLPop instance and Id for the show thread
   pthread_t _showThreadId;
 
-  // Database flushing rule mask
-  std::vector<uint8_t> _flushingMask;
-
   // Flag to indicate finalization
   bool _hasFinalized;
 
@@ -169,8 +166,6 @@ class Train
   void checkSpecialActions(const Frame &frame);
   bool checkFail(const Frame &frame);
   bool checkWin(const Frame &frame);
-  bool checkFlush(const Frame &frame);
-  void addFlushMask(const Frame &frame);
 
   // Function to get the static rewards obtained from rules
   float getRuleRewards(const Frame &frame);

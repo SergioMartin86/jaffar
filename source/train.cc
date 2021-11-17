@@ -138,6 +138,10 @@ void Train::run()
   if (_workerId == 0 && _winFrameFound == true)
   {
     printf("[Jaffar] Win Frame Information:\n");
+    size_t curMins = _currentStep / 720;
+    size_t curSecs = (_currentStep - (curMins * 60)) / 12;
+    size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+    printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
     _state[0]->loadState(_globalWinFrame.getFrameDataFromDifference(_sourceFrameData));
     _sdlPop[0]->printFrameInfo();
 
@@ -474,13 +478,6 @@ void Train::computeFrames()
       // Getting possible moves for the current frame
       std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
 
-      // If the restart flag is activated, then also try hitting Ctrl+A
-      if (baseFrame->isRestart == true)
-      {
-       possibleMoveIds.push_back(14);
-       baseFrame->isRestart = false;
-      }
-
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
       {
@@ -548,12 +545,6 @@ void Train::computeFrames()
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
 
-        // Check whether the frame needs to be flushed because it didn't reach a certain checkpoint
-        bool isFlushedFrame = checkFlush(*newFrame);
-
-        // If frame is to be flushed, discard it and proceed to the next one
-        if (isFlushedFrame) continue;
-
         // Checks whether any fail rules were activated
         bool isFailFrame = checkFail(*newFrame);
 
@@ -580,9 +571,6 @@ void Train::computeFrames()
            _localWinFrame = *newFrame;
         }
 
-        // Contributing to flush mask
-        addFlushMask(*newFrame);
-
         // Adding novel frame in the next frame database
         newThreadFrames.push_back(std::move(newFrame));
       }
@@ -600,10 +588,6 @@ void Train::computeFrames()
 
 void Train::framePostprocessing()
 {
-  // Updating flushing mask globally
-  auto localFlushMask = _flushingMask;
-  MPI_Allreduce(localFlushMask.data(), _flushingMask.data(), _ruleCount, MPI_UINT8_T, MPI_BOR, MPI_COMM_WORLD);
-
   // Clearing current frame DB
   _currentFrameDB.clear();
 
@@ -828,29 +812,6 @@ bool Train::checkWin(const Frame &frame)
  return false;
 }
 
-bool Train::checkFlush(const Frame &frame)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  if (_flushingMask[ruleId] == 1 && frame.rulesStatus[ruleId] == false)
-   return true;
-
- return false;
-}
-
-void Train::addFlushMask(const Frame &frame)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-   if (_rules[threadId][ruleId]->_isFlushRule == true)
-    _flushingMask[ruleId] = 1;
-}
-
 float Train::getRuleRewards(const Frame &frame)
 {
  // Getting thread id
@@ -882,9 +843,6 @@ void Train::satisfyRule(Frame &frame, const size_t ruleId)
 
  // Setting status to satisfied
  frame.rulesStatus[ruleId] = true;
-
- // It it contained a restart action, set it now (so it doesn't repeat later)
- if (_rules[threadId][ruleId]->_isRestartRule) frame.isRestart = true;
 }
 
 void Train::printTrainStatus()
@@ -1146,6 +1104,10 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
   // If dead, do nothing
   if (Kid.alive >= 0)
     return {0};
+
+  // For level 1, if kid touches ground and music plays, try restarting level
+  if (Kid.frame == 109 && *_sdlPop[threadId]->need_level1_music == 33)
+    return {0, 14};
 
   // If bumped, nothing to do
   if (Kid.action == actions_5_bumped)
@@ -1431,9 +1393,6 @@ Train::Train(int argc, char *argv[])
      if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as satisfied by rule %lu.\n", label, satisfiedId);
     }
   }
-
-  // Allocating database flushing mask
-  _flushingMask.resize(_ruleCount, 0);
 
   printf("[Jaffar] MPI Rank %lu/%lu: SDLPop initialized.\n", _workerId, _workerCount);
   fflush(stdout);

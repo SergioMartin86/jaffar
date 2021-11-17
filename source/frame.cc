@@ -12,9 +12,6 @@ Frame::Frame()
   // Two moves fit in one byte
   moveHistory.resize(_moveListStorageSize);
 
-  // Setting initial value of the restart flag
-  isRestart = false;
-
   // Setting initially with no differences wrt base frame
   frameDiffCount = 0;
 }
@@ -34,9 +31,6 @@ size_t Frame::getSerializationSize()
 
   // Adding rule status information
   size += _ruleCount * sizeof(char);
-
-  // Adding restart condition
-  size += sizeof(bool);
 
   // Adding reward
   size += sizeof(float);
@@ -66,10 +60,6 @@ void Frame::serialize(char *output)
   // Copying Rule status information
   memcpy(&output[currentPos], rulesStatus.data(), _ruleCount * sizeof(char));
   currentPos += _ruleCount * sizeof(char);
-
-  // Copying restart flag
-  memcpy(&output[currentPos], &isRestart, sizeof(bool));
-  currentPos += sizeof(bool);
 
   // Copying reward
   memcpy(&output[currentPos], &reward, sizeof(float));
@@ -101,10 +91,6 @@ void Frame::deserialize(const char *input)
   memcpy(rulesStatus.data(), &input[currentPos], _ruleCount * sizeof(char));
   currentPos += _ruleCount * sizeof(char);
 
-  // Copying restart flag
-  memcpy(&isRestart, &input[currentPos], sizeof(bool));
-  currentPos += sizeof(bool);
-
   // Copying reward flag
   memcpy(&reward, &input[currentPos], sizeof(float));
   currentPos += sizeof(float);
@@ -117,7 +103,6 @@ Frame &Frame::operator=(Frame sourceFrame)
   memcpy(frameDiffPositions, sourceFrame.frameDiffPositions, _MAX_FRAME_DIFF * sizeof(uint16_t));
   memcpy(frameDiffValues, sourceFrame.frameDiffValues, _MAX_FRAME_DIFF * sizeof(uint8_t));
   rulesStatus = sourceFrame.rulesStatus;
-  isRestart = sourceFrame.isRestart;
   reward = sourceFrame.reward;
   return *this;
 }

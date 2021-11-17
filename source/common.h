@@ -1,3 +1,3 @@
 #pragma once
 
-#define JAFFAR_VERSION "1.1.0"
+#define JAFFAR_VERSION "1.2.0"
