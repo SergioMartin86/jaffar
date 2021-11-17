@@ -47,7 +47,7 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   AddItem(&dest, *sdlPop->pickup_obj_type, State::HASHABLE);
   AddItem(&dest, *sdlPop->offguard, State::HASHABLE);
   // guard
-  AddItem(&dest, *sdlPop->Guard, State::PER_FRAME_STATE);
+  AddItem(&dest, *sdlPop->Guard, State::HASHABLE);
   AddItem(&dest, *sdlPop->Char, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->Opp, State::PER_FRAME_STATE);
   AddItem(&dest, *sdlPop->guardhp_curr, State::PER_FRAME_STATE);
@@ -138,27 +138,18 @@ uint64_t State::kidHash() const
 
 uint64_t State::computeHash() const
 {
+  // Storage for hash calculation
   MetroHash64 hash;
-  for (const auto &item : _items)
-  {
-    if (item.type == HASHABLE)
-    {
-      hash.Update(item.ptr, item.size);
-    }
-  }
 
-  // manual hashes
-  // hash.Update(_sdlPop->level->fg);
-  for (const uint8_t x : _sdlPop->level->fg)
-  {
-    hash.Update(uint8_t(x & 0x1f));
-  }
+  // For items that are automatically hashable, do that now
+  for (const auto &item : _items) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
 
-//  hash.Update(_sdlPop->level->guards_x);
-  //hash.Update(_sdlPop->level->guards_dir);
-  hash.Update(*_sdlPop->mobs, sizeof(mob_type) * (*_sdlPop->mobs_count));
-  if (_sdlPop->Guard->alive) hash.Update(*_sdlPop->Guard);
+  // Manual hashing
 
+  // Mobs are moving objects (falling tiles only afaik). For these, only handle position x information (identifies tile, but invariable of state)
+  for (int i = 0; i < *_sdlPop->mobs_count; i++) hash.Update(&_sdlPop->mobs[i]->xh, sizeof(byte));
+
+  // Trobs are stationary animated objects.
   for (int i = 0; i < *_sdlPop->trobs_count; ++i)
   {
     const auto &trob = (*_sdlPop->trobs)[i];
@@ -176,7 +167,6 @@ uint64_t State::computeHash() const
     case tiles_9_bigpillar_top:
     case tiles_10_potion:
     case tiles_12_doortop:
-    case tiles_13_mirror:
     case tiles_14_debris:
     case tiles_15_opener:
     case tiles_17_level_door_right:
@@ -193,18 +183,16 @@ uint64_t State::computeHash() const
     case tiles_29_lattice_right:
     case tiles_30_torch_with_debris:
       break;
-    case tiles_11_loose:
-     if (*_sdlPop->current_level == 7)
-     {
-      hash.Update(trob);
-      hash.Update(_sdlPop->level->bg[idx]);
-      hash.Update(_sdlPop->level->fg[idx]);
-     }
-     break;
+    case tiles_11_loose: // For loose tiles, we care that they have been disturbed (not the specific state)
+      hash.Update(idx);
+    case tiles_4_gate: // For gates and loose tiles, we only care that they are in movement (not specific state)
+      hash.Update(idx);
+      break;
+    // For the following cases, we care of the state of the tile
+    case tiles_13_mirror:
     case tiles_16_level_door_left:
     case tiles_18_chomper:
     case tiles_2_spike:
-    case tiles_4_gate:
       hash.Update(trob);
       hash.Update(_sdlPop->level->bg[idx]);
       hash.Update(_sdlPop->level->fg[idx]);

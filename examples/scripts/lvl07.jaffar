@@ -232,8 +232,8 @@
      { "Property": "Kid Position Y", "Op": "==", "Value":  181 }
     ],
    
-    "Dependencies": [ 7007 ],
-    "Satisfies": [ ],
+    "Dependencies": [ ],
+    "Satisfies": [ 7009, 7008, 7007 ],
     
     "Actions":
     [
@@ -253,7 +253,7 @@
     ],
    
     "Dependencies": [ ],
-    "Satisfies": [ 7009, 7008 ],
+    "Satisfies": [ 7110 ],
     
     "Actions":
     [
