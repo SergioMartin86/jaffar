@@ -155,7 +155,7 @@
    
    {
     "Label": 9106,
-    "Description": "[Checkpoint] Flush database on climbed room 15",
+    "Description": "[Checkpoint] Climbed room 15",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  9 },
@@ -168,8 +168,7 @@
 
     "Actions":
     [
-      { "Type": "Add Reward", "Value": 1000 },
-      { "Type": "Flush Database" }
+      { "Type": "Add Reward", "Value": 1000 }
     ]
    },
    
@@ -190,8 +189,7 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 15, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 15, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 16, "Value": 1.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 16, "Value": 1.0 }
     ]
    },
    
@@ -321,8 +319,7 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 12, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 18, "Value": 160.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 18, "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 18, "Value": 1.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 18, "Value": 1.0 }
     ]
    },
    
@@ -406,25 +403,6 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 19, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 19, "Value": 55.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 19, "Value": 1.0 }
-    ]
-   },
-   
-   {
-    "Label": 9117,
-    "Description": "[Checkpoint] After climbing, flush the database",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  9 },
-     { "Property": "Kid Room", "Op": "==", "Value":  19 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
-    ],
-   
-    "Dependencies": [ ],
-    "Satisfies": [ 9016 ],
-
-    "Actions":
-    [
-     { "Type": "Flush Database" }
     ]
    },
    

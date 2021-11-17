@@ -192,7 +192,17 @@ int main(int argc, char *argv[])
     {
       printw("[Jaffar] ----------------------------------------------------------------\n");
       printw("[Jaffar] Current Step #: %d / %d\n", currentStep, sequenceLength);
-      printw("[Jaffar]  + IGT: %2lu:%02lu.%03lu\n", showSDLPop.getElapsedMins(), showSDLPop.getElapsedSecs(), showSDLPop.getElapsedMilisecs());
+
+      size_t curMins = currentStep / 720;
+      size_t curSecs = (currentStep - (curMins * 60)) / 12;
+      size_t curMilliSecs = ceil((double)(currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+
+      size_t maxMins = sequenceLength / 720;
+      size_t maxSecs = (sequenceLength - (maxMins * 60)) / 12;
+      size_t maxMilliSecs = ceil((double)(sequenceLength - (maxMins * 720) - (maxSecs * 12)) / 0.012);
+
+      printw("[Jaffar]  + Current IGT:    %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
+      printw("[Jaffar]  + Cumulative IGT: %2lu:%02lu.%03lu\n", showSDLPop.getElapsedMins(), showSDLPop.getElapsedSecs(), showSDLPop.getElapsedMilisecs());
       printw("[Jaffar]  + Move: %s\n", moveList[currentStep - 1].c_str());
 
       printw("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Fall.x: %d, Fall.y: %d, Frame: %3d, HP: %d/%d, Direction: %d\n",

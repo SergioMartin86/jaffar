@@ -63,8 +63,7 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 4, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 9, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 9, "Value": 55.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 9, "Value": 1.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 9, "Value": 1.0 }
     ]
    },
   
@@ -110,8 +109,7 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 1, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 7, "Value": 220.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 7, "Value": 1 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 7, "Value": 1 }
     ]
    },
    
@@ -179,8 +177,7 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 24, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 14, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 14, "Value": 55.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 14, "Value": 1.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 14, "Value": 1.0 }
     ]
    },
    
@@ -225,8 +222,7 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 12, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 12, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 19, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 19, "Value": 0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 19, "Value": 0 }
     ]
    },
    
@@ -248,8 +244,7 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 19, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 15, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 15, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 15, "Value": 55 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 15, "Value": 55 }
     ]
    },
    

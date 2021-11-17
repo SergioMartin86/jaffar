@@ -103,8 +103,7 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 6, "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 6,  "Value": 0.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 6,  "Value": 0.0 }
     ]
    },
    
@@ -195,25 +194,6 @@
    },
    
    {
-    "Label": 2108,
-    "Description": "[Checkpoint] Flush on climb.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": "==", "Value":  11 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Flush Database" }
-    ]
-   },
-   
-   {
     "Label": 2010,
     "Description": "[Checkpoint] Keep going left.",
     "Conditions":
@@ -291,8 +271,7 @@
     
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Flush Database" }
+     { "Type": "Add Reward", "Value": 1000 }
     ]
    },
    
@@ -382,25 +361,6 @@
    },
    
    {
-    "Label": 2116,
-    "Description": "[Checkpoint] Resetting DB on climb.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": "==", "Value":  21 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Flush Database" }
-    ]
-   },
-   
-   {
     "Label": 2017,
     "Description": "Go up now, preventing the kid from going back to the previous screen",
     "Conditions":
@@ -462,8 +422,7 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 9, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 9, "Value": 55 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 9, "Value": 55 }
     ]
    },
    

@@ -15,6 +15,7 @@ void Train::run()
     printf("[Jaffar] Using configuration file(s): "); for (size_t i = 0; i < _scriptFiles.size(); i++) printf("%s ", _scriptFiles[i].c_str()); printf("\n");
     printf("[Jaffar] Starting search with %lu workers.\n", _workerCount);
     printf("[Jaffar] Frame DB entries per worker: %lu\n", _maxLocalDatabaseSize);
+    printf("[Jaffar] Serialized Frame Size: %lu.\n", _frameSerializedSize);
 
     if (_outputSaveBestSeconds > 0)
     {
@@ -890,6 +891,16 @@ void Train::printTrainStatus()
 {
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
+
+  size_t curMins = _currentStep / 720;
+  size_t curSecs = (_currentStep - (curMins * 60)) / 12;
+  size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+
+  size_t maxMins = _maxSteps / 720;
+  size_t maxSecs = (_maxSteps - (maxMins * 60)) / 12;
+  size_t maxMilliSecs = ceil((double)(_maxSteps - (maxMins * 720) - (maxSecs * 12)) / 0.012);
+
+  printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _globalBestFrameScore);
   printf("[Jaffar] Database Size: %lu / ~%lu\n", _globalFrameCounter, _maxLocalDatabaseSize * _workerCount);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);

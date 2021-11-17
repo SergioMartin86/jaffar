@@ -125,8 +125,7 @@
 
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 10000 },
-     { "Type": "Flush Database" }
+     { "Type": "Add Reward", "Value": 10000 }
     ]
    },
 

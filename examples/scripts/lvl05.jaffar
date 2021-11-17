@@ -37,6 +37,7 @@
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 0.0 },
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 9, "Value": 1.0 },
      { "Type": "Set Guard Horizontal Magnet Position", "Room": 9, "Value": 55.0 }
     ]
@@ -65,25 +66,6 @@
    },
    
    {
-    "Label": 5101,
-    "Description": "[Checkpoint] Climbing triggers database flush.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
-     { "Property": "Kid Room", "Op": "==", "Value":  9 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-      { "Type": "Flush Database" }
-    ]
-   },
-   
-   {
     "Label": 5002,
     "Description": "Rewarding kid for crossing the door.",
     "Conditions":
@@ -103,25 +85,6 @@
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 8, "Value": 55.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 8, "Value": 1.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 8, "Value": 1.0 }
-    ]
-   }, 
-   
-   {
-    "Label": 5102,
-    "Description": "[Checkpoint] Flush database on climb.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
-     { "Property": "Kid Room", "Op": "==", "Value":  8 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 5001 ],
-    
-    "Actions":
-    [
-      { "Type": "Flush Database" }
     ]
    }, 
    

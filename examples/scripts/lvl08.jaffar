@@ -197,8 +197,7 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 128.0 },
-     { "Type": "Flush Database" }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 128.0 }
     ]
    },
    

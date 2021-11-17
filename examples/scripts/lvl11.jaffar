@@ -67,27 +67,6 @@
    },
   
    {
-    "Label": 11120,
-    "Description": "[Checkpoint] Once climbed, flush database",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value": 14 },
-     { "Property": "Kid Position X", "Op": "==", "Value": 101 },
-     { "Property": "Kid Position Y", "Op": "==", "Value": 181 },
-     { "Property": "Kid Frame", "Op": "==", "Value": 15 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Flush Database" }
-    ]
-   },
-   
-   {
     "Label": 11002,
     "Description": "Reward Kid for arriving in the ceiling, and keep going right.",
     "Conditions":
