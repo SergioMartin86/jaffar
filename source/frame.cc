@@ -10,7 +10,7 @@ size_t _maxFrameDiff;
 Frame::Frame()
 {
   // Two moves fit in one byte
-  moveHistory.resize(_moveListStorageSize);
+  if (_storeMoveList) moveHistory.resize(_moveListStorageSize);
 
   // Setting initially with no differences wrt base frame
   frameDiffCount = 0;

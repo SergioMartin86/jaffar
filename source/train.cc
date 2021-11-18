@@ -1231,6 +1231,10 @@ Train::Train(int argc, char *argv[])
     .action([](const std::string& value) { return std::stoul(value); })
     .required();
 
+  program.add_argument("--RNGSeed")
+    .help("Specifies a user-defined RNG seed to use.")
+    .default_value(std::string("Default"));
+
   program.add_argument("--disableHistory")
     .help("Do not store the move history during training to save memory.")
     .default_value(false)
@@ -1257,6 +1261,12 @@ Train::Train(int argc, char *argv[])
 
   // Getting savefile path
   auto saveFilePath = program.get<std::string>("--savFile");
+
+  // Getting user-defined RNG seed
+  auto RNGSeedSetting = program.get<std::string>("--RNGSeed");
+  bool overrideRNGSeedActive = false;
+  int overrideRNGSeedValue = 0;
+  if (RNGSeedSetting != "Default") { overrideRNGSeedActive = true; overrideRNGSeedValue = std::stoi(RNGSeedSetting); }
 
   // Loading save file contents
   bool status = loadStringFromFile(_sourceFrameData, saveFilePath.c_str());
@@ -1333,6 +1343,15 @@ Train::Train(int argc, char *argv[])
 
     // Initializing State Handler
     _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
+
+    //If overriding seed, do it now
+    if (overrideRNGSeedActive == true)
+    {
+     _sdlPop[threadId]->setSeed(overrideRNGSeedValue);
+     _sourceFrameData = _state[threadId]->saveState();
+     delete(_state[threadId]);
+     _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
+    }
 
    // Adding rules, pointing to the thread-specific sdlpop instances
    for (size_t scriptId = 0; scriptId < scriptFilesJs.size(); scriptId++)
