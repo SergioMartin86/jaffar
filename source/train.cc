@@ -97,7 +97,7 @@ void Train::run()
     // 4) Workers exchange hash information and update hash databases
     MPI_Barrier(MPI_COMM_WORLD);                                   // Profiling
     auto hashExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
-    updateHashDatabases();
+    hashPostprocessing();
     MPI_Barrier(MPI_COMM_WORLD);                                                                                                   // Profiling
     auto hashExchangeTimeEnd = std::chrono::steady_clock::now();                                                                   // Profiling
     _hashPostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashExchangeTimeEnd - hashExchangeTimeBegin).count(); // Profiling
@@ -696,7 +696,7 @@ void Train::framePostprocessing()
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
 }
 
-void Train::updateHashDatabases()
+void Train::hashPostprocessing()
 {
  // Gathering number of new hash entries
  int localNewHashEntryCount = (int)_newHashes.size();

@@ -144,7 +144,7 @@ class Train
   void distributeFrames();
 
   // Sharing hash entries among workers and cut hash tables databases to size
-  void updateHashDatabases();
+  void hashPostprocessing();
 
   // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
   void addHashEntry(uint64_t hash);

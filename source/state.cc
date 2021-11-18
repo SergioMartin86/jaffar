@@ -183,16 +183,16 @@ uint64_t State::computeHash() const
     case tiles_29_lattice_right:
     case tiles_30_torch_with_debris:
       break;
-    case tiles_11_loose: // For loose tiles, we care that they have been disturbed (not the specific state)
-      hash.Update(idx);
-    case tiles_4_gate: // For gates and loose tiles, we only care that they are in movement (not specific state)
+     // For loose tiles, gates, and spikes, we only care that they have been disturbed/started (not the specific state)
+    case tiles_11_loose:
+    case tiles_4_gate:
+    case tiles_2_spike:
       hash.Update(idx);
       break;
     // For the following cases, we care of the state of the tile
     case tiles_13_mirror:
     case tiles_16_level_door_left:
     case tiles_18_chomper:
-    case tiles_2_spike:
       hash.Update(trob);
       hash.Update(_sdlPop->level->bg[idx]);
       hash.Update(_sdlPop->level->fg[idx]);
