@@ -239,7 +239,8 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 }
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
+     { "Property": "Current Step", "Op": ">", "Value":  10 }
     ],
     
     "Dependencies": [ ],

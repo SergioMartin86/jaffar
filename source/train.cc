@@ -254,7 +254,7 @@ void Train::distributeFrames()
 
   // Exchanging frames with all other workers at a one by one basis
   // This could be done more efficiently in terms of message traffic and performance by using an MPI_Alltoallv operation
-  // However, this operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
+  // However, such operation requires that all buffers are allocated simultaneously which puts additional pressure on memory
   // Given this bot needs as much memory as possible, the more memory efficient pair-wise communication is used
   size_t nSteps = _workerCount / 2;
 
@@ -607,7 +607,7 @@ void Train::framePostprocessing()
   // Declaring an initially permissive threshold
   float currentCutoffScore = -1.0f;
 
-  int passingFramesIdx = 0;
+  ssize_t passingFramesIdx = 0;
   if (framesToCut > 0)
   {
    float upperBound = _globalBestFrameScore;
@@ -620,8 +620,8 @@ void Train::framePostprocessing()
     currentCutoffScore = std::floor((upperBound + lowerBound) * 0.5f);
 
     // Adjusting index to the last frame to satisfy the cutoff in the sorted database
-    while (passingFramesIdx < localFrameDatabaseSize && _nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
-    if (passingFramesIdx == localFrameDatabaseSize) passingFramesIdx--;
+    while (passingFramesIdx < (ssize_t)localFrameDatabaseSize && _nextFrameDB[passingFramesIdx]->reward >= currentCutoffScore) passingFramesIdx++;
+    if (passingFramesIdx == (ssize_t)localFrameDatabaseSize) passingFramesIdx--;
     while (passingFramesIdx > 0 && _nextFrameDB[passingFramesIdx]->reward <= currentCutoffScore) passingFramesIdx--;
     size_t localCurrentFramesCut = localFrameDatabaseSize - passingFramesIdx;
 
@@ -703,36 +703,30 @@ void Train::updateHashDatabases()
  std::vector<int> globalNewHashEntryCounts(_workerCount);
  MPI_Allgather(&localNewHashEntryCount, 1, MPI_INT, globalNewHashEntryCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
+ // Calculating new total hash count and displacements
+ size_t globalNewHashTotalEntryCount = 0;
+ std::vector<int> globalNewHashEntryDisplacements(_workerCount);
+ for (size_t i = 0; i < _workerCount; i++)
+ {
+  globalNewHashEntryDisplacements[i] = globalNewHashTotalEntryCount;
+  globalNewHashTotalEntryCount += globalNewHashEntryCounts[i];
+ }
+
  // Serializing new hash entries
- std::vector<uint64_t> localNewHashVector;
- localNewHashVector.resize(localNewHashEntryCount);
- size_t curPos = 0;
- for (const auto &hash : _newHashes) localNewHashVector[curPos++] = hash;
+ std::vector<uint64_t> localNewHashVector(_newHashes.begin(), _newHashes.end());
 
  // Freeing new hashes vector
  _newHashes.clear();
 
+ // Allocating space for global new hashes
+ std::vector<uint64_t> globalNewHashVector(globalNewHashTotalEntryCount);
+
+ // Use MPI to have all workers gather all new hashes
+ MPI_Allgatherv(localNewHashVector.data(), localNewHashEntryCount, MPI_UINT64_T, globalNewHashVector.data(), globalNewHashEntryCounts.data(), globalNewHashEntryDisplacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+
  // Creating new fresh hash database, discarding an old one
  delete _hashDatabases[0];
- _hashDatabases.add(new absl::flat_hash_set<uint64_t>());
-
- // We use one broadcast operation per worker (as opposed to allgatherv) to reduce the amount of memory used at any given time
- for (size_t curWorkerId = 0; curWorkerId < _workerCount; curWorkerId++)
- {
-  size_t workerNewHashCount = globalNewHashEntryCounts[curWorkerId];
-
-  // Allocating memory
-  std::vector<uint64_t> workerNewHashVector(workerNewHashCount);
-
-  // Depending on the caller rank, we use a fresh buffer or the new hash vector
-  void* hashBuffer = _workerId == curWorkerId ? localNewHashVector.data() : workerNewHashVector.data();
-
-  // Broadcasting worker's new hashes
-  MPI_Bcast(hashBuffer, workerNewHashCount, MPI_UNSIGNED_LONG, curWorkerId, MPI_COMM_WORLD);
-
-  // Adding new hashes into the database
-  for (size_t i = 0; i < workerNewHashCount; i++) _hashDatabases[_hashAgeThreshold-1]->insert(((uint64_t*)hashBuffer)[i]);
- }
+ _hashDatabases.add(new absl::flat_hash_set<uint64_t>(globalNewHashVector.begin(), globalNewHashVector.end()));
 
  // Finding global collision counter
  size_t globalNewCollisionCounter;
