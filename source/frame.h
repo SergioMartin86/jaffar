@@ -1,7 +1,7 @@
 #pragma once
 
 #define _FRAME_DATA_SIZE 2710
-#define _MAX_FRAME_DIFF 150
+#define _MAX_FRAME_DIFF 250
 
 #include "nlohmann/json.hpp"
 #include "rule.h"

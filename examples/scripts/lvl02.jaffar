@@ -108,25 +108,6 @@
    },
    
    {
-    "Label": 2005,
-    "Description": "If Kid advances to the left on the lower level, he cannot go up, so this should fail.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": "==", "Value":  1 },
-     { "Property": "Kid Position Y", "Op": ">", "Value":  60 }
-    ],
-    
-    "Dependencies": [ 2004 ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-   
-   {
     "Label": 2006,
     "Description": "If Kid advances to the left on the upper level, reward him and go left/up.",
     "Conditions":

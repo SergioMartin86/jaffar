@@ -196,26 +196,6 @@
    },
    
    {
-    "Label": 11008,
-    "Description": "If kid goes to the spikes, trigger loss.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value": 22 },
-     { "Property": "Kid Position Y", "Op": ">", "Value": 60 },
-     { "Property": "Kid Position X", "Op": ">", "Value": 85 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-   
-   {
     "Label": 11009,
     "Description": "Keep going to the right.",
     "Conditions":
@@ -255,8 +235,8 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 24, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 255.0 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 16, "Value": 10.0 },
-     { "Type": "Set Guard Horizontal Magnet Position", "Room": 16, "Value": 255.0 }
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Position", "Room": 16, "Value": 110.0 }
     ]
    },
 
@@ -267,7 +247,7 @@
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
      { "Property": "Kid Room", "Op": "==", "Value": 13 },
-     { "Property": "Guard Room", "Op": "==", "Value": 13 }
+     { "Property": "Guard Room", "Op": "==", "Value": 16 }
     ],
     
     "Dependencies": [ ],
@@ -276,101 +256,32 @@
     "Actions":
     [
      { "Type": "Add Reward", "Value": 5000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 0.0 },
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 16, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 13, "Value": 128.0 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 13, "Value": 1.0 },
-     { "Type": "Set Guard Horizontal Magnet Position", "Room": 13, "Value": 128.0 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 13, "Value": 128.0 }
     ]
    },
 
-   {
-    "Label": 11312,
-    "Description": "Get kid downstairs",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Guard Room", "Op": "==", "Value": 13 },
-     { "Property": "Kid Room", "Op": "==", "Value": 13 },
-     { "Property": "Kid Position Y", "Op": "==", "Value": 118 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 5000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 1.0 }
-    ]
-   },  
-      
-   {
-    "Label": 11012,
-    "Description": "Get guard downstairs",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Guard Room", "Op": "==", "Value": 13 },
-     { "Property": "Guard Position Y", "Op": "==", "Value": 118 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 5000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 13, "Value": 125.0 },
-     { "Type": "Set Guard Horizontal Magnet Position", "Room": 13, "Value": 80.0 }
-    ]
-   },  
-   
    {
     "Label": 11013,
     "Description": "Open exit door",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Guard Room", "Op": "==", "Value": 13 },
-     { "Property": "Guard Position Y", "Op": "==", "Value": 118 },
-     { "Property": "Exit Door Open", "Op": "==", "Value": 1 }
+     { "Property": "Exit Door Open", "Op": "==", "Value": 1 },
+     { "Property": "Current Step", "Op": ">", "Value": 10 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ ],
+    "Satisfies": [ 11011 ],
 
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 5000 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 }
-    ]
-   },
-   
-   {
-    "Label": 11213,
-    "Description": "Open exit door with kid upstairs",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value": 13 },
-     { "Property": "Kid Position Y", "Op": "==", "Value": 55 },
-     { "Property": "Exit Door Open", "Op": "==", "Value": 1 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 11013, 11012, 11312 ],
-
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 10000 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 0.0 },
+     { "Type": "Add Reward", "Value": 15000 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 13, "Value": 0.0 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 13, "Value": 128.0 }
     ]
    },
    
@@ -384,13 +295,12 @@
      { "Property": "Kid Room", "Op": "==", "Value": 16 }
     ],
     
-    "Dependencies": [ 11213 ],
-    "Satisfies": [  ],
+    "Dependencies": [ ],
+    "Satisfies": [ 11013 ],
 
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 15000 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 },
+     { "Type": "Add Reward", "Value": 5000 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
@@ -416,90 +326,8 @@
     ]
    },
   
+ 
    {
-    "Label": 11220,
-    "Description": "If Kid turns while down then fail.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value":  13 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  118 },
-     { "Property": "Kid Direction", "Op": "==", "Value":  0 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-   
-   {
-    "Label": 11121,
-    "Description": "If Kid dies, then fail.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value":  13 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  118 },
-     { "Property": "Kid Position X", "Op": "<", "Value":  110 },
-     { "Property": "Kid Direction", "Op": "==", "Value":  -1 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-   
-   {
-    "Label": 11024,
-    "Description": "If Kid falls to his death, then fail.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value":  16 },
-     { "Property": "Kid Position X", "Op": ">", "Value":  150 },
-     { "Property": "Kid Position Y", "Op": ">", "Value":  57 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-   
-   {
-    "Label": 11034,
-    "Description": "If Kid is hit then fail.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value":  13 },
-     { "Property": "Kid Position X", "Op": "==", "Value":  118 },
-     { "Property": "Kid Position Y", "Op": "==", "Value":  118 },
-     { "Property": "Guard Frame", "Op": "==", "Value":  154 },
-     { "Property": "Guard Position Y", "Op": "==", "Value":  118 } 
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-    
-    "Actions":
-    [
-     { "Type": "Trigger Fail" }
-    ]
-   },
-   
-  {
    "Label": 11017,
     "Description": "Enter Exit room.",
     "Conditions":
