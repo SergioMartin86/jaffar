@@ -89,7 +89,6 @@ void SDLPopInstance::initialize(const bool useGUI)
   *current_target_surface = rect_sthg(*onscreen_surface_, screen_rect);
 
   show_loading();
-  set_joy_mode();
 
   *cheats_enabled = 0;
   *draw_mode = 0;
@@ -124,7 +123,6 @@ void SDLPopInstance::initialize(const bool useGUI)
 
   close_dat(*dathandle);
   load_all_sounds();
-  hof_read();
 
   ///////////////////////////////////////////////////
   // start_game
@@ -471,7 +469,6 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   set_hc_pal = (set_hc_pal_t)dlsym(_dllHandle, "set_hc_pal");
   rect_sthg = (rect_sthg_t)dlsym(_dllHandle, "rect_sthg");
   show_loading = (show_loading_t)dlsym(_dllHandle, "show_loading");
-  set_joy_mode = (set_joy_mode_t)dlsym(_dllHandle, "set_joy_mode");
   init_copyprot_dialog = (init_copyprot_dialog_t)dlsym(_dllHandle, "init_copyprot_dialog");
   init_record_replay = (init_record_replay_t)dlsym(_dllHandle, "init_record_replay");
   init_menu = (init_menu_t)dlsym(_dllHandle, "init_menu");
@@ -497,7 +494,6 @@ SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibra
   do_paused = (check_sound_playing_t)dlsym(_dllHandle, "do_paused");
   load_kid_sprite = (load_kid_sprite_t)dlsym(_dllHandle, "load_kid_sprite");
   idle = (idle_t)dlsym(_dllHandle, "idle");
-  hof_read = (hof_read_t)dlsym(_dllHandle, "hof_read");
   stop_sounds = (stop_sounds_t)dlsym(_dllHandle, "stop_sounds");
   show_copyprot = (show_copyprot_t)dlsym(_dllHandle, "show_copyprot");
   reset_timer = (reset_timer_t)dlsym(_dllHandle, "reset_timer");

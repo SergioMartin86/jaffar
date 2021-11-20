@@ -146,8 +146,8 @@ uint64_t State::computeHash() const
 
   // Manual hashing
 
-  // Mobs are moving objects (falling tiles only afaik). For these, only handle position x information (identifies tile, but invariable of state)
-  for (int i = 0; i < *_sdlPop->mobs_count; i++) hash.Update(&_sdlPop->mobs[i]->xh, sizeof(byte));
+  // Mobs are moving objects (falling tiles only afaik).
+  for (int i = 0; i < *_sdlPop->mobs_count; i++) hash.Update(&_sdlPop->mobs[i], sizeof(mob_type));
 
   // Trobs are stationary animated objects.
   for (int i = 0; i < *_sdlPop->trobs_count; ++i)
@@ -184,12 +184,12 @@ uint64_t State::computeHash() const
     case tiles_30_torch_with_debris:
       break;
      // For loose tiles, gates, and spikes, we only care that they have been disturbed/started (not the specific state)
-    case tiles_11_loose:
     case tiles_4_gate:
     case tiles_2_spike:
       hash.Update(idx);
       break;
     // For the following cases, we care of the state of the tile
+    case tiles_11_loose:
     case tiles_13_mirror:
     case tiles_16_level_door_left:
     case tiles_18_chomper:

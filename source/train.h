@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
-#include <mpi.h>
 #include <pthread.h>
 #include <random>
 #include <string>
@@ -36,8 +35,8 @@ class Train
 
   private:
 
-  // Jaffar script files
-  std::vector<std::string> _scriptFiles;
+  // Jaffar script file
+  std::string _scriptFile;
 
   // File output config
   double _outputSaveBestSeconds;
@@ -47,10 +46,6 @@ class Train
   std::string _outputSolutionBestPath;
   std::string _outputSolutionCurrentPath;
   bool _showSDLPopPreview;
-
-  // Worker id and count
-  size_t _workerId;
-  size_t _workerCount;
 
   // Store the number of openMP threads in use
   int _threadCount;
@@ -67,20 +62,12 @@ class Train
   std::string _sourceFrameData;
 
   // Frame counter
-  size_t _globalFrameCounter;
   size_t _stepFramesProcessedCounter;
   size_t _totalFramesProcessedCounter;
 
-  // Frame counters per worker
-  std::vector<size_t> _localBaseFrameCounts;
-  size_t _maxFrameCount;
-  size_t _maxFrameWorkerId;
-  size_t _minFrameCount;
-  size_t _minFrameWorkerId;
-
   // Frame databases
-  size_t _maxGlobalDatabaseSize;
-  size_t _maxLocalDatabaseSize;
+  size_t _databaseSize;
+  size_t _maxDatabaseSize;
   std::vector<std::unique_ptr<Frame>> _currentFrameDB;
   std::vector<std::unique_ptr<Frame>> _nextFrameDB;
 
@@ -89,29 +76,19 @@ class Train
 
   // Storage for the best frame
   Frame _bestFrame;
-  float _globalBestFrameScore;
+  float _bestFrameReward;
 
   // Hash information
   cBuffer<absl::flat_hash_set<uint64_t>*> _hashDatabases;
-  absl::flat_hash_set<uint64_t> _newHashes;
   size_t _hashAgeThreshold;
-  size_t _globalHashCollisions;
+  size_t _hashCollisions;
 
   // Per-step local hash collision counter
   size_t _newCollisionCounter;
 
-  // Per-step frame processed counter
-  size_t _localStepFramesProcessedCounter;
-
   // Storage for the position of win rules, for win detection
   bool _winFrameFound;
-  Frame _globalWinFrame;
-  Frame _localWinFrame;
-  bool _localWinFound;
-
-  // Storage for rule serialization size
-  size_t _frameSerializedSize;
-  MPI_Datatype _mpiFrameType;
+  Frame _winFrame;
 
   // SDLPop instance and Id for the show thread
   pthread_t _showThreadId;
@@ -125,9 +102,6 @@ class Train
   // Each worker processes their own unique base frames to produce new frames
   void computeFrames();
 
-  // Workers sorts their databases and communicates partial results
-  void framePostprocessing();
-
   // Obtains the score of a given frame
   float getFrameReward(const Frame &frame);
 
@@ -139,12 +113,6 @@ class Train
 
   // Print Rule information
   void printRuleStatus(const Frame &frame);
-
-  // Redistribute frames uniformly among workers
-  void distributeFrames();
-
-  // Sharing hash entries among workers and cut hash tables databases to size
-  void hashPostprocessing();
 
   // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
   void addHashEntry(uint64_t hash);
@@ -174,8 +142,6 @@ class Train
   // Profiling and Debugging
   double _searchTotalTime;
   double _currentStepTime;
-  double _frameDistributionTime;
   double _frameComputationTime;
-  double _framePostprocessingTime;
   double _hashPostprocessingTime;
 };

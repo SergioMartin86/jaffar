@@ -19,7 +19,6 @@ typedef void (*__pascal far parse_cmdline_sound_t)(void);
 typedef void (*__pascal far set_hc_pal_t)(void);
 typedef surface_type far *(*__pascal rect_sthg_t)(surface_type *surface, const rect_type far *rect);
 typedef void (*__pascal far show_loading_t)(void);
-typedef int (*__pascal far set_joy_mode_t)(void);
 typedef void (*__pascal far init_copyprot_dialog_t)(void);
 typedef void (*init_record_replay_t)(void);
 typedef void (*init_menu_t)(void);
@@ -156,7 +155,6 @@ class SDLPopInstance
   set_hc_pal_t set_hc_pal;
   rect_sthg_t rect_sthg;
   show_loading_t show_loading;
-  set_joy_mode_t set_joy_mode;
   init_copyprot_dialog_t init_copyprot_dialog;
   init_record_replay_t init_record_replay;
   init_menu_t init_menu;

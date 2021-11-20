@@ -17,15 +17,10 @@ inc = include_directories([
 
 sdlPopFiles = [
   'extern/SDLPoP/src/data.c',
-  'extern/SDLPoP/src/lighting.c',
-  'extern/SDLPoP/src/menu.c',
   'extern/SDLPoP/src/midi.c',
   'extern/SDLPoP/src/opl3.c',
   'extern/SDLPoP/src/options.c',
-  'extern/SDLPoP/src/replay.c',
-  'extern/SDLPoP/src/screenshot.c',
   'extern/SDLPoP/src/seg000.c',
-  'extern/SDLPoP/src/seg001.c',
   'extern/SDLPoP/src/seg002.c',
   'extern/SDLPoP/src/seg003.c',
   'extern/SDLPoP/src/seg004.c',
@@ -34,8 +29,7 @@ sdlPopFiles = [
   'extern/SDLPoP/src/seg007.c',
   'extern/SDLPoP/src/seg008.c',
   'extern/SDLPoP/src/seg009.c',
-  'extern/SDLPoP/src/seqtbl.c',
-  'extern/SDLPoP/src/stb_vorbis.c'
+  'extern/SDLPoP/src/seqtbl.c'
 ]
 
 jaffarFiles = [
@@ -51,20 +45,10 @@ default_library='static'
 abs_base = subproject('abseil').get_variable('absl_base_dep')
 abs_cont = subproject('abseil').get_variable('absl_container_dep')
 default_library='shared'
-
 sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('sdl2_image')
 
-mpi_dep = dependency('mpi', language: 'cpp', required: false)  
-if mpi_dep.found() == false
- mpi_dep = dependency('mpich', required: false)
-endif
-
-boost_dep = dependency('boost')
-
 deps = [
-  mpi_dep,
-  boost_dep,
   sdl2_dep,
   sdl2_image_dep,
   dependency('openmp', required: true),
