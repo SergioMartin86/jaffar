@@ -326,8 +326,9 @@ __thread byte modifier_left;
 
 FILE *fcache_open(const char *filename, const char *mode)
 {
+  size_t i;
   // Check if already cached, and return it directly from cache if it is
-  for (size_t i = 0; i < _cachedFileCounter; i++)
+  for (i = 0; i < _cachedFileCounter; i++)
     if (strcmp(filename, _cachedFilePathTable[i]) == 0)
     {
       _cachedFilePointerTable[i] = 0; // Rewinding
@@ -438,7 +439,8 @@ void find_exe_dir()
   snprintf_check(exe_dir, sizeof(exe_dir), "%s", g_argv[0]);
   char *last_slash = NULL;
   char *pos = exe_dir;
-  for (char c = *pos; c != '\0'; c = *(++pos))
+  char c;
+  for (c = *pos; c != '\0'; c = *(++pos))
   {
     if (c == '/' || c == '\\')
     {
@@ -1075,7 +1077,8 @@ void __pascal far anim_tile_modif()
   }
 
   // Animate torches in the rightmost column of the left-side room as well, because they are visible in the current room.
-  for (int row = 0; row <= 2; row++)
+  int row;
+  for (row = 0; row <= 2; row++)
   {
     switch (get_tile(room_L, 9, row))
     {
