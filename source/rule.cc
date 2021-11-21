@@ -2,7 +2,7 @@
 
 extern size_t _currentStep;
 
-Rule::Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop)
+Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
 {
   // Adding identifying label for the rule
   if (isDefined(ruleJs, "Label") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Label' key.\n");
@@ -303,7 +303,7 @@ datatype_t Rule::getPropertyType(const std::string &property)
   return dt_byte;
 }
 
-void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlPop)
+void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop)
 {
   if (property == "Kid Frame") return &Kid.frame;
   if (property == "Kid Current HP") return &hitp_curr;

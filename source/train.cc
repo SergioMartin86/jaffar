@@ -820,7 +820,7 @@ Train::Train(int argc, char *argv[])
   {
    // Getting thread id
    int threadId = omp_get_thread_num();
-  _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
+  _sdlPop[threadId] = new miniPoPInstance("libsdlPopLib.so", true);
   _sdlPop[threadId]->initialize(false);
 
   // Initializing State Handler

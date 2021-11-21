@@ -1,6 +1,6 @@
 #pragma once
 
-#include "miniPoP.h"
+#include "miniPoP.hpp"
 #include <string>
 
 class miniPoPInstance

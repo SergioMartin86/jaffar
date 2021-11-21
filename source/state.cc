@@ -15,7 +15,7 @@ void AddItem(std::vector<State::Item> *dest, T &val, State::ItemType type)
   dest->push_back({&val, sizeof(val), type});
 }
 
-std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
+std::vector<State::Item> GenerateItemsMap(miniPoPInstance *sdlPop)
 {
   std::vector<State::Item> dest;
   AddItem(&dest, quick_control, State::PER_FRAME_STATE);
@@ -105,7 +105,7 @@ std::vector<State::Item> GenerateItemsMap(SDLPopInstance *sdlPop)
   return dest;
 }
 
-State::State(SDLPopInstance *sdlPop, const std::string& saveString)
+State::State(miniPoPInstance *sdlPop, const std::string& saveString)
 {
   _sdlPop = sdlPop;
   _items = GenerateItemsMap(sdlPop);
