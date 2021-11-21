@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SDLPopInstance.h"
+#include "miniPoPInstance.h"
 #include "common.h"
 #include "frame.h"
 #include "nlohmann/json.hpp"
@@ -54,7 +54,7 @@ class Train
   std::vector<size_t> _communicationSchedule;
 
   // Craeting SDLPop and State class instances and rule vector, one per openMP thread
-  std::vector<SDLPopInstance*> _sdlPop;
+  std::vector<miniPoPInstance*> _sdlPop;
   std::vector<State *> _state;
   std::vector<std::vector<Rule *>> _rules;
 

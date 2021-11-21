@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SDLPopInstance.h"
+#include "miniPoPInstance.h"
 #include "nlohmann/json.hpp"
 #include <cstddef>
 #include <string>
@@ -27,7 +27,7 @@ class State
   };
 
   State() = default;
-  State(SDLPopInstance *sdlPop, const std::string& saveString);
+  State(miniPoPInstance *sdlPop, const std::string& saveString);
 
   uint64_t computeHash() const;
   uint64_t kidHash() const;
@@ -36,6 +36,6 @@ class State
   std::string saveState() const;
 
   private:
-  SDLPopInstance *_sdlPop;
+  miniPoPInstance *_sdlPop;
   std::vector<Item> _items;
 };

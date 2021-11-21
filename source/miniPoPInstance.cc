@@ -1,14 +1,12 @@
-#include "SDLPopInstance.h"
-#include "types.h"
+#include "miniPoPInstance.h"
 #include "utils.h"
 #include <dlfcn.h>
 #include <iostream>
 #include <omp.h>
 
-void SDLPopInstance::initialize(const bool useGUI)
+void miniPoPInstance::initialize(const bool useGUI)
 {
-
-  // Looking for sdlpop in default folders when running examples
+  // Looking for sdlpop for base data in default folders when running examples
   if (dirExists("extern/SDLPoP/"))
   {
     sprintf(exe_dir, "extern/SDLPoP/");
@@ -103,7 +101,7 @@ void SDLPopInstance::initialize(const bool useGUI)
   need_level1_music = custom->intro_music_time_initial;
 }
 
-void SDLPopInstance::startLevel(const word level)
+void miniPoPInstance::startLevel(const word level)
 {
  ///////////////////////////////////////////////////////////////
   // play_level
@@ -146,32 +144,32 @@ void SDLPopInstance::startLevel(const word level)
   isExitDoorOpen = isLevelExitDoorOpen();
 }
 
-void SDLPopInstance::setSeed(const dword randomSeed)
+void miniPoPInstance::setSeed(const dword randomSeed)
 {
   random_seed = randomSeed;
 }
 
-size_t SDLPopInstance::getElapsedMins()
+size_t miniPoPInstance::getElapsedMins()
 {
  return 60 - rem_min;
 }
 
-size_t SDLPopInstance::getElapsedSecs()
+size_t miniPoPInstance::getElapsedSecs()
 {
  return (720 - rem_tick) / 12;
 }
 
-size_t SDLPopInstance::getElapsedMilisecs()
+size_t miniPoPInstance::getElapsedMilisecs()
 {
  return ceil( ((double)((720 - rem_tick) % 12) * (60.0 / 720.0)) * 1000.0 );
 }
 
-void SDLPopInstance::draw(ssize_t mins, ssize_t secs, ssize_t ms)
+void miniPoPInstance::draw(ssize_t mins, ssize_t secs, ssize_t ms)
 {
   restore_room_after_quick_load();
 }
 
-std::string SDLPopInstance::serializeFileCache()
+std::string miniPoPInstance::serializeFileCache()
 {
  size_t cacheSize = 0;
 
@@ -216,7 +214,7 @@ std::string SDLPopInstance::serializeFileCache()
  return cache;
 }
 
-void SDLPopInstance::deserializeFileCache(const std::string& cache)
+void miniPoPInstance::deserializeFileCache(const std::string& cache)
 {
  // Copying file counter
  size_t curPosition = 0;
@@ -243,7 +241,7 @@ void SDLPopInstance::deserializeFileCache(const std::string& cache)
  }
 }
 
-void SDLPopInstance::performMove(const std::string &move)
+void miniPoPInstance::performMove(const std::string &move)
 {
   key_states[SDL_SCANCODE_UP] = 0;
   key_states[SDL_SCANCODE_DOWN] = 0;
@@ -289,18 +287,18 @@ void SDLPopInstance::performMove(const std::string &move)
     EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
 }
 
-dword SDLPopInstance::advanceRNGState(const dword randomSeed)
+dword miniPoPInstance::advanceRNGState(const dword randomSeed)
 {
  return randomSeed * 214013 + 2531011;
 }
 
-dword SDLPopInstance::reverseRNGState(const dword randomSeed)
+dword miniPoPInstance::reverseRNGState(const dword randomSeed)
 {
  return (randomSeed + 4292436285) * 3115528533;
 }
 
 
-void SDLPopInstance::advanceFrame()
+void miniPoPInstance::advanceFrame()
 {
   guardhp_delta = 0;
   hitp_delta = 0;
@@ -334,7 +332,7 @@ void SDLPopInstance::advanceFrame()
   isExitDoorOpen = isLevelExitDoorOpen();
 }
 
-void SDLPopInstance::printFrameInfo()
+void miniPoPInstance::printFrameInfo()
 {
   printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", current_level, next_level);
   printf("[Jaffar]  + Cumulative IGT: %2lu:%02lu.%03lu\n", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
@@ -350,7 +348,7 @@ void SDLPopInstance::printFrameInfo()
   if (current_level == 9) printf("[Jaffar]  + Rightmost Door: %d\n", level.bg[349]);
 }
 
-bool SDLPopInstance::isLevelExitDoorOpen()
+bool miniPoPInstance::isLevelExitDoorOpen()
 {
   bool door_open = leveldoor_open;
 
@@ -372,10 +370,10 @@ bool SDLPopInstance::isLevelExitDoorOpen()
   return door_open;
 }
 
-SDLPopInstance::SDLPopInstance(const char* libraryFile, const bool multipleLibraries)
+miniPoPInstance::miniPoPInstance(const char* libraryFile, const bool multipleLibraries)
 {
 }
 
-SDLPopInstance::~SDLPopInstance()
+miniPoPInstance::~miniPoPInstance()
 {
 }

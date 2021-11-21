@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SDLPopInstance.h"
+#include "miniPoPInstance.h"
 #include "nlohmann/json.hpp"
 #include "utils.h"
 #include <vector>
@@ -41,7 +41,7 @@ class Condition;
 class Rule
 {
   public:
-  Rule(nlohmann::json ruleJs, SDLPopInstance *sdlPop);
+  Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop);
   bool evaluate();
 
   // Stores an identifying label for the rule
@@ -79,7 +79,7 @@ class Rule
   // is a template that is created at compilation time.
   std::vector<Condition *> _conditions;
   datatype_t getPropertyType(const std::string &property);
-  void *getPropertyPointer(const std::string &property, SDLPopInstance *sdlPop);
+  void *getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop);
   operator_t getOperationType(const std::string &operation);
 
   // Function to parse the json-encoded actions

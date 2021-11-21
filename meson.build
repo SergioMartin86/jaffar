@@ -8,22 +8,22 @@ cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 
 inc = include_directories([
- 'extern/SDLPoP/src',
  'extern/metrohash64',
  'extern/argparse',
  'extern/json/single_include',
- 'extern/cbuffer'
-  ])
+ 'extern/cbuffer',
+ 'extern/miniPoP'
+ ])
 
 
 jaffarFiles = [
-  'source/SDLPopInstance.cc',
+  'source/miniPoPInstance.cc',
   'source/state.cc',
   'source/rule.cc',
   'source/frame.cc',
   'source/utils.cc',
   'extern/metrohash64/metrohash64.cc',
-  'extern/SDLPoP/src/seg000.c'
+  'extern/miniPoP/miniPoP.c'
 ]
 
 default_library='static'
