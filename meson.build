@@ -15,22 +15,6 @@ inc = include_directories([
  'extern/cbuffer'
   ])
 
-sdlPopFiles = [
-  'extern/SDLPoP/src/data.c',
-  'extern/SDLPoP/src/midi.c',
-  'extern/SDLPoP/src/opl3.c',
-  'extern/SDLPoP/src/options.c',
-  'extern/SDLPoP/src/seg000.c',
-  'extern/SDLPoP/src/seg002.c',
-  'extern/SDLPoP/src/seg003.c',
-  'extern/SDLPoP/src/seg004.c',
-  'extern/SDLPoP/src/seg005.c',
-  'extern/SDLPoP/src/seg006.c',
-  'extern/SDLPoP/src/seg007.c',
-  'extern/SDLPoP/src/seg008.c',
-  'extern/SDLPoP/src/seg009.c',
-  'extern/SDLPoP/src/seqtbl.c'
-]
 
 jaffarFiles = [
   'source/SDLPopInstance.cc',
@@ -38,7 +22,8 @@ jaffarFiles = [
   'source/rule.cc',
   'source/frame.cc',
   'source/utils.cc',
-  'extern/metrohash64/metrohash64.cc'
+  'extern/metrohash64/metrohash64.cc',
+  'extern/SDLPoP/src/seg000.c'
 ]
 
 default_library='static'
@@ -56,13 +41,6 @@ deps = [
   abs_cont
 ]
   
-sdlPopLib = shared_library('sdlPopLib',
-  sdlPopFiles,
-  c_args: [ '-DDISABLE_ALL_FIXES' ],
-  dependencies : [ sdl2_dep, sdl2_image_dep ],
-  link_args: [ '-lm' ]
-  )
-  
 executable('jaffar-train',
   'source/train.cc',
   jaffarFiles,
@@ -72,25 +50,6 @@ executable('jaffar-train',
   cpp_args: [ '-Wfatal-errors' ]
   )
   
-executable('jaffar-play',
-  'source/play.cc',
-  jaffarFiles,
-  dependencies: deps,
-  include_directories: inc,
-  link_with: [ ],
-  link_args: [ '-ldl', '-lncurses' ],
-  cpp_args: [ '-Wfatal-errors' ]
-  )
-  
-executable('jaffar-show-snapshot',
-  'source/show-snapshot.cc',
-  jaffarFiles,
-  dependencies: deps,
-  include_directories: inc,
-  link_with: [ ],
-  link_args: [ '-ldl' ],
-  cpp_args: [ '-Wfatal-errors' ]
-  )
 
 checkStyleCommand = find_program('./tools/check_style.sh', required: true)
 test('C++ Style check', checkStyleCommand)

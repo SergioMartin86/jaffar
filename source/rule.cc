@@ -305,54 +305,54 @@ datatype_t Rule::getPropertyType(const std::string &property)
 
 void *Rule::getPropertyPointer(const std::string &property, SDLPopInstance *sdlPop)
 {
-  if (property == "Kid Frame") return &sdlPop->Kid->frame;
-  if (property == "Kid Current HP") return sdlPop->hitp_curr;
-  if (property == "Kid Max HP") return sdlPop->hitp_max;
-  if (property == "Kid Position X") return &sdlPop->Kid->x;
-  if (property == "Kid Position Y") return &sdlPop->Kid->y;
-  if (property == "Kid Direction") return &sdlPop->Kid->direction;
-  if (property == "Kid Current Column") return &sdlPop->Kid->curr_col;
-  if (property == "Kid Current Row") return &sdlPop->Kid->curr_row;
-  if (property == "Kid Action") return &sdlPop->Kid->action;
-  if (property == "Kid Fall Velocity X") return &sdlPop->Kid->fall_x;
-  if (property == "Kid Fall Velocity Y") return &sdlPop->Kid->fall_y;
-  if (property == "Kid Room") return &sdlPop->Kid->room;
-  if (property == "Kid Repeat") return &sdlPop->Kid->repeat;
-  if (property == "Kid Character Id") return &sdlPop->Kid->charid;
-  if (property == "Kid Has Sword") return &sdlPop->Kid->sword;
-  if (property == "Kid Is Alive") return &sdlPop->Kid->alive;
-  if (property == "Kid Current Sequence") return &sdlPop->Kid->curr_seq;
+  if (property == "Kid Frame") return &Kid.frame;
+  if (property == "Kid Current HP") return &hitp_curr;
+  if (property == "Kid Max HP") return &hitp_max;
+  if (property == "Kid Position X") return &Kid.x;
+  if (property == "Kid Position Y") return &Kid.y;
+  if (property == "Kid Direction") return &Kid.direction;
+  if (property == "Kid Current Column") return &Kid.curr_col;
+  if (property == "Kid Current Row") return &Kid.curr_row;
+  if (property == "Kid Action") return &Kid.action;
+  if (property == "Kid Fall Velocity X") return &Kid.fall_x;
+  if (property == "Kid Fall Velocity Y") return &Kid.fall_y;
+  if (property == "Kid Room") return &Kid.room;
+  if (property == "Kid Repeat") return &Kid.repeat;
+  if (property == "Kid Character Id") return &Kid.charid;
+  if (property == "Kid Has Sword") return &Kid.sword;
+  if (property == "Kid Is Alive") return &Kid.alive;
+  if (property == "Kid Current Sequence") return &Kid.curr_seq;
 
-  if (property == "Guard Frame") return &sdlPop->Guard->frame;
-  if (property == "Guard Current HP") return sdlPop->guardhp_curr;
-  if (property == "Guard Max HP") return sdlPop->guardhp_max;
-  if (property == "Guard Position X") return &sdlPop->Guard->x;
-  if (property == "Guard Position Y") return &sdlPop->Guard->y;
-  if (property == "Guard Direction") return &sdlPop->Guard->direction;
-  if (property == "Guard Current Column") return &sdlPop->Guard->curr_col;
-  if (property == "Guard Current Row") return &sdlPop->Guard->curr_row;
-  if (property == "Guard Action") return &sdlPop->Guard->action;
-  if (property == "Guard Fall Velocity X") return &sdlPop->Guard->fall_x;
-  if (property == "Guard Fall Velocity Y") return &sdlPop->Guard->fall_y;
-  if (property == "Guard Room") return &sdlPop->Guard->room;
-  if (property == "Guard Repeat") return &sdlPop->Guard->repeat;
-  if (property == "Guard Character Id") return &sdlPop->Guard->charid;
-  if (property == "Guard Has Sword") return &sdlPop->Guard->sword;
-  if (property == "Guard Is Alive") return &sdlPop->Guard->alive;
-  if (property == "Guard Current Sequence") return &sdlPop->Guard->curr_seq;
+  if (property == "Guard Frame") return &Guard.frame;
+  if (property == "Guard Current HP") return &guardhp_curr;
+  if (property == "Guard Max HP") return &guardhp_max;
+  if (property == "Guard Position X") return &Guard.x;
+  if (property == "Guard Position Y") return &Guard.y;
+  if (property == "Guard Direction") return &Guard.direction;
+  if (property == "Guard Current Column") return &Guard.curr_col;
+  if (property == "Guard Current Row") return &Guard.curr_row;
+  if (property == "Guard Action") return &Guard.action;
+  if (property == "Guard Fall Velocity X") return &Guard.fall_x;
+  if (property == "Guard Fall Velocity Y") return &Guard.fall_y;
+  if (property == "Guard Room") return &Guard.room;
+  if (property == "Guard Repeat") return &Guard.repeat;
+  if (property == "Guard Character Id") return &Guard.charid;
+  if (property == "Guard Has Sword") return &Guard.sword;
+  if (property == "Guard Is Alive") return &Guard.alive;
+  if (property == "Guard Current Sequence") return &Guard.curr_seq;
 
-  if (property == "Current Level") return sdlPop->current_level;
-  if (property == "Next Level") return sdlPop->next_level;
-  if (property == "Drawn Room") return sdlPop->drawn_room;
+  if (property == "Current Level") return &current_level;
+  if (property == "Next Level") return &next_level;
+  if (property == "Drawn Room") return &drawn_room;
   if (property == "Exit Door Open") return &sdlPop->isExitDoorOpen;
-  if (property == "Checkpoint Reached") return sdlPop->checkpoint;
-  if (property == "Is Upside Down") return sdlPop->upside_down;
-  if (property == "Is Feather Fall") return sdlPop->is_feather_fall;
-  if (property == "Needs Level 1 Music") return sdlPop->need_level1_music;
-  if (property == "United With Shadow") return sdlPop->united_with_shadow;
+  if (property == "Checkpoint Reached") return &checkpoint;
+  if (property == "Is Upside Down") return &upside_down;
+  if (property == "Is Feather Fall") return &is_feather_fall;
+  if (property == "Needs Level 1 Music") return &need_level1_music;
+  if (property == "United With Shadow") return &united_with_shadow;
 
   // Level-Specific Properties
-  if (property == "Level 9 Rightmost Door State") return &sdlPop->level->bg[349];
+  if (property == "Level 9 Rightmost Door State") return &level.bg[349];
 
   if (property == "Current Step") return &_currentStep;
 

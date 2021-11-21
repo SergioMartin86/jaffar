@@ -48,11 +48,11 @@ int main(int argc, char *argv[])
   State showState(&showSDLPop, saveString);
 
   // Setting timer for a human-visible animation
-  showSDLPop.set_timer_length(timer_1, 16);
+  //showSDLPop.set_timer_length(timer_1, 16);
 
   // Setting window title
   std::string windowTitle = "Jaffar Show: " + saveFilePath;
-  SDL_SetWindowTitle(*showSDLPop.window_, windowTitle.c_str());
+  //SDL_SetWindowTitle(*showSDLPop.window_, windowTitle.c_str());
 
   // Constant loop of updates
   while (true)

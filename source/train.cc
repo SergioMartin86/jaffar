@@ -178,7 +178,7 @@ void Train::computeFrames()
         _state[threadId]->loadState(baseFrame->getFrameDataFromDifference(_sourceFrameData));
 
         // Getting current level
-        auto curLevel = *_sdlPop[threadId]->current_level;
+        auto curLevel = current_level;
 
         // Perform the selected move
         _sdlPop[threadId]->performMove(move);
@@ -187,7 +187,7 @@ void Train::computeFrames()
         _sdlPop[threadId]->advanceFrame();
 
         // Getting new level (if changed)
-        auto newLevel = *_sdlPop[threadId]->current_level;
+        auto newLevel = current_level;
 
         // Compute hash value
         auto hash = _state[threadId]->computeHash();
@@ -330,9 +330,9 @@ void Train::checkSpecialActions(const Frame &frame)
    // Checking if this rule makes guard disappear
    if (_rules[threadId][ruleId]->_isRemoveGuard == true)
    {
-    _sdlPop[threadId]->Guard->y = 250;
-    _sdlPop[threadId]->Guard->x = 250;
-    _sdlPop[threadId]->Guard->alive = 0;
+    Guard.y = 250;
+    Guard.x = 250;
+    Guard.alive = 0;
    }
   }
 }
@@ -429,7 +429,7 @@ void Train::printTrainStatus()
   printRuleStatus(_bestFrame);
 
   // Getting kid room
-  int kidCurrentRoom = _sdlPop[0]->Kid->room;
+  int kidCurrentRoom = Kid.room;
 
   // Getting magnet values for the kid
   auto kidMagnet = getKidMagnetValues(_bestFrame, kidCurrentRoom);
@@ -438,7 +438,7 @@ void Train::printTrainStatus()
   printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", kidMagnet.intensityY);
 
   // Getting guard room
-  int guardCurrentRoom = _sdlPop[0]->Guard->room;
+  int guardCurrentRoom = Guard.room;
 
   // Getting magnet values for the guard
   auto guardMagnet = getGuardMagnetValues(_bestFrame, guardCurrentRoom);
@@ -527,23 +527,20 @@ magnetInfo_t Train::getGuardMagnetValues(const Frame &frame, const int room)
 
 float Train::getFrameReward(const Frame &frame)
 {
-  // Getting thread id
-  int threadId = omp_get_thread_num();
-
   // Accumulator for total reward
   float reward = getRuleRewards(frame);
 
   // Getting kid room
-  int kidCurrentRoom = _sdlPop[threadId]->Kid->room;
+  int kidCurrentRoom = Kid.room;
 
   // Getting magnet values for the kid
   auto kidMagnet = getKidMagnetValues(frame, kidCurrentRoom);
 
   // Getting kid's current frame
-  const auto curKidFrame = _sdlPop[threadId]->Kid->frame;
+  const auto curKidFrame = Kid.frame;
 
   // Evaluating kidMagnet's reward on the X axis
-  const float kidDiffX = std::abs(_sdlPop[threadId]->Kid->x - kidMagnet.positionX);
+  const float kidDiffX = std::abs(Kid.x - kidMagnet.positionX);
   reward += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
 
   // For positive Y axis kidMagnet, rewarding climbing frames
@@ -560,7 +557,7 @@ float Train::getFrameReward(const Frame &frame)
     if (curKidFrame >= 135 && curKidFrame <= 149) reward += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
 
     // Adding absolute reward for Y position
-    reward += (float) kidMagnet.intensityY * (256.0f - _sdlPop[threadId]->Kid->y);
+    reward += (float) kidMagnet.intensityY * (256.0f - Kid.y);
   }
 
   // For negative Y axis kidMagnet, rewarding falling/climbing down frames
@@ -585,27 +582,27 @@ float Train::getFrameReward(const Frame &frame)
     if (curKidFrame == 148) reward += -2.0f + (float) kidMagnet.intensityY;
 
     // Adding absolute reward for Y position
-    reward += (float) -1.0f * kidMagnet.intensityY * (_sdlPop[threadId]->Kid->y);
+    reward += (float) -1.0f * kidMagnet.intensityY * (Kid.y);
   }
 
   // Getting guard room
-  int guardCurrentRoom = _sdlPop[threadId]->Guard->room;
+  int guardCurrentRoom = Guard.room;
 
   // Getting magnet values for the guard
   auto guardMagnet = getGuardMagnetValues(frame, guardCurrentRoom);
 
   // Getting guard's current frame
-  const auto curGuardFrame = _sdlPop[threadId]->Guard->frame;
+  const auto curGuardFrame = Guard.frame;
 
   // Evaluating guardMagnet's reward on the X axis
-  const float guardDiffX = std::abs(_sdlPop[threadId]->Guard->x - guardMagnet.positionX);
+  const float guardDiffX = std::abs(Guard.x - guardMagnet.positionX);
   reward += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
 
   // For positive Y axis guardMagnet
   if ((float) guardMagnet.intensityY > 0.0f)
   {
    // Adding absolute reward for Y position
-   reward += (float) guardMagnet.intensityY * (256.0f - _sdlPop[threadId]->Guard->y);
+   reward += (float) guardMagnet.intensityY * (256.0f - Guard.y);
   }
 
   // For negative Y axis guardMagnet, rewarding falling/climbing down frames
@@ -618,7 +615,7 @@ float Train::getFrameReward(const Frame &frame)
     if (curGuardFrame == 106) reward += -2.0f + (float) guardMagnet.intensityY;
 
     // Adding absolute reward for Y position
-    reward += (float) -1.0f * guardMagnet.intensityY * (_sdlPop[threadId]->Guard->y);
+    reward += (float) -1.0f * guardMagnet.intensityY * (Guard.y);
   }
 
   // Apply bonus when kid is inside a non-visible room
@@ -640,15 +637,12 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
   std::string frameData = frame.getFrameDataFromDifference(_sourceFrameData);
   _state[threadId]->loadState(frameData);
 
-  // Getting Kid information
-  const auto &Kid = *_sdlPop[threadId]->Kid;
-
   // If dead, do nothing
   if (Kid.alive >= 0)
     return {0};
 
   // For level 1, if kid touches ground and music plays, try restarting level
-  if (Kid.frame == 109 && *_sdlPop[threadId]->need_level1_music == 33)
+  if (Kid.frame == 109 && need_level1_music == 33)
     return {0, 14};
 
   // If bumped, nothing to do
@@ -821,31 +815,25 @@ Train::Train(int argc, char *argv[])
   // Creating a first instance of SDLPop that will serve as cache for all the others
   std::string fileCache;
 
-  // Serializing the file cache to reduce pressure on I/O
-  _sdlPop[0] = new SDLPopInstance("libsdlPopLib.so", true);
-  fileCache = _sdlPop[0]->serializeFileCache();
-
-  // Creating SDL Pop Instance, one per openMP Thread
-  for (int threadId = 0; threadId < _threadCount; threadId++)
+  // Initializing thread-specific SDL instances
+  #pragma omp parallel
   {
-    if ( threadId != false) _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
-    _sdlPop[threadId]->deserializeFileCache(fileCache);
-    _sdlPop[threadId]->initialize(false);
+   // Getting thread id
+   int threadId = omp_get_thread_num();
+  _sdlPop[threadId] = new SDLPopInstance("libsdlPopLib.so", true);
+  _sdlPop[threadId]->initialize(false);
 
-    // Exiting SDL for thread safety reasons
-    SDL_Quit();
+  // Initializing State Handler
+   _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
 
-    // Initializing State Handler
+   //If overriding seed, do it now
+   if (overrideRNGSeedActive == true)
+   {
+    _sdlPop[threadId]->setSeed(overrideRNGSeedValue);
+    _sourceFrameData = _state[threadId]->saveState();
+    delete(_state[threadId]);
     _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
-
-    //If overriding seed, do it now
-    if (overrideRNGSeedActive == true)
-    {
-     _sdlPop[threadId]->setSeed(overrideRNGSeedValue);
-     _sourceFrameData = _state[threadId]->saveState();
-     delete(_state[threadId]);
-     _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
-    }
+   }
 
    // Adding rules, pointing to the thread-specific sdlpop instances
    for (size_t ruleId = 0; ruleId < scriptJs["Rules"].size(); ruleId++)
