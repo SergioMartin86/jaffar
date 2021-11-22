@@ -214,6 +214,12 @@ void State::pushState()
   size_t pos = 0;
   for (const auto &item : _items) { memcpy(item.ptr, &_stateData[pos],item.size); pos += item.size; }
   _sdlPop->isExitDoorOpen = _sdlPop->isLevelExitDoorOpen();
+
+  different_room = 1;
+  // Show the room where the prince is, even if the player moved the view away
+  // from it (with the H,J,U,N keys).
+  next_room = drawn_room = Kid.room;
+  load_room_links();
 }
 
 void State::getState()
