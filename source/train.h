@@ -54,7 +54,7 @@ class Train
   std::vector<size_t> _communicationSchedule;
 
   // Craeting SDLPop and State class instances and rule vector, one per openMP thread
-  std::vector<miniPoPInstance*> _sdlPop;
+  std::vector<miniPoPInstance*> _miniPop;
   std::vector<State *> _state;
   std::vector<std::vector<Rule *>> _rules;
 
@@ -143,5 +143,10 @@ class Train
   double _searchTotalTime;
   double _currentStepTime;
   double _frameComputationTime;
-  double _hashPostprocessingTime;
+  double _framePostprocessingTime;
+  double _stepHashCalculationTime;
+  double _stepHashCheckingTime;
+  double _stepFrameAdvanceTime;
+  double _stepFrameSerializationTime;
+  double _stepFrameDeserializationTime;
 };

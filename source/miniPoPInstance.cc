@@ -4,7 +4,7 @@
 #include <iostream>
 #include <omp.h>
 
-void miniPoPInstance::initialize(const bool useGUI)
+void miniPoPInstance::initialize()
 {
   // Looking for sdlpop for base data in default folders when running examples
   if (dirExists("extern/SDLPoP/"))
@@ -48,7 +48,7 @@ void miniPoPInstance::initialize(const bool useGUI)
   }
 
   // Setting argument config
-  is_validate_mode = byte(!useGUI);
+  is_validate_mode = true;
   g_argc = 1;
 
   // Fix feather fall problem when quickload/quicksaving
@@ -370,7 +370,7 @@ bool miniPoPInstance::isLevelExitDoorOpen()
   return door_open;
 }
 
-miniPoPInstance::miniPoPInstance(const char* libraryFile, const bool multipleLibraries)
+miniPoPInstance::miniPoPInstance()
 {
 }
 

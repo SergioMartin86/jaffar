@@ -58,10 +58,7 @@ void Train::run()
     /// Main frame processing cycle begin
     /////////////////////////////////////////////////////////////////
 
-    auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
     computeFrames();
-    auto frameComputationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-    _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count(); // Profiling
 
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle end
@@ -101,7 +98,7 @@ void Train::run()
     size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
     _state[0]->loadState(_winFrame.getFrameDataFromDifference(_sourceFrameData));
-    _sdlPop[0]->printFrameInfo();
+    _miniPop[0]->printFrameInfo();
 
     printRuleStatus(_winFrame);
 
@@ -143,11 +140,26 @@ void Train::computeFrames()
   delete _hashDatabases[0];
   _hashDatabases.add(new absl::flat_hash_set<uint64_t>());
 
+  // Initializing step timers
+  _stepHashCalculationTime = 0.0;
+  _stepHashCheckingTime = 0.0;
+  _stepFrameAdvanceTime = 0.0;
+  _stepFrameSerializationTime = 0.0;
+  _stepFrameDeserializationTime = 0.0;
+
   // Processing frame database in parallel
+  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
   {
     // Getting thread id
     int threadId = omp_get_thread_num();
+
+    // Profiling timers
+    double threadHashCalculationTime = 0.0;
+    double threadHashCheckingTime = 0.0;
+    double threadFrameAdvanceTime = 0.0;
+    double threadFrameSerializationTime = 0.0;
+    double threadFrameDeserializationTime = 0.0;
 
     // Creating thread-local storage for new frames
     std::vector<std::unique_ptr<Frame>> newThreadFrames;
@@ -175,24 +187,34 @@ void Train::computeFrames()
         std::string move = _possibleMoves[moveId].c_str();
 
         // Loading frame state
+        auto t0 = std::chrono::steady_clock::now(); // Profiling
         _state[threadId]->loadState(baseFrame->getFrameDataFromDifference(_sourceFrameData));
+        auto tf = std::chrono::steady_clock::now();
+        threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Getting current level
         auto curLevel = current_level;
 
         // Perform the selected move
-        _sdlPop[threadId]->performMove(move);
+        t0 = std::chrono::steady_clock::now(); // Profiling
+        _miniPop[threadId]->performMove(move);
 
         // Advance a single frame
-        _sdlPop[threadId]->advanceFrame();
+        _miniPop[threadId]->advanceFrame();
+        tf = std::chrono::steady_clock::now();
+        threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Getting new level (if changed)
         auto newLevel = current_level;
 
         // Compute hash value
+        t0 = std::chrono::steady_clock::now(); // Profiling
         auto hash = _state[threadId]->computeHash();
+        tf = std::chrono::steady_clock::now();
+        threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Checking for the existence of the hash in the hash databases (except the current one)
+        t0 = std::chrono::steady_clock::now(); // Profiling
         bool collisionDetected = false;
         for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--)
          collisionDetected |= _hashDatabases[i]->contains(hash);
@@ -206,6 +228,8 @@ void Train::computeFrames()
            // If now there, add it now
            if (collisionDetected == false) _hashDatabases[_hashAgeThreshold-1]->insert(hash);
          }
+        tf = std::chrono::steady_clock::now();
+        threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // If collision detected, increase collision counter
         if (collisionDetected)
@@ -239,7 +263,10 @@ void Train::computeFrames()
         checkSpecialActions(*newFrame);
 
         // Storing the frame data, only if if belongs to the same level
+        t0 = std::chrono::steady_clock::now(); // Profiling
         if (curLevel == newLevel) newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->saveState());
+        tf = std::chrono::steady_clock::now(); // Profiling
+        threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Calculating current reward
         newFrame->reward = getFrameReward(*newFrame);
@@ -265,9 +292,29 @@ void Train::computeFrames()
 
     // Sequentially passing thread-local new frames to the common database
     #pragma omp critical
-    for (size_t i = 0; i < newThreadFrames.size(); i++)
-     _nextFrameDB.push_back(std::move(newThreadFrames[i]));
+    {
+     for (size_t i = 0; i < newThreadFrames.size(); i++) _nextFrameDB.push_back(std::move(newThreadFrames[i]));
+
+     // Updating timers
+     _stepHashCalculationTime += threadHashCalculationTime;
+     _stepHashCheckingTime += threadHashCheckingTime;
+     _stepFrameAdvanceTime += threadFrameAdvanceTime;
+     _stepFrameSerializationTime += threadFrameSerializationTime;
+     _stepFrameDeserializationTime += threadFrameDeserializationTime;
+    }
   }
+
+  // Updating timer averages
+  _stepHashCalculationTime /= _threadCount;
+  _stepHashCheckingTime /= _threadCount;
+  _stepFrameAdvanceTime /= _threadCount;
+  _stepFrameSerializationTime /= _threadCount;
+  _stepFrameDeserializationTime /= _threadCount;
+
+  auto frameComputationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count(); // Profiling
+
+  auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
   // Clearing current frame DB
   _currentFrameDB.clear();
@@ -289,6 +336,9 @@ void Train::computeFrames()
 
   // Re-calculating global collision counter
    _hashCollisions += _newCollisionCounter;
+
+   auto framePostprocessingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+   _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
 }
 
 void Train::evaluateRules(Frame &frame)
@@ -412,7 +462,14 @@ void Train::printTrainStatus()
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
   printf("[Jaffar] Database Size: %lu / %lu\n", _currentFrameDB.size(), _maxDatabaseSize);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
-  printf("[Jaffar] Elapsed Time (Step/Total): %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
+  printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Computation:       %3.3fs\n", _frameComputationTime / 1.0e+9);
+  printf("[Jaffar]     + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
+  printf("[Jaffar]     + Hash Checking:           %3.3fs\n", _stepHashCheckingTime / 1.0e+9);
+  printf("[Jaffar]     + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
+  printf("[Jaffar]     + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
+  printf("[Jaffar]     + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Postprocessing:      %3.3fs\n", _framePostprocessingTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu\n", _maxFrameDiff);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
@@ -425,7 +482,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] Best Frame Information:\n");
 
   _state[0]->loadState(_bestFrame.getFrameDataFromDifference(_sourceFrameData));
-  _sdlPop[0]->printFrameInfo();
+  _miniPop[0]->printFrameInfo();
   printRuleStatus(_bestFrame);
 
   // Getting kid room
@@ -808,7 +865,7 @@ Train::Train(int argc, char *argv[])
   if (isDefined(scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file '%s' missing 'Rules' key.\n", _scriptFile.c_str());
 
   // Resizing containers based on thread count
-  _sdlPop.resize(_threadCount);
+  _miniPop.resize(_threadCount);
   _state.resize(_threadCount);
   _rules.resize(_threadCount);
 
@@ -820,24 +877,24 @@ Train::Train(int argc, char *argv[])
   {
    // Getting thread id
    int threadId = omp_get_thread_num();
-  _sdlPop[threadId] = new miniPoPInstance("libsdlPopLib.so", true);
-  _sdlPop[threadId]->initialize(false);
+  _miniPop[threadId] = new miniPoPInstance();
+  _miniPop[threadId]->initialize();
 
   // Initializing State Handler
-   _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
+   _state[threadId] = new State(_miniPop[threadId], _sourceFrameData);
 
    //If overriding seed, do it now
    if (overrideRNGSeedActive == true)
    {
-    _sdlPop[threadId]->setSeed(overrideRNGSeedValue);
+    _miniPop[threadId]->setSeed(overrideRNGSeedValue);
     _sourceFrameData = _state[threadId]->saveState();
     delete(_state[threadId]);
-    _state[threadId] = new State(_sdlPop[threadId], _sourceFrameData);
+    _state[threadId] = new State(_miniPop[threadId], _sourceFrameData);
    }
 
    // Adding rules, pointing to the thread-specific sdlpop instances
    for (size_t ruleId = 0; ruleId < scriptJs["Rules"].size(); ruleId++)
-    _rules[threadId].push_back(new Rule(scriptJs["Rules"][ruleId], _sdlPop[threadId]));
+    _rules[threadId].push_back(new Rule(scriptJs["Rules"][ruleId], _miniPop[threadId]));
 
    // Setting global rule count
    _ruleCount = _rules[threadId].size();

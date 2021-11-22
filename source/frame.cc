@@ -132,19 +132,16 @@ uint8_t Frame::getMove(const size_t idx)
 void Frame::computeFrameDifference(const std::string& baseFrameData, const std::string& newFrameData)
 {
  frameDiffCount = 0;
+
  for (uint16_t i = 0; i < baseFrameData.size(); i++)
   if (baseFrameData[i] != newFrameData[i])
   {
-   if (frameDiffCount < _MAX_FRAME_DIFF)
-   {
-    frameDiffPositions[frameDiffCount] = i;
-    frameDiffValues[frameDiffCount] = newFrameData[i];
-   }
+   frameDiffPositions[frameDiffCount] = i;
+   frameDiffValues[frameDiffCount] = newFrameData[i];
    frameDiffCount++;
   }
 
  if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
- if (frameDiffCount >= _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[ERROR] Frame exceeded maximum frame differences: %u/%u\n", frameDiffCount, _MAX_FRAME_DIFF);
 }
 
 std::string Frame::getFrameDataFromDifference(const std::string& baseFrameData) const

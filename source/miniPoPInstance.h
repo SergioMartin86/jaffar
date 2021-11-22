@@ -6,11 +6,11 @@
 class miniPoPInstance
 {
   public:
-  miniPoPInstance(const char* libraryFile, const bool multipleLibraries);
+  miniPoPInstance();
   ~miniPoPInstance();
 
-  // Initializes the sdlPop instance
-  void initialize(const bool useGUI);
+  // Initializes the miniPop instance
+  void initialize();
 
   // Starts a given level
   void startLevel(const word level);
