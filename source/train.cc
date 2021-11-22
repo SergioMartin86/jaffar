@@ -268,11 +268,7 @@ void Train::computeFrames()
         // If frame has failed, discard it and proceed to the next one
         if (isFailFrame) continue;
 
-        // Check special actions for this state
-        checkSpecialActions(*newFrame);
-
         // Storing the frame data, only if if belongs to the same level
-
         if (curLevel == newLevel)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
@@ -394,24 +390,6 @@ void Train::evaluateRules(Frame &frame)
       // If it's achieved, update its status and run its actions
       if (isSatisfied) satisfyRule(frame, ruleId);
     }
-  }
-}
-
-void Train::checkSpecialActions(const Frame &frame)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-  {
-   // Checking if this rule makes guard disappear
-   if (_rules[threadId][ruleId]->_isRemoveGuard == true)
-   {
-    Guard.y = 250;
-    Guard.x = 250;
-    Guard.alive = 0;
-   }
   }
 }
 
