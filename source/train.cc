@@ -339,12 +339,12 @@ void Train::computeFrames()
   // Getting total new frames and displacements
   size_t totalNewFrameCount = 0;
   std::vector<size_t> totalNewFrameDisplacements(_threadCount);
-  for (size_t i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
+  for (int i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
 
   // Passing new frames into the new frame database
   _frameDB.resize(totalNewFrameCount);
   #pragma omp parallel for
-  for (size_t i = 0; i < _threadCount; i++)
+  for (int i = 0; i < _threadCount; i++)
    for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
 
   // Sorting local DB frames by reward
