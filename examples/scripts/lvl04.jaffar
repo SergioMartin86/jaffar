@@ -260,6 +260,27 @@
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11 , "Value": 0.0 }
+    ]
+   },
+   
+   {
+    "Label": 4109,
+    "Description": "Rewarding kid for going down and making it go left now.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  4 },
+     { "Property": "Kid Position Y", "Op": ">", "Value":  70 },
+     { "Property": "Kid Position X", "Op": ">", "Value":  160 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 4108 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 130.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
@@ -268,20 +289,20 @@
    
    {
     "Label": 4009,
-    "Description": "Exit door and then return.",
+    "Description": "Activate Exit door and then return.",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
-     { "Property": "Current Step", "Op": ">", "Value":  10 }
+     { "Property": "Current Step", "Op": ">", "Value":  10 },
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4108 ],
+    "Satisfies": [ 4109 ],
     
     "Actions":
     [ 
-     { "Type": "Add Reward", "Value": 10000 },
+     { "Type": "Add Reward", "Value": 100000 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 220.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
     ]
