@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <set>
 #include <boost/sort/sort.hpp>
+#include <random>
 
 void Train::run()
 {
@@ -50,10 +51,12 @@ void Train::run()
     // Printing search status
     printTrainStatus();
 
-    // Updating show frames
-    if (_frameDB.size() > 0)
-      for (size_t i = 0; i < SHOW_FRAME_COUNT; i++)
-        _showFrameDB[i] = *_frameDB[i % _frameDB.size()];
+    // Updating show frames (random selection)
+    std::random_device rd;     // only used once to initialise (seed) engine
+    std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+    std::uniform_int_distribution<int> uni(0, _frameDB.size()-1); // guaranteed unbiased
+
+    for (size_t i = 0; i < SHOW_FRAME_COUNT; i++) _showFrameDB[i] = *_frameDB[uni(rng)];
 
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle begin
@@ -353,7 +356,8 @@ void Train::computeFrames()
   if (_frameDB.size() > _maxDatabaseSize) _frameDB.resize(_maxDatabaseSize);
 
   // Storing best frame
-  if (_frameDB.empty() == false) _bestFrame = *_frameDB[0];
+  _bestFrameReward = -1.0;
+  if (_frameDB.empty() == false) { _bestFrame = *_frameDB[0]; _bestFrameReward = _bestFrame.reward; }
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
@@ -879,7 +883,11 @@ Train::Train(int argc, char *argv[])
   catch (const std::exception &err) { EXIT_WITH_ERROR("[ERROR] Parsing configuration file %s. Details:\n%s\n", _scriptFile.c_str(), err.what()); }
 
   // Checking whether it contains the rules field
-  if (isDefined(scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Train configuration file '%s' missing 'Rules' key.\n", _scriptFile.c_str());
+  if (isDefined(scriptJs, "Rules") == false) EXIT_WITH_ERROR("[ERROR] Configuration file '%s' missing 'Rules' key.\n", _scriptFile.c_str());
+
+  // Checking whether it contains the rules field
+  if (isDefined(scriptJs, "State Configuration") == false) EXIT_WITH_ERROR("[ERROR] Configuration file '%s' missing 'State Configuration' key.\n", _scriptFile.c_str());
+
 
   // Resizing containers based on thread count
   _miniPop.resize(_threadCount);
@@ -898,7 +906,7 @@ Train::Train(int argc, char *argv[])
     _miniPop[threadId]->initialize();
 
     // Initializing State Handler
-     _state[threadId] = new State(_miniPop[threadId], sourceString);
+     _state[threadId] = new State(_miniPop[threadId], sourceString, scriptJs["State Configuration"]);
 
     //If overriding seed, do it now
     if (overrideRNGSeedActive == true)
@@ -907,7 +915,7 @@ Train::Train(int argc, char *argv[])
      _state[threadId]->getState();
      memcpy(sourceString.data(), _state[threadId]->_stateData, _FRAME_DATA_SIZE);
      delete(_state[threadId]);
-     _state[threadId] = new State(_miniPop[threadId], sourceString);
+     _state[threadId] = new State(_miniPop[threadId], sourceString, scriptJs["State Configuration"]);
     }
    }
 

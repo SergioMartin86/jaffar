@@ -1,6 +1,16 @@
 {
   "Description": "This script searches for the fastest any% solution for vanilla PoP level 4",  
   
+  "State Configuration":
+  {
+   "Falling Tile Hash Type": "None",
+   "Gate Hash Type": "None",
+   "Spike Hash Type": "None",
+   "Loose Tile Hash Type": "None",
+   "Exit Door Hash Type": "None",
+   "Chomper Hash Type": "None"
+  },
+   
   "Rules":
   [
    {
@@ -234,6 +244,29 @@
    },
    
    {
+    "Label": 4108,
+    "Description": "Rewarding kid for going down and making it go left now.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  4 },
+     { "Property": "Kid Room", "Op": "==", "Value":  11 },
+     { "Property": "Kid Position Y", "Op": ">", "Value":  70 },
+     { "Property": "Kid Position X", "Op": ">", "Value":  160 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 4008 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 130.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
+    ]
+   },
+   
+   {
     "Label": 4009,
     "Description": "Exit door and then return.",
     "Conditions":
@@ -244,7 +277,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4008 ],
+    "Satisfies": [ 4108 ],
     
     "Actions":
     [ 

@@ -20,6 +20,14 @@ class State
     HASHABLE_MANUAL,
   };
 
+  enum hashType
+  {
+    NONE,
+    INDEX_ONLY,
+    FULL,
+  };
+
+
   struct Item
   {
     void *ptr;
@@ -28,7 +36,7 @@ class State
   };
 
   State() = default;
-  State(miniPoPInstance *sdlPop, const std::string& saveString);
+  State(miniPoPInstance *miniPop, const std::string& saveString, const nlohmann::json stateConfig);
 
   uint64_t computeHash() const;
   uint64_t kidHash() const;
@@ -38,7 +46,15 @@ class State
 
   char _stateData[_FRAME_DATA_SIZE];
 
+  // Hash states
+  hashType _hashTypeFallingTile;
+  hashType _hashTypeGate;
+  hashType _hashTypeSpike;
+  hashType _hashTypeLooseTile;
+  hashType _hashTypeExitDoor;
+  hashType _hashTypeChomper;
+
   private:
-  miniPoPInstance *_sdlPop;
+  miniPoPInstance *_miniPop;
   std::vector<Item> _items;
 };
