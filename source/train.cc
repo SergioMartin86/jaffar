@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <set>
+#include <boost/sort/sort.hpp>
 
 void Train::run()
 {
@@ -304,6 +305,9 @@ void Train::computeFrames()
     }
   }
 
+  auto frameComputationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count(); // Profiling
+
   // Updating timer averages
   _stepHashCalculationTime /= _threadCount;
   _stepHashCheckingTime /= _threadCount;
@@ -311,16 +315,20 @@ void Train::computeFrames()
   _stepFrameSerializationTime /= _threadCount;
   _stepFrameDeserializationTime /= _threadCount;
 
-  auto frameComputationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count(); // Profiling
-
+  // Postprocessing steps
   auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
+  // Sorting local DB frames by reward
+
+  auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
+  boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+
+  auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
   // Clearing current frame DB
   _currentFrameDB.clear();
-
-  // Sorting local DB frames by reward
-  std::sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
 
   // If global frames exceed the maximum allowed, sort and truncate all excessive frames
   if (_nextFrameDB.size() > _maxDatabaseSize) _nextFrameDB.resize(_maxDatabaseSize);
@@ -469,7 +477,8 @@ void Train::printTrainStatus()
   printf("[Jaffar]     + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
   printf("[Jaffar]     + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
   printf("[Jaffar]     + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
-  printf("[Jaffar]   + Frame Postprocessing:      %3.3fs\n", _framePostprocessingTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Postprocessing:    %3.3fs\n", _framePostprocessingTime / 1.0e+9);
+  printf("[Jaffar]     + DB Sorting               %3.3fs\n", _DBSortingTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu\n", _maxFrameDiff);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);

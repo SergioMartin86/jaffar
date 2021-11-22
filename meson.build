@@ -32,13 +32,15 @@ abs_cont = subproject('abseil').get_variable('absl_container_dep')
 default_library='shared'
 sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('sdl2_image')
+boost_dep = dependency('boost')
 
 deps = [
   sdl2_dep,
   sdl2_image_dep,
   dependency('openmp', required: true),
   abs_base,
-  abs_cont
+  abs_cont,
+  boost_dep
 ]
   
 executable('jaffar-train',
