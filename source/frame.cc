@@ -128,25 +128,3 @@ uint8_t Frame::getMove(const size_t idx)
  if (idx % 2 == 1) val = val >> 4;
  return val;
 }
-
-void Frame::computeFrameDifference(const char* baseFrameData, const char* newFrameData)
-{
- frameDiffCount = 0;
-
- for (uint16_t i = 0; i < _FRAME_DATA_SIZE; i++)
-  if (baseFrameData[i] != newFrameData[i])
-  {
-   frameDiffPositions[frameDiffCount] = i;
-   frameDiffValues[frameDiffCount] = newFrameData[i];
-   frameDiffCount++;
-  }
-
- if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
-}
-
-void Frame::getFrameDataFromDifference(const char* baseFrameData, char* stateData) const
-{
-  memcpy(stateData, baseFrameData, _FRAME_DATA_SIZE);
-  for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffPositions[i]] = frameDiffValues[i];
-}
-
