@@ -1120,10 +1120,13 @@ void __pascal far load_lev_spr(int level)
 // seg000:0E6C
 void __pascal far load_level()
 {
+ if (is_restart_level == 0)
+ {
   dat_type *dathandle;
   dathandle = open_dat("LEVELS.DAT", 0);
   load_from_opendats_to_area(current_level + 2000, &level, sizeof(level), "bin");
   close_dat(dathandle);
+ }
 
   reset_level_unused_fields(true); // added
 }
@@ -6975,35 +6978,21 @@ void __pascal far control()
 // seg005:02EB
 void __pascal far control_crouched()
 {
-  if (need_level1_music != 0 && current_level == /*1*/ custom->intro_music_level)
-  {
-     if (need_level1_music == 1)
-     {
-       need_level1_music = 2;
-     }
-     else
-     {
-         need_level1_music = 0;
-     }
+ if (need_level1_music != 0 && current_level == /*1*/ custom->intro_music_level) {
+  need_level1_music--;
+ }
+ else {
+  need_level1_music = 0;
+  if (control_shift2 < 0 && check_get_item()) return;
+  if (control_y != 1) {
+   seqtbl_offset_char(seq_49_stand_up_from_crouch); // stand up from crouch
+  } else {
+   if (control_forward < 0) {
+    control_forward = 1; // disable automatic repeat
+    seqtbl_offset_char(seq_79_crouch_hop); // crouch-hop
+   }
   }
-  else
-  {
-    need_level1_music = 0;
-    if (control_shift2 < 0 && check_get_item())
-      return;
-    if (control_y != 1)
-    {
-      seqtbl_offset_char(seq_49_stand_up_from_crouch); // stand up from crouch
-    }
-    else
-    {
-      if (control_forward < 0)
-      {
-        control_forward = 1;                   // disable automatic repeat
-        seqtbl_offset_char(seq_79_crouch_hop); // crouch-hop
-      }
-    }
-  }
+ }
 }
 
 // seg005:0358

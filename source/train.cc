@@ -94,9 +94,10 @@ void Train::run()
   if (_winFrameFound == true)
   {
     printf("[Jaffar] Win Frame Information:\n");
-    size_t curMins = _currentStep / 720;
-    size_t curSecs = (_currentStep - (curMins * 720)) / 12;
-    size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+    size_t timeStep = _currentStep-1;
+    size_t curMins = timeStep / 720;
+    size_t curSecs = (timeStep - (curMins * 720)) / 12;
+    size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
     _state[0]->loadState(_winFrame.getFrameDataFromDifference(_sourceFrameData));
     _miniPop[0]->printFrameInfo();
@@ -161,6 +162,8 @@ void Train::computeFrames()
     double threadFrameAdvanceTime = 0.0;
     double threadFrameSerializationTime = 0.0;
     double threadFrameDeserializationTime = 0.0;
+    double threadFrameDecodingTime = 0.0;
+    double threadFrameEncodingTime = 0.0;
 
     // Creating thread-local storage for new frames
     std::vector<std::unique_ptr<Frame>> newThreadFrames;
@@ -189,8 +192,13 @@ void Train::computeFrames()
 
         // Loading frame state
         auto t0 = std::chrono::steady_clock::now(); // Profiling
-        _state[threadId]->loadState(baseFrame->getFrameDataFromDifference(_sourceFrameData));
+        auto baseFrameData = baseFrame->getFrameDataFromDifference(_sourceFrameData);
         auto tf = std::chrono::steady_clock::now();
+        threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+        t0 = std::chrono::steady_clock::now(); // Profiling
+        _state[threadId]->loadState(baseFrameData);
+        tf = std::chrono::steady_clock::now();
         threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Getting current level
@@ -264,10 +272,19 @@ void Train::computeFrames()
         checkSpecialActions(*newFrame);
 
         // Storing the frame data, only if if belongs to the same level
-        t0 = std::chrono::steady_clock::now(); // Profiling
-        if (curLevel == newLevel) newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->saveState());
-        tf = std::chrono::steady_clock::now(); // Profiling
-        threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+        if (curLevel == newLevel)
+        {
+         t0 = std::chrono::steady_clock::now(); // Profiling
+         auto newFrameData = _state[threadId]->saveState();
+         tf = std::chrono::steady_clock::now(); // Profiling
+         threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+         t0 = std::chrono::steady_clock::now(); // Profiling
+         newFrame->computeFrameDifference(_sourceFrameData, newFrameData);
+         tf = std::chrono::steady_clock::now(); // Profiling
+         threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+        }
 
         // Calculating current reward
         newFrame->reward = getFrameReward(*newFrame);
@@ -302,6 +319,8 @@ void Train::computeFrames()
      _stepFrameAdvanceTime += threadFrameAdvanceTime;
      _stepFrameSerializationTime += threadFrameSerializationTime;
      _stepFrameDeserializationTime += threadFrameDeserializationTime;
+     _stepFrameEncodingTime += threadFrameEncodingTime;
+     _stepFrameDecodingTime += threadFrameDecodingTime;
     }
   }
 
@@ -314,6 +333,8 @@ void Train::computeFrames()
   _stepFrameAdvanceTime /= _threadCount;
   _stepFrameSerializationTime /= _threadCount;
   _stepFrameDeserializationTime /= _threadCount;
+  _stepFrameEncodingTime /= _threadCount;
+  _stepFrameDecodingTime /= _threadCount;
 
   // Postprocessing steps
   auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -458,13 +479,15 @@ void Train::printTrainStatus()
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
 
-  size_t curMins = _currentStep / 720;
-  size_t curSecs = (_currentStep - (curMins * 720)) / 12;
-  size_t curMilliSecs = ceil((double)(_currentStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+  size_t timeStep = _currentStep-1;
+  size_t curMins = timeStep / 720;
+  size_t curSecs = (timeStep - (curMins * 720)) / 12;
+  size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
 
-  size_t maxMins = _maxSteps / 720;
-  size_t maxSecs = (_maxSteps - (maxMins * 720)) / 12;
-  size_t maxMilliSecs = ceil((double)(_maxSteps - (maxMins * 720) - (maxSecs * 12)) / 0.012);
+  size_t maxStep = _maxSteps-1;
+  size_t maxMins = maxStep / 720;
+  size_t maxSecs = (maxStep - (maxMins * 720)) / 12;
+  size_t maxMilliSecs = ceil((double)(maxStep - (maxMins * 720) - (maxSecs * 12)) / 0.012);
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
@@ -477,6 +500,8 @@ void Train::printTrainStatus()
   printf("[Jaffar]     + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
   printf("[Jaffar]     + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
   printf("[Jaffar]     + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
+  printf("[Jaffar]     + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
+  printf("[Jaffar]     + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Postprocessing:    %3.3fs\n", _framePostprocessingTime / 1.0e+9);
   printf("[Jaffar]     + DB Sorting               %3.3fs\n", _DBSortingTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));

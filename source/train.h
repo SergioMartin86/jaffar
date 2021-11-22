@@ -149,5 +149,7 @@ class Train
   double _stepFrameAdvanceTime;
   double _stepFrameSerializationTime;
   double _stepFrameDeserializationTime;
+  double _stepFrameEncodingTime;
+  double _stepFrameDecodingTime;
   double _DBSortingTime;
 };
