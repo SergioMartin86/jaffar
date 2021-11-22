@@ -51,9 +51,9 @@ void Train::run()
     printTrainStatus();
 
     // Updating show frames
-    if (_currentFrameDB.size() > 0)
+    if (_frameDB.size() > 0)
       for (size_t i = 0; i < SHOW_FRAME_COUNT; i++)
-        _showFrameDB[i] = *_currentFrameDB[i % _currentFrameDB.size()];
+        _showFrameDB[i] = *_frameDB[i % _frameDB.size()];
 
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle begin
@@ -66,7 +66,7 @@ void Train::run()
     /////////////////////////////////////////////////////////////////
 
     // Terminate if DB is depleted and no winning rule was found
-    if (_currentFrameDB.size() == 0)
+    if (_frameDB.size() == 0)
     {
       printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
       terminate = true;
@@ -151,6 +151,9 @@ void Train::computeFrames()
   _stepFrameSerializationTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
 
+  // Creating thread-local storage for new frames
+  std::vector<std::vector<std::unique_ptr<Frame>>> newThreadFrames(_threadCount);
+
   // Processing frame database in parallel
   auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
@@ -167,15 +170,12 @@ void Train::computeFrames()
     double threadFrameDecodingTime = 0.0;
     double threadFrameEncodingTime = 0.0;
 
-    // Creating thread-local storage for new frames
-    std::vector<std::unique_ptr<Frame>> newThreadFrames;
-
     // Computing always the last frame while resizing the database to reduce memory footprint
     #pragma omp for schedule(guided)
-    for (size_t baseFrameIdx = 0; baseFrameIdx < _currentFrameDB.size(); baseFrameIdx++)
+    for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB.size(); baseFrameIdx++)
     {
       // Storage for the base frame
-      const auto& baseFrame = _currentFrameDB[baseFrameIdx];
+      const auto& baseFrame = _frameDB[baseFrameIdx];
 
       // Getting possible moves for the current frame
       std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
@@ -242,10 +242,8 @@ void Train::computeFrames()
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
-        // If collision detected, increase collision counter
-        if (collisionDetected)
-         #pragma omp atomic
-          _newCollisionCounter++;
+        // If collision detected, increase collision counter, more or less
+        if (collisionDetected) _newCollisionCounter++;
 
         // If collision detected, discard this frame
         if (collisionDetected) continue;
@@ -303,19 +301,16 @@ void Train::computeFrames()
         }
 
         // Adding novel frame in the next frame database
-        newThreadFrames.push_back(std::move(newFrame));
+        newThreadFrames[threadId].push_back(std::move(newFrame));
       }
 
       // Freeing memory for the used base frame
-      _currentFrameDB[baseFrameIdx].reset();
+      _frameDB[baseFrameIdx].reset();
     }
 
-    // Sequentially passing thread-local new frames to the common database
+    // Updating timers
     #pragma omp critical
     {
-     for (size_t i = 0; i < newThreadFrames.size(); i++) _nextFrameDB.push_back(std::move(newThreadFrames[i]));
-
-     // Updating timers
      _stepHashCalculationTime += threadHashCalculationTime;
      _stepHashCheckingTime += threadHashCheckingTime;
      _stepFrameAdvanceTime += threadFrameAdvanceTime;
@@ -341,35 +336,37 @@ void Train::computeFrames()
   // Postprocessing steps
   auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
+  // Getting total new frames and displacements
+  size_t totalNewFrameCount = 0;
+  std::vector<size_t> totalNewFrameDisplacements(_threadCount);
+  for (size_t i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
+
+  // Passing new frames into the new frame database
+  _frameDB.resize(totalNewFrameCount);
+  #pragma omp parallel for
+  for (size_t i = 0; i < _threadCount; i++)
+   for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
+
   // Sorting local DB frames by reward
-
   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
-  boost::sort::block_indirect_sort(_nextFrameDB.begin(), _nextFrameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
-
+  boost::sort::block_indirect_sort(_frameDB.begin(), _frameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
-  // Clearing current frame DB
-  _currentFrameDB.clear();
-
   // If global frames exceed the maximum allowed, sort and truncate all excessive frames
-  if (_nextFrameDB.size() > _maxDatabaseSize) _nextFrameDB.resize(_maxDatabaseSize);
+  if (_frameDB.size() > _maxDatabaseSize) _frameDB.resize(_maxDatabaseSize);
 
   // Storing best frame
-  if (_nextFrameDB.empty() == false) _bestFrame = *_nextFrameDB[0];
-
-  // Swapping database pointers
-  _currentFrameDB = std::move(_nextFrameDB);
+  if (_frameDB.empty() == false) _bestFrame = *_frameDB[0];
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
 
   // Re-calculating global collision counter
-   _hashCollisions += _newCollisionCounter;
+  _hashCollisions += _newCollisionCounter;
 
-   auto framePostprocessingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-   _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
+  auto framePostprocessingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
 }
 
 void Train::evaluateRules(Frame &frame)
@@ -493,7 +490,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
-  printf("[Jaffar] Database Size: %lu / %lu\n", _currentFrameDB.size(), _maxDatabaseSize);
+  printf("[Jaffar] Database Size: %lu / %lu\n", _frameDB.size(), _maxDatabaseSize);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Frame Computation:       %3.3fs\n", _frameComputationTime / 1.0e+9);
@@ -513,7 +510,7 @@ void Train::printTrainStatus()
   size_t hashDatabasesEntries = 0;
   for (size_t i = 0; i < _hashDatabases.size(); i++) hashDatabasesEntries += _hashDatabases[i]->size();
   printf("[Jaffar] Hash DB Entries: %lu\n", hashDatabasesEntries);
-  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_currentFrameDB.size() * Frame::getSerializationSize()) / (1024.0 * 1024.0));
+  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_frameDB.size() * Frame::getSerializationSize()) / (1024.0 * 1024.0));
   printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(hashDatabasesEntries * sizeof(uint64_t)) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
@@ -1033,7 +1030,7 @@ Train::Train(int argc, char *argv[])
   for (size_t i = 0; i < SHOW_FRAME_COUNT; i++) _showFrameDB[i] = *initialFrame;
 
   // Adding frame to the current database
-  _currentFrameDB.push_back(std::move(initialFrame));
+  _frameDB.push_back(std::move(initialFrame));
 
   // Initializing show thread
   if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)

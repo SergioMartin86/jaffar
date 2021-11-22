@@ -68,8 +68,7 @@ class Train
   // Frame databases
   size_t _databaseSize;
   size_t _maxDatabaseSize;
-  std::vector<std::unique_ptr<Frame>> _currentFrameDB;
-  std::vector<std::unique_ptr<Frame>> _nextFrameDB;
+  std::vector<std::unique_ptr<Frame>> _frameDB;
 
   // Frame database for showing
   std::vector<Frame> _showFrameDB;
