@@ -886,27 +886,28 @@ Train::Train(int argc, char *argv[])
   _state.resize(_threadCount);
   _rules.resize(_threadCount);
 
-  // Creating a first instance of SDLPop that will serve as cache for all the others
-  std::string fileCache;
-
   // Initializing thread-specific SDL instances
   #pragma omp parallel
   {
    // Getting thread id
    int threadId = omp_get_thread_num();
-  _miniPop[threadId] = new miniPoPInstance();
-  _miniPop[threadId]->initialize();
 
-  // Initializing State Handler
-   _state[threadId] = new State(_miniPop[threadId], sourceString);
-
-   //If overriding seed, do it now
-   if (overrideRNGSeedActive == true)
+   #pragma omp critical
    {
-    _miniPop[threadId]->setSeed(overrideRNGSeedValue);
-    _state[threadId]->getState();
-    delete(_state[threadId]);
-    _state[threadId] = new State(_miniPop[threadId], _state[threadId]->_stateData);
+    _miniPop[threadId] = new miniPoPInstance();
+    _miniPop[threadId]->initialize();
+
+    // Initializing State Handler
+     _state[threadId] = new State(_miniPop[threadId], sourceString);
+
+    //If overriding seed, do it now
+    if (overrideRNGSeedActive == true)
+    {
+     _miniPop[threadId]->setSeed(overrideRNGSeedValue);
+     _state[threadId]->getState();
+     delete(_state[threadId]);
+     _state[threadId] = new State(_miniPop[threadId], _state[threadId]->_stateData);
+    }
    }
 
    // Adding rules, pointing to the thread-specific sdlpop instances
