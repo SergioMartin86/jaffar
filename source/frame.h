@@ -34,8 +34,8 @@ class Frame
   uint8_t frameDiffValues[_MAX_FRAME_DIFF];
 
   // Differentiation functions
-  void computeFrameDifference(const std::string& baseFrameData, const std::string& newFrameData);
-  std::string getFrameDataFromDifference(const std::string& baseFrameData) const;
+  void computeFrameDifference(const char* baseFrameData, const char* newFrameData);
+  void getFrameDataFromDifference(const char* baseFrameData, char* stateData) const;
 
   // Serialization functions
   static size_t getSerializationSize();

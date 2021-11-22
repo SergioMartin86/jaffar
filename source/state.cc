@@ -111,7 +111,8 @@ State::State(miniPoPInstance *sdlPop, const std::string& saveString)
   _items = GenerateItemsMap(sdlPop);
 
   // Update the SDLPop instance with the savefile contents
-  loadState(saveString);
+  memcpy(_stateData, saveString.data(), _FRAME_DATA_SIZE);
+  pushState();
   _sdlPop->startLevel(next_level);
 
   // Backing up current RNG state
@@ -122,7 +123,8 @@ State::State(miniPoPInstance *sdlPop, const std::string& saveString)
   play_frame();
 
   // Update the SDLPop instance with the savefile contents again
-  loadState(saveString);
+  memcpy(_stateData, saveString.data(), _FRAME_DATA_SIZE);
+  pushState();
 
   // Recover original RNG state
   _sdlPop->setSeed(rngState);
@@ -207,37 +209,15 @@ uint64_t State::computeHash() const
   return result;
 }
 
-void State::loadState(const std::string &data)
+void State::pushState()
 {
-  if (data.size() != _FRAME_DATA_SIZE)
-    EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, data.size());
-
-  size_t curPos = 0;
-  for (const auto &item : _items)
-  {
-    memcpy(item.ptr, &data.c_str()[curPos], item.size);
-    curPos += item.size;
-  }
-
+  size_t pos = 0;
+  for (const auto &item : _items) { memcpy(item.ptr, &_stateData[pos],item.size); pos += item.size; }
   _sdlPop->isExitDoorOpen = _sdlPop->isLevelExitDoorOpen();
-  different_room = 1;
-  // Show the room where the prince is, even if the player moved the view away
-  // from it (with the H,J,U,N keys).
-  next_room = drawn_room = Kid.room;
-  load_room_links();
 }
 
-std::string State::saveState() const
+void State::getState()
 {
-  std::string res;
-  res.reserve(_FRAME_DATA_SIZE);
-  for (const auto &item : _items)
-  {
-    res.append(reinterpret_cast<const char *>(item.ptr), item.size);
-  }
-
-  if (res.size() != _FRAME_DATA_SIZE)
-    EXIT_WITH_ERROR("[Error] Wrong state size. Expected %lu, got: %lu\n", _FRAME_DATA_SIZE, res.size());
-
-  return res;
+  size_t pos = 0;
+  for (const auto &item : _items) { memcpy(&_stateData[pos], item.ptr, item.size); pos += item.size; }
 }

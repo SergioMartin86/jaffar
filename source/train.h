@@ -59,7 +59,7 @@ class Train
   std::vector<std::vector<Rule *>> _rules;
 
   // Storage for source frame data for differential load/save
-  std::string _sourceFrameData;
+  char _sourceFrameData[_FRAME_DATA_SIZE];
 
   // Frame counter
   size_t _stepFramesProcessedCounter;

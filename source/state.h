@@ -3,6 +3,7 @@
 #include "miniPoPInstance.h"
 #include "nlohmann/json.hpp"
 #include <cstddef>
+#include "frame.h"
 #include <string>
 #include <vector>
 
@@ -32,8 +33,10 @@ class State
   uint64_t computeHash() const;
   uint64_t kidHash() const;
 
-  void loadState(const std::string &data);
-  std::string saveState() const;
+  void pushState();
+  void getState();
+
+  char _stateData[_FRAME_DATA_SIZE];
 
   private:
   miniPoPInstance *_sdlPop;

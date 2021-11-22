@@ -99,7 +99,9 @@ void Train::run()
     size_t curSecs = (timeStep - (curMins * 720)) / 12;
     size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
-    _state[0]->loadState(_winFrame.getFrameDataFromDifference(_sourceFrameData));
+
+    _winFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_stateData);
+    _state[0]->pushState();
     _miniPop[0]->printFrameInfo();
 
     printRuleStatus(_winFrame);
@@ -192,12 +194,12 @@ void Train::computeFrames()
 
         // Loading frame state
         auto t0 = std::chrono::steady_clock::now(); // Profiling
-        auto baseFrameData = baseFrame->getFrameDataFromDifference(_sourceFrameData);
+        baseFrame->getFrameDataFromDifference(_sourceFrameData, _state[threadId]->_stateData);
         auto tf = std::chrono::steady_clock::now();
         threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         t0 = std::chrono::steady_clock::now(); // Profiling
-        _state[threadId]->loadState(baseFrameData);
+        _state[threadId]->pushState();
         tf = std::chrono::steady_clock::now();
         threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -276,12 +278,12 @@ void Train::computeFrames()
         if (curLevel == newLevel)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
-         auto newFrameData = _state[threadId]->saveState();
+         _state[threadId]->getState();
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
          t0 = std::chrono::steady_clock::now(); // Profiling
-         newFrame->computeFrameDifference(_sourceFrameData, newFrameData);
+         newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->_stateData);
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
@@ -515,7 +517,8 @@ void Train::printTrainStatus()
   printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(hashDatabasesEntries * sizeof(uint64_t)) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
-  _state[0]->loadState(_bestFrame.getFrameDataFromDifference(_sourceFrameData));
+  _bestFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_stateData);
+  _state[0]->pushState();
   _miniPop[0]->printFrameInfo();
   printRuleStatus(_bestFrame);
 
@@ -725,8 +728,8 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
   int threadId = omp_get_thread_num();
 
   // Loading frame state
-  std::string frameData = frame.getFrameDataFromDifference(_sourceFrameData);
-  _state[threadId]->loadState(frameData);
+  frame.getFrameDataFromDifference(_sourceFrameData, _state[threadId]->_stateData);
+  _state[threadId]->pushState();
 
   // If dead, do nothing
   if (Kid.alive >= 0)
@@ -872,8 +875,13 @@ Train::Train(int argc, char *argv[])
   if (RNGSeedSetting != "Default") { overrideRNGSeedActive = true; overrideRNGSeedValue = std::stoi(RNGSeedSetting); }
 
   // Loading save file contents
-  bool status = loadStringFromFile(_sourceFrameData, saveFilePath.c_str());
+  std::string sourceString;
+  bool status = loadStringFromFile(sourceString, saveFilePath.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
+  if (sourceString.size() != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), _FRAME_DATA_SIZE, sourceString.size());
+
+  // If size is correct, copy it to the source frame value
+  memcpy(_sourceFrameData, sourceString.data(), _FRAME_DATA_SIZE);
 
   // Parsing max steps
   _maxSteps = program.get<size_t>("--maxSteps");
@@ -915,15 +923,15 @@ Train::Train(int argc, char *argv[])
   _miniPop[threadId]->initialize();
 
   // Initializing State Handler
-   _state[threadId] = new State(_miniPop[threadId], _sourceFrameData);
+   _state[threadId] = new State(_miniPop[threadId], sourceString);
 
    //If overriding seed, do it now
    if (overrideRNGSeedActive == true)
    {
     _miniPop[threadId]->setSeed(overrideRNGSeedValue);
-    _sourceFrameData = _state[threadId]->saveState();
+    _state[threadId]->getState();
     delete(_state[threadId]);
-    _state[threadId] = new State(_miniPop[threadId], _sourceFrameData);
+    _state[threadId] = new State(_miniPop[threadId], _state[threadId]->_stateData);
    }
 
    // Adding rules, pointing to the thread-specific sdlpop instances
@@ -1004,7 +1012,8 @@ Train::Train(int argc, char *argv[])
   const auto hash = _state[0]->computeHash();
 
   auto initialFrame = std::make_unique<Frame>();
-  initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->saveState());
+  _state[0]->getState();
+  initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->_stateData);
   initialFrame->rulesStatus = rulesStatus;
 
   // Evaluating Rules on initial frame
@@ -1059,7 +1068,10 @@ void Train::showSavingLoop()
       if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
       {
         // Saving best frame data
-        saveStringToFile(_bestFrame.getFrameDataFromDifference(_sourceFrameData), _outputSaveBestPath.c_str());
+        std::string bestFrameData;
+        bestFrameData.resize(_FRAME_DATA_SIZE);
+        _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData.data());
+        saveStringToFile(bestFrameData, _outputSaveBestPath.c_str());
 
         // Storing the solution sequence
         if (_storeMoveList)
@@ -1083,7 +1095,10 @@ void Train::showSavingLoop()
       if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
       {
         // Saving best frame data
-        saveStringToFile(_showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData), _outputSaveCurrentPath.c_str());
+       std::string showFrameData;
+       showFrameData.resize(_FRAME_DATA_SIZE);
+       _showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData, showFrameData.data());
+       saveStringToFile(showFrameData, _outputSaveCurrentPath.c_str());
 
         // Storing the solution sequence
         if (_storeMoveList)
@@ -1109,7 +1124,11 @@ void Train::showSavingLoop()
   {
    auto lastFrame = _winFrameFound ? _winFrame : _bestFrame;
 
-   saveStringToFile(lastFrame.getFrameDataFromDifference(_sourceFrameData), _outputSaveBestPath.c_str());
+   // Saving best frame data
+   std::string winFrameData;
+   winFrameData.resize(_FRAME_DATA_SIZE);
+   lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
+   saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
 
    // Storing the solution sequence
    if (_storeMoveList)
