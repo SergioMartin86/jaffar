@@ -905,8 +905,9 @@ Train::Train(int argc, char *argv[])
     {
      _miniPop[threadId]->setSeed(overrideRNGSeedValue);
      _state[threadId]->getState();
+     memcpy(sourceString.data(), _state[threadId]->_stateData, _FRAME_DATA_SIZE);
      delete(_state[threadId]);
-     _state[threadId] = new State(_miniPop[threadId], _state[threadId]->_stateData);
+     _state[threadId] = new State(_miniPop[threadId], sourceString);
     }
    }
 
