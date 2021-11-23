@@ -3,12 +3,11 @@
   
   "State Configuration":
   {
-   "Falling Tile Hash Type": "None",
-   "Gate Hash Type": "Index Only",
-   "Spike Hash Type": "None",
-   "Loose Tile Hash Type": "None",
-   "Exit Door Hash Type": "None",
-   "Chomper Hash Type": "None"
+   "Falling Tiles Hash Type": "None",
+   "Active Objects Hash Types":
+   [
+     { "Index": 19, "Type": "Full" }
+   ]
   },
    
   "Rules":

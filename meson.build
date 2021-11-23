@@ -7,6 +7,25 @@ project('jaffar', 'c', 'cpp',
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 
+jaffar_flags = [ ]
+pymodule = import('python')
+python = pymodule.find_installation('python3', required: true)
+
+res = run_command(python, '-c', 'import os; print(os.environ["JAFFAR_MAX_MOVELIST_SIZE"])')
+if res.returncode() == 0
+  jaffar_flags += '-D_MAX_MOVELIST_SIZE='+res.stdout().strip()
+endif
+
+res = run_command(python, '-c', 'import os; print(os.environ["JAFFAR_MAX_RULE_COUNT"])')
+if res.returncode() == 0
+  jaffar_flags += '-D_MAX_RULE_COUNT='+res.stdout().strip()
+endif
+
+res = run_command(python, '-c', 'import os; print(os.environ["JAFFAR_MAX_FRAME_DIFF"])')
+if res.returncode() == 0
+  jaffar_flags += '-D_MAX_FRAME_DIFF='+res.stdout().strip()
+endif
+
 inc = include_directories([
  'extern/metrohash64',
  'extern/argparse',
@@ -49,7 +68,7 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_args: [ '-ldl' ],
-  cpp_args: [ '-Wfatal-errors' ]
+  cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
   )
 
 checkStyleCommand = find_program('./tools/check_style.sh', required: true)

@@ -13,6 +13,7 @@ void Train::run()
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
   printf("[Jaffar] Using configuration file: "); printf("%s ", _scriptFile.c_str()); printf("\n");
+  printf("[Jaffar] Frame size: %lu\n", sizeof(Frame));
   printf("[Jaffar] Max Frame DB entries: %lu\n", _maxDatabaseSize);
 
   if (_outputSaveBestSeconds > 0)

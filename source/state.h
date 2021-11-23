@@ -46,12 +46,8 @@ class State
   char _stateData[_FRAME_DATA_SIZE];
 
   // Hash states
-  hashType _hashTypeFallingTile;
-  hashType _hashTypeGate;
-  hashType _hashTypeSpike;
-  hashType _hashTypeLooseTile;
-  hashType _hashTypeExitDoor;
-  hashType _hashTypeChomper;
+  hashType _hashTypeFallingTiles;
+  std::map<int, hashType> _hashTypeTrobs;
 
   private:
   miniPoPInstance *_miniPop;

@@ -111,60 +111,29 @@ State::State(miniPoPInstance *miniPop, const std::string& saveString, const nloh
   _items = GenerateItemsMap(miniPop);
 
   // Setting hash types
-  _hashTypeFallingTile = NONE;
-  _hashTypeGate = NONE;
-  _hashTypeSpike = NONE;
-  _hashTypeLooseTile = NONE;
-  _hashTypeExitDoor = NONE;
-  _hashTypeChomper = NONE;
+  _hashTypeFallingTiles = NONE;
 
-  if (isDefined(stateConfig, "Falling Tile Hash Type") == true)
+  if (isDefined(stateConfig, "Falling Tiles Hash Type") == true)
   {
-   std::string hashType = stateConfig["Falling Tile Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeFallingTile = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeFallingTile = FULL;
+   std::string hashType = stateConfig["Falling Tiles Hash Type"].get<std::string>();
+   if (hashType == "Index Only") _hashTypeFallingTiles = INDEX_ONLY;
+   if (hashType == "Full") _hashTypeFallingTiles = FULL;
   }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Falling Tile Hash Type' was not defined\n");
+  else EXIT_WITH_ERROR("[Error] State Configuration 'Falling Tiles Hash Type' was not defined\n");
 
-  if (isDefined(stateConfig, "Gate Hash Type") == true)
+  if (isDefined(stateConfig, "Active Objects Hash Types") == true)
   {
-   std::string hashType = stateConfig["Gate Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeGate = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeGate = FULL;
-  }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Gate Hash Type' was not defined\n");
+   for (const auto& entry : stateConfig["Active Objects Hash Types"])
+   {
+    std::string hashType = entry["Type"].get<std::string>();
+    int idx = entry["Index"].get<int>();
+    if (hashType == "Index Only") _hashTypeTrobs[idx] = INDEX_ONLY;
+    if (hashType == "Full") _hashTypeTrobs[idx] = FULL;
+   }
 
-  if (isDefined(stateConfig, "Spike Hash Type") == true)
-  {
-   std::string hashType = stateConfig["Spike Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeSpike = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeSpike = FULL;
   }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Spike Hash Type' was not defined\n");
+  else EXIT_WITH_ERROR("[Error] State Configuration 'Active Objects Hash Types' was not defined\n");
 
-  if (isDefined(stateConfig, "Loose Tile Hash Type") == true)
-  {
-   std::string hashType = stateConfig["Loose Tile Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeLooseTile = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeLooseTile = FULL;
-  }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Loose Tile Hash Type' was not defined\n");
-
-  if (isDefined(stateConfig, "Exit Door Hash Type") == true)
-  {
-   std::string hashType = stateConfig["Exit Door Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeExitDoor = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeExitDoor = FULL;
-  }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Exit Door Hash Type' was not defined\n");
-
-  if (isDefined(stateConfig, "Chomper Hash Type") == true)
-  {
-   std::string hashType = stateConfig["Chomper Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeChomper = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeChomper = FULL;
-  }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Chomper Hash Type' was not defined\n");
 
   // Update the SDLPop instance with the savefile contents
   memcpy(_stateData, saveString.data(), _FRAME_DATA_SIZE);
@@ -204,8 +173,8 @@ uint64_t State::computeHash() const
   for (int i = 0; i < mobs_count; i++)
   {
    const auto &mob = mobs[i];
-   if (_hashTypeFallingTile == INDEX_ONLY) { hash.Update(mob.room); hash.Update(mob.xh); }
-   if (_hashTypeFallingTile == FULL) hash.Update(mob);
+   if (_hashTypeFallingTiles == INDEX_ONLY) { hash.Update(mob.room); hash.Update(mob.xh); }
+   if (_hashTypeFallingTiles == FULL) hash.Update(mob);
   }
 
   // Trobs are stationary animated objects.
@@ -213,59 +182,12 @@ uint64_t State::computeHash() const
   {
     const auto &trob = trobs[i];
     const auto idx = (trob.room - 1) * 30 + trob.tilepos;
-    const auto type = level.fg[idx] & 0x1f;
-    switch (type)
+
+    if (_hashTypeTrobs.count(idx))
     {
-    case tiles_0_empty:
-    case tiles_1_floor:
-    case tiles_3_pillar:
-    case tiles_5_stuck:
-    case tiles_6_closer:
-    case tiles_7_doortop_with_floor:
-    case tiles_8_bigpillar_bottom:
-    case tiles_9_bigpillar_top:
-    case tiles_10_potion:
-    case tiles_12_doortop:
-    case tiles_14_debris:
-    case tiles_15_opener:
-    case tiles_17_level_door_right:
-    case tiles_19_torch:
-    case tiles_20_wall:
-    case tiles_21_skeleton:
-    case tiles_22_sword:
-    case tiles_23_balcony_left:
-    case tiles_24_balcony_right:
-    case tiles_25_lattice_pillar:
-    case tiles_26_lattice_down:
-    case tiles_27_lattice_small:
-    case tiles_28_lattice_left:
-    case tiles_29_lattice_right:
-    case tiles_30_torch_with_debris:
-    case tiles_13_mirror:
-      break;
-     // For loose tiles, gates, and spikes, we only care that they have been disturbed/started (not the specific state)
-    case tiles_4_gate:
-     if (_hashTypeGate == INDEX_ONLY) hash.Update(idx);
-     if (_hashTypeGate == FULL) { hash.Update(trob); hash.Update(level.bg[idx]); hash.Update(level.fg[idx]); }
-     break;
-    case tiles_2_spike:
-     if (_hashTypeSpike == INDEX_ONLY) hash.Update(idx);
-     if (_hashTypeSpike == FULL) { hash.Update(trob); hash.Update(level.bg[idx]); hash.Update(level.fg[idx]); }
-     break;
-    case tiles_11_loose:
-     if (_hashTypeLooseTile == INDEX_ONLY) hash.Update(idx);
-     if (_hashTypeLooseTile == FULL) { hash.Update(trob); hash.Update(level.bg[idx]); hash.Update(level.fg[idx]); }
-     break;
-    case tiles_16_level_door_left:
-     if (_hashTypeExitDoor == INDEX_ONLY) hash.Update(idx);
-     if (_hashTypeExitDoor == FULL) { hash.Update(trob); hash.Update(level.bg[idx]); hash.Update(level.fg[idx]); }
-     break;
-    case tiles_18_chomper:
-     if (_hashTypeChomper == INDEX_ONLY) hash.Update(idx);
-     if (_hashTypeChomper == FULL) { hash.Update(trob); hash.Update(level.bg[idx]); hash.Update(level.fg[idx]); }
-     break;
-    default:
-      EXIT_WITH_ERROR("Unknown trob type: %d\n", int(type));
+     const auto hashType = _hashTypeTrobs.at(idx);
+     if (hashType == INDEX_ONLY) hash.Update(idx);
+     if (hashType == FULL) { hash.Update(idx); hash.Update(level.bg[idx]); }
     }
   }
 
