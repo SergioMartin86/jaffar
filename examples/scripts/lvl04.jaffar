@@ -4,7 +4,7 @@
   "State Configuration":
   {
    "Falling Tile Hash Type": "None",
-   "Gate Hash Type": "None",
+   "Gate Hash Type": "Index Only",
    "Spike Hash Type": "None",
    "Loose Tile Hash Type": "None",
    "Exit Door Hash Type": "None",
@@ -215,7 +215,7 @@
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 4, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 205.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 120 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 1.0 }
     ]
    },
@@ -227,7 +227,8 @@
     [
      { "Property": "Current Level", "Op": "==", "Value":  4 },
      { "Property": "Kid Room", "Op": "==", "Value":  11 },
-     { "Property": "Kid Position Y", "Op": ">", "Value":  70 }
+     { "Property": "Kid Position Y", "Op": "==", "Value":  118 },
+     { "Property": "Kid Position X", "Op": "<", "Value":  130 }
     ],
     
     "Dependencies": [ ],
@@ -237,35 +238,12 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 55.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 130.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 1.0 }
     ]
    },
    
    {
     "Label": 4108,
-    "Description": "Rewarding kid for going down and making it go left now.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  4 },
-     { "Property": "Kid Room", "Op": "==", "Value":  11 },
-     { "Property": "Kid Position Y", "Op": ">", "Value":  70 },
-     { "Property": "Kid Position X", "Op": ">", "Value":  160 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 4008 ],
-    
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11 , "Value": 0.0 }
-    ]
-   },
-   
-   {
-    "Label": 4109,
     "Description": "Rewarding kid for going down and making it go left now.",
     "Conditions":
     [
@@ -276,13 +254,13 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4108 ],
+    "Satisfies": [ 4008 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11 , "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 130.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11 , "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 160.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
     ]
    },
@@ -298,7 +276,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 4109 ],
+    "Satisfies": [ 4108 ],
     
     "Actions":
     [ 
@@ -326,7 +304,7 @@
     [ 
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 110.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 115.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11, "Value": 1.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 11, "Value": 1.0 }
     ]
