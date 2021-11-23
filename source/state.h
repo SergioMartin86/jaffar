@@ -39,7 +39,6 @@ class State
   State(miniPoPInstance *miniPop, const std::string& saveString, const nlohmann::json stateConfig);
 
   uint64_t computeHash() const;
-  uint64_t kidHash() const;
 
   void pushState();
   void getState();

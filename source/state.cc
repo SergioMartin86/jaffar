@@ -187,13 +187,6 @@ State::State(miniPoPInstance *miniPop, const std::string& saveString, const nloh
   last_loose_sound = looseTileSound;
 }
 
-uint64_t State::kidHash() const
-{
-  uint64_t hash;
-  MetroHash64::Hash(reinterpret_cast<uint8_t *>(&Kid), sizeof(Kid), reinterpret_cast<uint8_t *>(&hash), 1);
-  return hash;
-}
-
 uint64_t State::computeHash() const
 {
   // Storage for hash calculation

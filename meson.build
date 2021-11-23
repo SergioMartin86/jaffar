@@ -42,7 +42,7 @@ deps = [
   abs_cont,
   boost_dep
 ]
-  
+
 executable('jaffar-train',
   'source/train.cc',
   jaffarFiles,
@@ -51,7 +51,6 @@ executable('jaffar-train',
   link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ]
   )
-  
 
 checkStyleCommand = find_program('./tools/check_style.sh', required: true)
 test('C++ Style check', checkStyleCommand)

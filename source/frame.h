@@ -1,9 +1,19 @@
 #pragma once
 
 #define _FRAME_DATA_SIZE 2710
-#define _MAX_FRAME_DIFF 256
-#define _MAX_RULE_COUNT 64
+
+#ifndef _MAX_FRAME_DIFF
+#define _MAX_FRAME_DIFF 250
+#endif
+
+#ifndef _MAX_RULE_COUNT
+#define _MAX_RULE_COUNT 32
+#endif
+
+#ifndef _MAX_MOVELIST_SIZE
 #define _MAX_MOVELIST_SIZE 1440
+#endif
+
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 
 #include "nlohmann/json.hpp"
@@ -28,17 +38,17 @@ class Frame
   // Positions of the difference with respect to a base frame
   uint16_t frameDiffCount;
 
-  // Stores the entire move history of the frame
-  char moveHistory[_MAX_MOVELIST_STORAGE];
-
-  // Rule status vector
-  char rulesStatus[_MAX_RULE_COUNT];
-
   // Positions of the difference with respect to a base frame
   uint16_t frameDiffPositions[_MAX_FRAME_DIFF];
 
   // Values of the difference with respect to a base frame
   uint8_t frameDiffValues[_MAX_FRAME_DIFF];
+
+  // Stores the entire move history of the frame
+  char moveHistory[_MAX_MOVELIST_STORAGE];
+
+  // Rule status vector
+  char rulesStatus[_MAX_RULE_COUNT];
 
   // Differentiation functions
 
@@ -48,6 +58,7 @@ class Frame
    for (uint16_t i = 0; i < _FRAME_DATA_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffPositions[frameDiffCount++] = i;
    for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffValues[i] = newFrameData[frameDiffPositions[i]];
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
+   if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d\n", frameDiffCount, _MAX_FRAME_DIFF);
   }
 
   inline void getFrameDataFromDifference(const char* __restrict__ baseFrameData, char* __restrict__ stateData) const

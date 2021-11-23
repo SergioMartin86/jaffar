@@ -161,6 +161,9 @@ void Train::computeFrames()
     // Getting thread id
     int threadId = omp_get_thread_num();
 
+    // Reserving space for frame pointers
+    newThreadFrames[threadId].reserve(_maxDatabaseSize / _threadCount);
+
     // Profiling timers
     double threadHashCalculationTime = 0.0;
     double threadHashCheckingTime = 0.0;
@@ -175,10 +178,20 @@ void Train::computeFrames()
     for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB.size(); baseFrameIdx++)
     {
       // Storage for the base frame
-      const auto& baseFrame = _frameDB[baseFrameIdx];
+      const auto baseFrame = *_frameDB[baseFrameIdx];
+
+      // Freeing memory for the used base frame
+      _frameDB[baseFrameIdx].reset();
+
+      // Loading frame state
+      auto t0 = std::chrono::steady_clock::now(); // Profiling
+      char baseFrameData[_FRAME_DATA_SIZE];
+      baseFrame.getFrameDataFromDifference(_sourceFrameData, baseFrameData);
+      auto tf = std::chrono::steady_clock::now();
+      threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
       // Getting possible moves for the current frame
-      std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(*baseFrame);
+      std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(baseFrame);
 
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
@@ -192,13 +205,8 @@ void Train::computeFrames()
         // Getting possible move string
         std::string move = _possibleMoves[moveId].c_str();
 
-        // Loading frame state
-        auto t0 = std::chrono::steady_clock::now(); // Profiling
-        baseFrame->getFrameDataFromDifference(_sourceFrameData, _state[threadId]->_stateData);
-        auto tf = std::chrono::steady_clock::now();
-        threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
         t0 = std::chrono::steady_clock::now(); // Profiling
+        memcpy(_state[threadId]->_stateData, baseFrameData, _FRAME_DATA_SIZE);
         _state[threadId]->pushState();
         tf = std::chrono::steady_clock::now();
         threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
@@ -249,7 +257,7 @@ void Train::computeFrames()
         if (collisionDetected) continue;
 
         // Creating new frame, mixing base frame information and the current sdlpop state
-        auto newFrame = std::make_unique<Frame>(*baseFrame);
+        auto newFrame = std::make_unique<Frame>(baseFrame);
 
         // If required, store move history
         newFrame->setMove(_currentStep, moveId);
@@ -294,9 +302,6 @@ void Train::computeFrames()
         // Adding novel frame in the next frame database
         newThreadFrames[threadId].push_back(std::move(newFrame));
       }
-
-      // Freeing memory for the used base frame
-      _frameDB[baseFrameIdx].reset();
     }
 
     // Updating timers
