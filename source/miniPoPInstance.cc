@@ -4,6 +4,9 @@
 #include <iostream>
 #include <omp.h>
 
+const char* seqNames[] = {"running", "startrun", "runstt1", "runstt4", "runcyc1", "runcyc7", "stand", "goalertstand", "alertstand", "arise", "guardengarde", "engarde", "ready", "ready_loop", "stabbed", "strikeadv", "strikeret", "advance", "fastadvance", "retreat", "strike", "faststrike", "guy4", "guy7", "guy8", "blockedstrike", "blocktostrike", "readyblock", "blocking", "striketoblock", "landengarde", "bumpengfwd", "bumpengback", "flee", "turnengarde", "alertturn", "standjump", "sjland", "runjump", "rjlandrun", "rdiveroll", "rdiveroll_crouch", "sdiveroll", "crawl", "crawl_crouch", "turndraw", "turn", "turnrun", "runturn", "fightfall", "efightfall", "efightfallfwd", "stepfall", "fall1", "patchfall", "stepfall2", "stepfloat", "jumpfall", "rjumpfall", "jumphangMed", "jumphangLong", "jumpbackhang", "hang", "hang1", "hangstraight", "hangstraight_loop", "climbfail", "climbdown", "climbup", "hangdrop", "hangfall", "freefall", "freefall_loop", "runstop", "jumpup", "highjump", "superhijump", "fallhang", "bump", "bumpfall", "bumpfloat", "hardbump", "testfoot", "stepback", "step14", "step13", "step12", "step11", "step10", "step10a", "step9", "step8", "step7", "step6", "step5", "step4", "step3", "step2", "step1", "stoop", "stoop_crouch", "standup", "pickupsword", "resheathe", "fastsheathe", "drinkpotion", "softland", "softland_crouch", "landrun", "medland", "hardland", "hardland_dead", "stabkill", "dropdead", "dropdead_dead", "impale", "impale_dead", "halve", "halve_dead", "crush", "deadfall", "deadfall_loop", "climbstairs", "climbstairs_loop", "Vstand", "Vraise", "Vraise_loop", "Vwalk", "Vwalk1", "Vwalk2", "Vstop", "Vexit", "Pstand", "Palert", "Pstepback", "Pstepback_loop", "Plie", "Pwaiting", "Pembrace", "Pembrace_loop", "Pstroke", "Prise", "Prise_loop", "Pcrouch", "Pcrouch_loop", "Pslump", "Pslump_loop", "Mscurry", "Mscurry1", "Mstop", "Mraise", "Mleave", "Mclimb", "unrecognized" };
+const word seqOffsets[] = { 0x1973, 0x1975, 0x1978, 0x1981, 0x1995, 0x19A0, 0x19A6, 0x19A8, 0x19AC, 0x19C1, 0x19C4, 0x19D2, 0x19D8, 0x19DC, 0x19F9, 0x1A07, 0x1A13, 0x1A22, 0x1A2E, 0x1A3C, 0x1A42, 0x1A45, 0x1A4A, 0x1A4D, 0x1A54, 0x1A5A, 0x1A5E, 0x1A5F, 0x1A63, 0x1A68, 0x1A6E, 0x1A75, 0x1A7C, 0x1A83, 0x1A8B, 0x1A93, 0x1AB0, 0x1ACD, 0x1AFB, 0x1B04, 0x1B16, 0x1B1A, 0x1B1B, 0x1B29, 0x1B2D, 0x1B39, 0x1B53, 0x1B5A, 0x1B85, 0x1BA1, 0x1BBF, 0x1BDB, 0x1BE4, 0x1BFA, 0x1C01, 0x1C06, 0x1C1C, 0x1C38, 0x1C54, 0x1C69, 0x1C84, 0x1CA1, 0x1CA4, 0x1CD1, 0x1CD8, 0x1CDC, 0x1CEC, 0x1D04, 0x1D25, 0x1D36, 0x1D49, 0x1D4B, 0x1D4F, 0x1D68, 0x1D7D, 0x1D9B, 0x1DF6, 0x1DFC, 0x1E06, 0x1E25, 0x1E3B, 0x1E59, 0x1E78, 0x1E7D, 0x1E9C, 0x1EBB, 0x1EDA, 0x1EF7, 0x1EFC, 0x1F13, 0x1F19, 0x1F33, 0x1F48, 0x1F5D, 0x1F72, 0x1F82, 0x1F92, 0x1F9E, 0x1FA7, 0x1FAF, 0x1FB3, 0x1FCA, 0x1FDA, 0x1FFB, 0x2009, 0x202B, 0x2036, 0x203A, 0x205A, 0x209C, 0x20A5, 0x20A9, 0x20AE, 0x20BA, 0x20BE, 0x20C5, 0x20C9, 0x20CD, 0x20D1, 0x20D4, 0x20D9, 0x20DD, 0x212E, 0x2132, 0x2136, 0x214B, 0x214F, 0x2151, 0x2154, 0x2166, 0x216D, 0x2195, 0x2199, 0x21A8, 0x21B8, 0x21BC, 0x21C0, 0x21C4, 0x21E2, 0x21E6, 0x21EA, 0x21F8, 0x21FC, 0x223C, 0x2240, 0x2241, 0x2245, 0x2247, 0x2253, 0x2257, 0x225B, 0x226E, 0x2270 };
+
 void miniPoPInstance::initialize()
 {
   // Looking for sdlpop for base data in default folders when running examples
@@ -335,12 +338,33 @@ void miniPoPInstance::advanceFrame()
   isExitDoorOpen = isLevelExitDoorOpen();
 }
 
+int miniPoPInstance::getKidSequenceId()
+{
+ int seqIdx = Kid.curr_seq;
+ for (int i = 0; i < 113; i++)
+  if (seqIdx >= seqOffsets[i] && seqIdx < seqOffsets[i+1]) return i;
+ return 153; // Unrecognized
+}
+
+int miniPoPInstance::getGuardSequenceId()
+{
+ int seqIdx = Guard.curr_seq;
+ for (int i = 0; i < 113; i++)
+  if (seqIdx >= seqOffsets[i] && seqIdx < seqOffsets[i+1])
+   return i;
+ return 153; // Unrecognized
+}
+
+
 void miniPoPInstance::printFrameInfo()
 {
+  int kidSeqIdx = getKidSequenceId();
+  int guardSeqIdx = getGuardSequenceId();
+
   printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", current_level, next_level);
   printf("[Jaffar]  + Cumulative IGT: %2lu:%02lu.%03lu\n", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
-  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Kid.room), int(Kid.x), int(Kid.y), int(Kid.frame), int(hitp_curr), int(hitp_max), int(Kid.curr_seq));
-  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Sequence: %4d\n", int(Guard.room), int(Guard.x), int(Guard.y), int(Guard.frame), int(guardhp_curr), int(guardhp_max), int(Guard.curr_seq));
+  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Seq: %2d (%s)\n", int(Kid.room), int(Kid.x), int(Kid.y), int(Kid.frame), int(hitp_curr), int(hitp_max), kidSeqIdx, seqNames[kidSeqIdx]);
+  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Seq: %2d (%s)\n", int(Guard.room), int(Guard.x), int(Guard.y), int(Guard.frame), int(guardhp_curr), int(guardhp_max), guardSeqIdx, seqNames[guardSeqIdx]);
   printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
   printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
   printf("[Jaffar]  + Reached Checkpoint: %s\n", checkpoint ? "Yes" : "No");

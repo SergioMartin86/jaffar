@@ -3,6 +3,9 @@
 #include "miniPoP.hpp"
 #include <string>
 
+extern const char* seqNames[];
+extern const word seqOffsets[];
+
 class miniPoPInstance
 {
   public:
@@ -50,4 +53,7 @@ class miniPoPInstance
   size_t getElapsedMins();
   size_t getElapsedSecs();
   size_t getElapsedMilisecs();
+
+  int getKidSequenceId();
+  int getGuardSequenceId();
 };

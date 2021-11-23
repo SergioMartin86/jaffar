@@ -257,6 +257,7 @@ extern "C" __thread short draw_main_y;
 extern "C" __thread short drawn_col;
 extern "C" __thread byte tile_left;
 extern "C" __thread byte modifier_left;
+extern "C" __thread byte kidSeqId;
 
 typedef void restore_room_after_quick_load_t(void);
 typedef void load_global_options_t(void);
