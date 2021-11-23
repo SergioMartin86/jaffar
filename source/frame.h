@@ -2,6 +2,9 @@
 
 #define _FRAME_DATA_SIZE 2710
 #define _MAX_FRAME_DIFF 256
+#define _MAX_RULE_COUNT 64
+#define _MAX_MOVELIST_SIZE 1440
+#define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 
 #include "nlohmann/json.hpp"
 #include "rule.h"
@@ -12,7 +15,6 @@ const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "
 
 extern size_t _ruleCount;
 extern size_t _maxSteps;
-extern size_t _moveListStorageSize;
 extern size_t _maxFrameDiff;
 
 class Frame
@@ -20,17 +22,17 @@ class Frame
   public:
   Frame();
 
-  // Stores the entire move history of the frame
-  std::vector<char> moveHistory;
-
   // The score calculated for this frame
   float reward;
 
-  // Rule status vector
-  std::vector<char> rulesStatus;
-
   // Positions of the difference with respect to a base frame
   uint16_t frameDiffCount;
+
+  // Stores the entire move history of the frame
+  char moveHistory[_MAX_MOVELIST_STORAGE];
+
+  // Rule status vector
+  char rulesStatus[_MAX_RULE_COUNT];
 
   // Positions of the difference with respect to a base frame
   uint16_t frameDiffPositions[_MAX_FRAME_DIFF];
@@ -54,14 +56,27 @@ class Frame
     for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffPositions[i]] = frameDiffValues[i];
   }
 
-  // Serialization functions
-  static size_t getSerializationSize();
-  void serialize(char *output);
-  void deserialize(const char *input);
-
   // Move r/w operations
-  void setMove(const size_t idx, const uint8_t move);
-  uint8_t getMove(const size_t idx);
+  inline void setMove(const size_t idx, const uint8_t move)
+  {
+    size_t basePos = idx / 2;
+    uint8_t baseVal = moveHistory[basePos];
+    uint8_t newVal;
 
-  Frame &operator=(Frame sourceFrame);
+    if (idx % 2 == 0) newVal = (baseVal & 0xF0) | (move & 0x0F);
+    if (idx % 2 == 1) newVal = (baseVal & 0x0F) | (move << 4);
+
+    moveHistory[basePos] = newVal;
+  }
+
+  inline uint8_t getMove(const size_t idx)
+  {
+   size_t basePos = idx / 2;
+   uint8_t val = moveHistory[basePos];
+   if (idx % 2 == 0) val = val & 0x0F;
+   if (idx % 2 == 1) val = val >> 4;
+   return val;
+  }
+
 };
+

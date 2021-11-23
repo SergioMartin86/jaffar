@@ -83,7 +83,7 @@ void Train::run()
     }
 
     // Terminate if maximum number of frames was reached
-    if (_currentStep > _maxSteps)
+    if (_currentStep > _MAX_MOVELIST_SIZE-1)
     {
       printf("[Jaffar] Maximum frame number reached, finishing...\n");
       terminate = true;
@@ -110,13 +110,10 @@ void Train::run()
     printRuleStatus(_winFrame);
 
     // Print Move History
-    if (_storeMoveList)
-    {
-     printf("[Jaffar]  + Move List: ");
-     for (size_t i = 0; i <= _currentStep; i++)
-       printf("%s ", _possibleMoves[_winFrame.getMove(i)].c_str());
-     printf("\n");
-    }
+    printf("[Jaffar]  + Move List: ");
+    for (size_t i = 0; i <= _currentStep; i++)
+      printf("%s ", _possibleMoves[_winFrame.getMove(i)].c_str());
+    printf("\n");
   }
 
   // Marking the end of the run
@@ -129,7 +126,7 @@ void Train::run()
 void Train::printRuleStatus(const Frame &frame)
 {
  printf("[Jaffar]  + Rule Status: ");
- for (size_t i = 0; i < frame.rulesStatus.size(); i++)
+ for (size_t i = 0; i < _ruleCount; i++)
  {
    if (i > 0 && i % 60 == 0) printf("\n                         ");
    printf("%d", frame.rulesStatus[i] ? 1 : 0);
@@ -252,15 +249,10 @@ void Train::computeFrames()
         if (collisionDetected) continue;
 
         // Creating new frame, mixing base frame information and the current sdlpop state
-        auto newFrame = std::make_unique<Frame>();
-        newFrame->rulesStatus = baseFrame->rulesStatus;
+        auto newFrame = std::make_unique<Frame>(*baseFrame);
 
         // If required, store move history
-        if (_storeMoveList == true)
-        {
-         newFrame->moveHistory = baseFrame->moveHistory;
-         newFrame->setMove(_currentStep, moveId);
-        }
+        newFrame->setMove(_currentStep, moveId);
 
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
@@ -458,14 +450,14 @@ void Train::satisfyRule(Frame &frame, const size_t ruleId)
 void Train::printTrainStatus()
 {
   printf("[Jaffar] ----------------------------------------------------------------\n");
-  printf("[Jaffar] Current Step #: %lu / %lu\n", _currentStep, _maxSteps);
+  printf("[Jaffar] Current Step #: %lu (Max: %u)\n", _currentStep, _MAX_MOVELIST_SIZE);
 
   size_t timeStep = _currentStep-1;
   size_t curMins = timeStep / 720;
   size_t curSecs = (timeStep - (curMins * 720)) / 12;
   size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
 
-  size_t maxStep = _maxSteps-1;
+  size_t maxStep = _MAX_MOVELIST_SIZE-1;
   size_t maxMins = maxStep / 720;
   size_t maxSecs = (maxStep - (maxMins * 720)) / 12;
   size_t maxMilliSecs = ceil((double)(maxStep - (maxMins * 720) - (maxSecs * 12)) / 0.012);
@@ -492,7 +484,7 @@ void Train::printTrainStatus()
   size_t hashDatabasesEntries = 0;
   for (size_t i = 0; i < _hashDatabases.size(); i++) hashDatabasesEntries += _hashDatabases[i]->size();
   printf("[Jaffar] Hash DB Entries: %lu\n", hashDatabasesEntries);
-  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_frameDB.size() * Frame::getSerializationSize()) / (1024.0 * 1024.0));
+  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_frameDB.size() * sizeof(Frame)) / (1024.0 * 1024.0));
   printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(hashDatabasesEntries * sizeof(uint64_t)) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
@@ -520,14 +512,11 @@ void Train::printTrainStatus()
   printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", guardMagnet.intensityY);
 
   // Print Move History
-  if (_storeMoveList)
-  {
-   printf("[Jaffar]  + Last 30 Moves: ");
-   size_t startMove = (size_t)std::max((int)0, (int)_currentStep-30);
-   for (size_t i = startMove; i <= _currentStep; i++)
-     printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
-   printf("\n");
-  }
+  printf("[Jaffar]  + Last 30 Moves: ");
+  size_t startMove = (size_t)std::max((int)0, (int)_currentStep-30);
+  for (size_t i = startMove; i <= _currentStep; i++)
+    printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
+  printf("\n");
 }
 
 magnetInfo_t Train::getKidMagnetValues(const Frame &frame, const int room)
@@ -542,7 +531,7 @@ magnetInfo_t Train::getKidMagnetValues(const Frame &frame, const int room)
  magnetInfo.intensityY = 0.0f;
 
  // Iterating rule vector
- for (size_t ruleId = 0; ruleId < frame.rulesStatus.size(); ruleId++)
+ for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
  {
   if (frame.rulesStatus[ruleId] == true)
   {
@@ -577,7 +566,7 @@ magnetInfo_t Train::getGuardMagnetValues(const Frame &frame, const int room)
  magnetInfo.intensityY = 0.0f;
 
  // Iterating rule vector
- for (size_t ruleId = 0; ruleId < frame.rulesStatus.size(); ruleId++)
+ for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
   if (frame.rulesStatus[ruleId] == true)
   {
     const auto& rule = _rules[threadId][ruleId];
@@ -819,19 +808,9 @@ Train::Train(int argc, char *argv[])
     .default_value(std::string("quicksave.sav"))
     .required();
 
-  program.add_argument("--maxSteps")
-    .help("Specifies the maximum number of steps to run jaffar for.")
-    .action([](const std::string& value) { return std::stoul(value); })
-    .required();
-
   program.add_argument("--RNGSeed")
     .help("Specifies a user-defined RNG seed to use.")
     .default_value(std::string("Default"));
-
-  program.add_argument("--disableHistory")
-    .help("Do not store the move history during training to save memory.")
-    .default_value(false)
-    .implicit_value(true);
 
   program.add_argument("jaffarFile")
     .help("path to the Jaffar configuration script (.jaffar) file to run.")
@@ -840,9 +819,6 @@ Train::Train(int argc, char *argv[])
   // Try to parse arguments
   try { program.parse_args(argc, argv);  }
   catch (const std::runtime_error &err) { EXIT_WITH_ERROR("%s\n%s", err.what(), program.help().str().c_str()); }
-
-  // Establishing whether to store move history
-  _storeMoveList = program.get<bool>("--disableHistory") == false;
 
   // Getting savefile path
   auto saveFilePath = program.get<std::string>("--savFile");
@@ -862,14 +838,8 @@ Train::Train(int argc, char *argv[])
   // If size is correct, copy it to the source frame value
   memcpy(_sourceFrameData, sourceString.data(), _FRAME_DATA_SIZE);
 
-  // Parsing max steps
-  _maxSteps = program.get<size_t>("--maxSteps");
-
-  // The move list contains two moves per byte
-  _moveListStorageSize = (_maxSteps >> 1) + 1;
-
   // Calculating DB sizes
-  _maxDatabaseSize = floor(((double)maxDBSizeMb * 1024.0 * 1024.0) / ((double)Frame::getSerializationSize()));
+  _maxDatabaseSize = floor(((double)maxDBSizeMb * 1024.0 * 1024.0) / ((double)sizeof(Frame)));
 
   // Parsing config files
   _scriptFile = program.get<std::string>("jaffarFile");
@@ -974,10 +944,6 @@ Train::Train(int argc, char *argv[])
 
   printf("[Jaffar] SDLPop initialized.\n");
 
-  // Setting initial status for each rule
-  std::vector<char> rulesStatus(_ruleCount);
-  for (size_t i = 0; i < _ruleCount; i++) rulesStatus[i] = false;
-
   // Setting initial values
   _hasFinalized = false;
   _hashCollisions = 0;
@@ -999,7 +965,7 @@ Train::Train(int argc, char *argv[])
   auto initialFrame = std::make_unique<Frame>();
   _state[0]->getState();
   initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->_stateData);
-  initialFrame->rulesStatus = rulesStatus;
+  for (size_t i = 0; i < _ruleCount; i++) initialFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame
   evaluateRules(*initialFrame);
@@ -1059,14 +1025,11 @@ void Train::showSavingLoop()
         saveStringToFile(bestFrameData, _outputSaveBestPath.c_str());
 
         // Storing the solution sequence
-        if (_storeMoveList)
-        {
-         std::string solutionString;
-         solutionString += _possibleMoves[_bestFrame.getMove(0)];
-         for (size_t i = 1; i <= _currentStep; i++)
-          solutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
-         saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
-        }
+        std::string solutionString;
+        solutionString += _possibleMoves[_bestFrame.getMove(0)];
+        for (size_t i = 1; i <= _currentStep; i++)
+         solutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
+        saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
 
         // Resetting timer
         bestFrameSaveTimer = std::chrono::steady_clock::now();
@@ -1086,14 +1049,11 @@ void Train::showSavingLoop()
        saveStringToFile(showFrameData, _outputSaveCurrentPath.c_str());
 
         // Storing the solution sequence
-        if (_storeMoveList)
-        {
-         std::string solutionString;
-         solutionString += _possibleMoves[_showFrameDB[currentFrameId].getMove(0)];
-         for (size_t i = 1; i <= _currentStep; i++)
-          solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].getMove(i)];
-         saveStringToFile(solutionString, _outputSolutionCurrentPath.c_str());
-        }
+        std::string solutionString;
+        solutionString += _possibleMoves[_showFrameDB[currentFrameId].getMove(0)];
+        for (size_t i = 1; i <= _currentStep; i++)
+         solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].getMove(i)];
+        saveStringToFile(solutionString, _outputSolutionCurrentPath.c_str());
 
         // Resetting timer
         currentFrameSaveTimer = std::chrono::steady_clock::now();
@@ -1116,14 +1076,11 @@ void Train::showSavingLoop()
    saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
 
    // Storing the solution sequence
-   if (_storeMoveList)
-   {
-    std::string solutionString;
-    solutionString += _possibleMoves[lastFrame.getMove(0)];
-    for (size_t i = 1; i <= _currentStep; i++)
-     solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
-    saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
-   }
+   std::string solutionString;
+   solutionString += _possibleMoves[lastFrame.getMove(0)];
+   for (size_t i = 1; i <= _currentStep; i++)
+    solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
+   saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
   }
 }
 
