@@ -1,20 +1,27 @@
 #pragma once
 
-#define _FRAME_DATA_SIZE 2710
+// Select level we are optimizing jaffar for
+#define _JAFFAR_LEVEL_1
 
-#ifndef _MAX_FRAME_DIFF
+// Level 1 Configuration
+#ifdef _JAFFAR_LEVEL_1
+ #define _JAFFAR_LEVEL 1
+ #define _MAX_FRAME_DIFF 150
+ #define _MAX_RULE_COUNT 10
+ #define _MAX_MOVELIST_SIZE 260
+#endif
+
+// Level 11 Configuration
+#ifdef _JAFFAR_LEVEL_11
+ #define _JAFFAR_LEVEL 11
 #define _MAX_FRAME_DIFF 250
-#endif
-
-#ifndef _MAX_RULE_COUNT
 #define _MAX_RULE_COUNT 32
-#endif
-
-#ifndef _MAX_MOVELIST_SIZE
 #define _MAX_MOVELIST_SIZE 1440
 #endif
 
+
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
+#define _FRAME_DATA_SIZE 2710
 
 #include "nlohmann/json.hpp"
 #include "rule.h"

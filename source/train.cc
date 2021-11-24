@@ -460,13 +460,13 @@ void Train::printTrainStatus()
 
   size_t timeStep = _currentStep-1;
   size_t curMins = timeStep / 720;
-  size_t curSecs = (timeStep - (curMins * 720)) / 12;
-  size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
+  size_t curSecs = (timeStep % 720) / 12;
+  size_t curMilliSecs = floor((double)(timeStep % 12) / 0.012);
 
   size_t maxStep = _MAX_MOVELIST_SIZE-1;
   size_t maxMins = maxStep / 720;
-  size_t maxSecs = (maxStep - (maxMins * 720)) / 12;
-  size_t maxMilliSecs = ceil((double)(maxStep - (maxMins * 720) - (maxSecs * 12)) / 0.012);
+  size_t maxSecs = (maxStep % 720) / 12;
+  size_t maxMilliSecs = floor((double)(maxStep % 12) / 0.012);
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
@@ -727,11 +727,11 @@ std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
 
   // Kid is standing or finishing a turn, try all possibilities
   if (Kid.frame == frame_15_stand || (Kid.frame >= frame_50_turn && Kid.frame < 53))
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
   // Turning frame, try all possibilities
   if (Kid.frame == frame_48_turn)
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
   // Start running animation, all movement without shift
   if (Kid.frame < 4)
@@ -954,6 +954,9 @@ Train::Train(int argc, char *argv[])
   _hasFinalized = false;
   _hashCollisions = 0;
   _bestFrameReward = 0;
+
+  // Checking level optimization
+  if (current_level != _JAFFAR_LEVEL) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run level %d, but running level %d instead. Modify frame.h and rebuild to run this level.\n", _JAFFAR_LEVEL, current_level);
 
   // Maximum difference between explored frames and the pivot frame
   _maxFrameDiff = 0;

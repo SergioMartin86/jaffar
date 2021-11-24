@@ -148,6 +148,8 @@ void miniPoPInstance::startLevel(const word level)
 
  if (need_level1_music != 0 && current_level == custom->intro_music_level)
    need_level1_music = custom->intro_music_time_restart;
+
+ anim_tile_modif();
 }
 
 void miniPoPInstance::setSeed(const dword randomSeed)

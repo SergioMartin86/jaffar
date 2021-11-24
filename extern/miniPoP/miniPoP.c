@@ -165,7 +165,6 @@ __thread sbyte control_shift;
 __thread sbyte control_y;
 __thread sbyte control_x;
 __thread char_type Kid;
-__thread word is_keyboard_mode = 0;
 __thread word is_paused;
 __thread word is_restart_level;
 __thread byte sound_mode = 0;
@@ -968,8 +967,6 @@ int __pascal far process_key()
   }
   if (key == 0)
     return 0;
-  if (is_keyboard_mode)
-    clear_kbd_buf();
 
   switch (key)
   {
@@ -982,9 +979,6 @@ int __pascal far process_key()
     {
       is_restart_level = 1;
     }
-    break;
-  case SDL_SCANCODE_K | WITH_CTRL: // Ctrl+K
-    is_keyboard_mode = 1;
     break;
   case SDL_SCANCODE_R | WITH_CTRL: // Ctrl+R
     start_level = -1;
@@ -7066,7 +7060,7 @@ void __pascal far control_standing()
   loc_6213:
     if (control_forward < 0)
     {
-      if (is_keyboard_mode && control_up < 0)
+      if (control_up < 0)
       {
         standing_jump();
       }
@@ -7081,7 +7075,7 @@ void __pascal far control_standing()
     }
     else if (control_up < 0)
     {
-      if (is_keyboard_mode && control_forward < 0)
+      if (control_forward < 0)
       {
         standing_jump();
       }
