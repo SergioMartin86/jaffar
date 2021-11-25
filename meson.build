@@ -11,12 +11,12 @@ jaffar_flags = [ ]
 pymodule = import('python')
 python = pymodule.find_installation('python3', required: true)
 
-res = run_command(python, '-c', 'import os; print(os.environ["JAFFAR_DISABLE_HISTORY"])')
+res = run_command(python, '-c', 'import os; print(os.environ["JAFFAR_DISABLE_MOVE_HISTORY"])')
 if res.returncode() == 0
   #jaffar_flags += '-D_MAX_MOVELIST_SIZE='+res.stdout().strip()
   value = res.stdout().strip()
   if value == 'TRUE'
-   jaffar_flags += '-D_JAFFAR_DISABLE_HISTORY'
+   jaffar_flags += '-DJAFFAR_DISABLE_MOVE_HISTORY'
   endif
 endif
 
