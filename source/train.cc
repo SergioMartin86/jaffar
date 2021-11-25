@@ -159,6 +159,9 @@ void Train::computeFrames()
   // Creating thread-local storage for new frames
   std::vector<std::vector<std::unique_ptr<Frame>>> newThreadFrames(_threadCount);
 
+  // Creating storage for flush-trigger frames
+  std::vector<std::unique_ptr<Frame>> flushDBFrames;
+
   // Processing frame database in parallel
   auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
@@ -274,11 +277,8 @@ void Train::computeFrames()
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
 
-        // Checks whether any fail rules were activated
-        bool isFailFrame = checkFail(*newFrame);
-
         // If frame has failed, discard it and proceed to the next one
-        if (isFailFrame) continue;
+        if (newFrame->_type == f_fail) continue;
 
         // Storing the frame data, only if if belongs to the same level
         if (curLevel == newLevel)
@@ -297,19 +297,31 @@ void Train::computeFrames()
         // Calculating current reward
         newFrame->reward = getFrameReward(*newFrame);
 
-        // Check if the frame triggers a win condition
-        bool isWinFrame = checkWin(*newFrame);
-
         // If frame has succeded, then flag it
-        if (isWinFrame)
+        if (newFrame->_type == f_win)
         {
           _winFrameFound = true;
            #pragma omp critical(winFrame)
            _winFrame = *newFrame;
         }
 
-        // Adding novel frame in the next frame database
-        newThreadFrames[threadId].push_back(std::move(newFrame));
+        // Adding novel frame in the next frame database, if regular
+        if (newFrame->_type == f_regular)
+        {
+         newThreadFrames[threadId].push_back(std::move(newFrame));
+         continue;
+        }
+
+        if (newFrame->_type == f_flush) // Else flush database if it's tagged to flush the database
+        {
+         // Setting new frame as regular from now on
+         newFrame->_type = f_regular;
+
+         // Pushing it into the special flush DB, in case there are more like it in this frame
+         #pragma omp critical(flushDB)
+         flushDBFrames.push_back(std::move(newFrame));
+         continue;
+        }
       }
     }
 
@@ -341,16 +353,26 @@ void Train::computeFrames()
   // Postprocessing steps
   auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
-  // Getting total new frames and displacements
-  size_t totalNewFrameCount = 0;
-  std::vector<size_t> totalNewFrameDisplacements(_threadCount);
-  for (int i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
+  // Clearing all old frames
+  _frameDB.clear();
 
-  // Passing new frames into the new frame database
-  _frameDB.resize(totalNewFrameCount);
-  #pragma omp parallel for
-  for (int i = 0; i < _threadCount; i++)
-   for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
+  // If there are no flush type frames, continue normally
+  if (flushDBFrames.size() == 0)
+  {
+   // Getting total new frames and displacements
+   size_t totalNewFrameCount = 0;
+   std::vector<size_t> totalNewFrameDisplacements(_threadCount);
+   for (int i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
+
+   // Passing new frames into the new frame database
+   _frameDB.resize(totalNewFrameCount);
+   #pragma omp parallel for
+   for (int i = 0; i < _threadCount; i++)
+    for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
+  }
+
+  // If there are flush type frames, push them into the database.
+  if (flushDBFrames.size() > 0) _frameDB = std::move(flushDBFrames);
 
   // Sorting local DB frames by reward
   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -403,32 +425,6 @@ void Train::evaluateRules(Frame &frame)
   }
 }
 
-bool Train::checkFail(const Frame &frame)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-   if (_rules[threadId][ruleId]->_isFailRule == true)
-    return true;
-
- return false;
-}
-
-bool Train::checkWin(const Frame &frame)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-   if (_rules[threadId][ruleId]->_isWinRule == true)
-    return true;
-
- return false;
-}
-
 float Train::getRuleRewards(const Frame &frame)
 {
  // Getting thread id
@@ -459,6 +455,10 @@ void Train::satisfyRule(Frame &frame, const size_t ruleId)
 
  // Setting status to satisfied
  frame.rulesStatus[ruleId] = true;
+
+ if (_rules[threadId][ruleId]->_isFlushDBRule == true) frame._type = f_flush;
+ if (_rules[threadId][ruleId]->_isFailRule == true) frame._type = f_fail;
+ if (_rules[threadId][ruleId]->_isWinRule == true) frame._type = f_win;
 }
 
 void Train::printTrainStatus()

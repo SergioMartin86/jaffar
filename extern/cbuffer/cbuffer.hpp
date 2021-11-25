@@ -119,6 +119,7 @@ class cBuffer
   */
   void clear()
   {
+    _data = std::make_unique<T[]>(_maxSize);
     _size = 0;
     _start = 0;
     _end = 0;

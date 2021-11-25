@@ -12,7 +12,7 @@ Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
   _reward = 0.0;
   _isWinRule = false;
   _isFailRule = false;
-  _isRestartRule = false; // Force Ctrl+A
+  _isFlushDBRule = false;
 
   // Adding conditions. All of them must be satisfied for the rule to count
   if (isDefined(ruleJs, "Conditions") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Conditions' key.\n");
@@ -127,10 +127,10 @@ void Rule::parseActions(nlohmann::json actionsJs)
      recognizedActionType = true;
    }
 
-   // Storing restart state
-   if (actionType == "Restart Level")
+   // Storing win state
+   if (actionType == "Flush Database")
    {
-     _isRestartRule = true;
+     _isFlushDBRule = true;
      recognizedActionType = true;
    }
 

@@ -35,6 +35,14 @@
 
 const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA"};
 
+enum frameType
+{
+  f_regular,
+  f_win,
+  f_fail,
+  f_flush
+};
+
 extern size_t _maxFrameDiff;
 
 class Frame
@@ -57,8 +65,10 @@ class Frame
   // Rule status vector
   char rulesStatus[_MAX_RULE_COUNT];
 
-  // Differentiation functions
+  // Frame type
+  frameType _type;
 
+  // Differentiation functions
   inline void computeFrameDifference(const char* __restrict__ baseFrameData, const char* __restrict__ newFrameData)
   {
    frameDiffCount = 0;

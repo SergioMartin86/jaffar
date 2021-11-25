@@ -127,11 +127,6 @@ class Train
   static void *showThreadFunction(void *trainPtr);
   void showSavingLoop();
 
-  // Functions that check special flags for a given frame
-  void checkSpecialActions(const Frame &frame);
-  bool checkFail(const Frame &frame);
-  bool checkWin(const Frame &frame);
-
   // Function to get the static rewards obtained from rules
   float getRuleRewards(const Frame &frame);
 
