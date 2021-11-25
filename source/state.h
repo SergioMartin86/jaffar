@@ -46,7 +46,7 @@ class State
   char _stateData[_FRAME_DATA_SIZE];
 
   // Hash states
-  hashType _hashTypeFallingTiles;
+  bool _hashKidCurrentHp;
   std::map<int, hashType> _hashTypeTrobs;
   std::vector<int> _hashTypeStatic;
   std::map<std::pair<int, int>, hashType> _hashTypeMobs;

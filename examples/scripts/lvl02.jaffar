@@ -3,6 +3,7 @@
 
   "State Configuration":
   {
+   "Property Hash Types": [ "Kid Current HP" ],
    "Static Tile Hash Types": [ 36 ],
    
    "Falling Tiles Hash Types": 
@@ -13,10 +14,12 @@
    
    "Active Objects Hash Types":
    [
-     { "Index": 163, "Type": "Index Only" },
      { "Index": 519, "Type": "Index Only" },
      { "Index": 189, "Type": "Index Only" },
+     { "Index": 314, "Type": "Full" },
+     { "Index": 47,  "Type": "Index Only" },
      { "Index": 266, "Type": "Full" },
+     { "Index": 536, "Type": "Full" },
      { "Index": 251, "Type": "Index Only" },
      { "Index": 673, "Type": "Full" }
    ]
@@ -450,12 +453,12 @@
    
    {
     "Label": 2018,
-    "Description": "If reached the left platform, give reward and go to the right .",
+    "Description": "If exit door is being opened, give reward and go to the right .",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": "==", "Value":  9 },
-     { "Property": "Kid Position X", "Op": "<", "Value":  80 }
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
+     { "Property": "Current Step", "Op": ">", "Value":  10 }
     ],
     
     "Dependencies": [ ],
@@ -489,6 +492,26 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 9, "Value": 0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 23, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 23, "Value": 128 }
+    ]
+   },
+   
+   {
+    "Label": 2023,
+    "Description": "Fail if going down after exit door was opened.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
+     { "Property": "Kid Room", "Op": "==", "Value":  9 },
+     { "Property": "Kid Position Y", "Op": ">", "Value":  118 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
     ]
    },
    

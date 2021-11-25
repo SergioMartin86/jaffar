@@ -31,7 +31,7 @@ std::vector<State::Item> GenerateItemsMap(miniPoPInstance *miniPop)
   AddItem(&dest, trobs, State::HASHABLE_MANUAL);
   AddItem(&dest, leveldoor_open, State::HASHABLE);
   AddItem(&dest, Kid, State::HASHABLE);
-  AddItem(&dest, hitp_curr, State::PER_FRAME_STATE);
+  AddItem(&dest, hitp_curr, State::HASHABLE_MANUAL);
   AddItem(&dest, hitp_max, State::PER_FRAME_STATE);
   AddItem(&dest, hitp_beg_lev, State::PER_FRAME_STATE);
   AddItem(&dest, grab_timer, State::HASHABLE);
@@ -111,7 +111,15 @@ State::State(miniPoPInstance *miniPop, const std::string& saveString, const nloh
   _items = GenerateItemsMap(miniPop);
 
   // Setting hash types
-  _hashTypeFallingTiles = NONE;
+  _hashKidCurrentHp = false;
+  if (isDefined(stateConfig, "Property Hash Types") == true)
+  {
+   for (const auto& entry : stateConfig["Property Hash Types"])
+   {
+    if (entry == "Kid Current HP") _hashKidCurrentHp = true;
+   }
+  }
+  else EXIT_WITH_ERROR("[Error] State Configuration 'Property Hash Types' was not defined\n");
 
   if (isDefined(stateConfig, "Falling Tiles Hash Types") == true)
   {
@@ -176,9 +184,11 @@ uint64_t State::computeHash() const
   for (const auto &item : _items) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
 
   // Manual hashing
+
   hash.Update(level.guards_x);
   hash.Update(level.guards_dir);
   if (Guard.alive) hash.Update(Guard);
+  if (_hashKidCurrentHp == true) hash.Update(hitp_curr);
 
   // Mobs are moving objects (falling tiles only afaik).
   for (int i = 0; i < mobs_count; i++)

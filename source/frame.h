@@ -12,8 +12,8 @@
 
 // Level 2 Configuration
 #if _JAFFAR_LEVEL==2
- #define _MAX_FRAME_DIFF 180
- #define _MAX_RULE_COUNT 24
+ #define _MAX_FRAME_DIFF 190
+ #define _MAX_RULE_COUNT 25
  #define _MAX_MOVELIST_SIZE 950
 #endif
 
