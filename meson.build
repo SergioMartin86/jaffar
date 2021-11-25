@@ -16,7 +16,7 @@ if res.returncode() == 0
   #jaffar_flags += '-D_MAX_MOVELIST_SIZE='+res.stdout().strip()
   value = res.stdout().strip()
   if value == 'TRUE'
-   jaffar_flags += '-D_JAFFAR_DISABLE_MOVE_HISTORY'
+   jaffar_flags += '-DJAFFAR_DISABLE_MOVE_HISTORY'
   endif
 endif
 
