@@ -79,7 +79,7 @@ void Train::run()
     // Terminate if a winning rule was found
     if (_winFrameFound == true)
     {
-      printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep+1);
+      printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep);
       terminate = true;
     }
 
@@ -689,6 +689,9 @@ float Train::getFrameReward(const Frame &frame)
   // Apply bonus when kid is inside a non-visible room
   if (kidCurrentRoom == 0 || kidCurrentRoom >= 25) reward += 128.0f;
 
+  // Apply bonus when kid is climbing exit stairs
+  if (curKidFrame >= 217 || curKidFrame <= 228) reward += 128.0f;
+
   // Returning reward
   return reward;
 }
@@ -852,7 +855,7 @@ Train::Train(int argc, char *argv[])
   nlohmann::json scriptFileJs;
   std::string scriptString;
   status = loadStringFromFile(scriptString, _scriptFile.c_str());
-  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from config file: %s\n%s \n", _scriptFile.c_str(), program.help().str().c_str());
+  if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from Jaffar script file: %s\n%s \n", _scriptFile.c_str(), program.help().str().c_str());
 
   nlohmann::json scriptJs;
   try { scriptJs = nlohmann::json::parse(scriptString); }
@@ -954,6 +957,9 @@ Train::Train(int argc, char *argv[])
   _hasFinalized = false;
   _hashCollisions = 0;
   _bestFrameReward = 0;
+
+  // Check rule count does not exceed maximum
+  if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this level.\n", _MAX_RULE_COUNT, _ruleCount);
 
   // Checking level optimization
   if (current_level != _JAFFAR_LEVEL) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run level %d, but running level %d instead. Modify frame.h and rebuild to run this level.\n", _JAFFAR_LEVEL, current_level);

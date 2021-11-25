@@ -1,22 +1,27 @@
 #pragma once
 
 // Select level we are optimizing jaffar for
-#define _JAFFAR_LEVEL_1
+#define _JAFFAR_LEVEL 2
 
 // Level 1 Configuration
-#ifdef _JAFFAR_LEVEL_1
- #define _JAFFAR_LEVEL 1
+#if _JAFFAR_LEVEL==1
  #define _MAX_FRAME_DIFF 150
  #define _MAX_RULE_COUNT 10
  #define _MAX_MOVELIST_SIZE 260
 #endif
 
+// Level 2 Configuration
+#if _JAFFAR_LEVEL==2
+ #define _MAX_FRAME_DIFF 180
+ #define _MAX_RULE_COUNT 24
+ #define _MAX_MOVELIST_SIZE 950
+#endif
+
 // Level 11 Configuration
-#ifdef _JAFFAR_LEVEL_11
- #define _JAFFAR_LEVEL 11
-#define _MAX_FRAME_DIFF 250
-#define _MAX_RULE_COUNT 32
-#define _MAX_MOVELIST_SIZE 1440
+#if _JAFFAR_LEVEL==11
+ #define _MAX_FRAME_DIFF 250
+ #define _MAX_RULE_COUNT 32
+ #define _MAX_MOVELIST_SIZE 1440
 #endif
 
 
@@ -63,9 +68,9 @@ class Frame
   {
    frameDiffCount = 0;
    for (uint16_t i = 0; i < _FRAME_DATA_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffPositions[frameDiffCount++] = i;
-   for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffValues[i] = newFrameData[frameDiffPositions[i]];
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
    if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d\n", frameDiffCount, _MAX_FRAME_DIFF);
+   for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffValues[i] = newFrameData[frameDiffPositions[i]];
   }
 
   inline void getFrameDataFromDifference(const char* __restrict__ baseFrameData, char* __restrict__ stateData) const

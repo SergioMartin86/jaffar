@@ -48,6 +48,8 @@ class State
   // Hash states
   hashType _hashTypeFallingTiles;
   std::map<int, hashType> _hashTypeTrobs;
+  std::vector<int> _hashTypeStatic;
+  std::map<std::pair<int, int>, hashType> _hashTypeMobs;
 
   private:
   miniPoPInstance *_miniPop;

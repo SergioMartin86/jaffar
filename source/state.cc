@@ -44,7 +44,7 @@ std::vector<State::Item> GenerateItemsMap(miniPoPInstance *miniPop)
   AddItem(&dest, ctrl1_down, State::HASHABLE);
   AddItem(&dest, ctrl1_shift2, State::HASHABLE);*/
   AddItem(&dest, kid_sword_strike, State::HASHABLE);
-  AddItem(&dest, pickup_obj_type, State::HASHABLE);
+  AddItem(&dest, pickup_obj_type, State::PER_FRAME_STATE);
   AddItem(&dest, offguard, State::HASHABLE);
   // guard
   AddItem(&dest, Guard, State::PER_FRAME_STATE);
@@ -75,8 +75,8 @@ std::vector<State::Item> GenerateItemsMap(miniPoPInstance *miniPop)
   // sounds
   AddItem(&dest, need_level1_music, State::HASHABLE);
   AddItem(&dest, is_screaming, State::HASHABLE);
-  AddItem(&dest, is_feather_fall, State::HASHABLE);
-  AddItem(&dest, last_loose_sound, State::HASHABLE);
+  AddItem(&dest, is_feather_fall, State::PER_FRAME_STATE);
+  AddItem(&dest, last_loose_sound, State::PER_FRAME_STATE);
   // AddItem(&dest, next_sound, State::HASHABLE);
   // AddItem(&dest, current_sound, State::HASHABLE);
   // random
@@ -113,13 +113,19 @@ State::State(miniPoPInstance *miniPop, const std::string& saveString, const nloh
   // Setting hash types
   _hashTypeFallingTiles = NONE;
 
-  if (isDefined(stateConfig, "Falling Tiles Hash Type") == true)
+  if (isDefined(stateConfig, "Falling Tiles Hash Types") == true)
   {
-   std::string hashType = stateConfig["Falling Tiles Hash Type"].get<std::string>();
-   if (hashType == "Index Only") _hashTypeFallingTiles = INDEX_ONLY;
-   if (hashType == "Full") _hashTypeFallingTiles = FULL;
+   for (const auto& entry : stateConfig["Falling Tiles Hash Types"])
+   {
+    std::string hashType = entry["Type"].get<std::string>();
+    int room = entry["Room"].get<int>();
+    int column = entry["Column"].get<int>();
+    auto idx = std::make_pair(room, column);
+    if (hashType == "Index Only") _hashTypeMobs[idx] = INDEX_ONLY;
+    if (hashType == "Full") _hashTypeMobs[idx] = FULL;
+   }
   }
-  else EXIT_WITH_ERROR("[Error] State Configuration 'Falling Tiles Hash Type' was not defined\n");
+  else EXIT_WITH_ERROR("[Error] State Configuration 'Falling Tiles Hash Types' was not defined\n");
 
   if (isDefined(stateConfig, "Active Objects Hash Types") == true)
   {
@@ -134,6 +140,11 @@ State::State(miniPoPInstance *miniPop, const std::string& saveString, const nloh
   }
   else EXIT_WITH_ERROR("[Error] State Configuration 'Active Objects Hash Types' was not defined\n");
 
+  if (isDefined(stateConfig, "Static Tile Hash Types") == true)
+  {
+   for (const auto& idx : stateConfig["Static Tile Hash Types"])  _hashTypeStatic.push_back(idx.get<int>());
+  }
+  else EXIT_WITH_ERROR("[Error] State Configuration 'Static Tile Hash Types' was not defined\n");
 
   // Update the SDLPop instance with the savefile contents
   memcpy(_stateData, saveString.data(), _FRAME_DATA_SIZE);
@@ -173,11 +184,16 @@ uint64_t State::computeHash() const
   for (int i = 0; i < mobs_count; i++)
   {
    const auto &mob = mobs[i];
-   if (_hashTypeFallingTiles == INDEX_ONLY) { hash.Update(mob.room); hash.Update(mob.xh); }
-   if (_hashTypeFallingTiles == FULL) hash.Update(mob);
+   const auto idx = std::make_pair(mob.room, mob.xh);
+   if (_hashTypeMobs.count(idx))
+   {
+    const auto hashType = _hashTypeMobs.at(idx);
+    if (hashType == INDEX_ONLY) { hash.Update(mob.room); hash.Update(mob.xh); }
+    if (hashType == FULL)  hash.Update(mob);
+   }
   }
 
-  // Trobs are stationary animated objects.
+  // Trobs are stationary animated objects. They only change in state, hence we only read BG
   for (int i = 0; i < trobs_count; ++i)
   {
     const auto &trob = trobs[i];
@@ -190,6 +206,9 @@ uint64_t State::computeHash() const
      if (hashType == FULL) { hash.Update(idx); hash.Update(level.bg[idx]); }
     }
   }
+
+  // Computing hash for static objects. They only change on tile type, hence we only read FG
+  for (const auto idx : _hashTypeStatic)  hash.Update(level.fg[idx]);
 
   uint64_t result;
   hash.Finalize(reinterpret_cast<uint8_t *>(&result));
