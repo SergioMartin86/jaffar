@@ -13,7 +13,7 @@
 // Level 2 Configuration
 #if _JAFFAR_LEVEL==2
  #define _MAX_FRAME_DIFF 190
- #define _MAX_RULE_COUNT 25
+ #define _MAX_RULE_COUNT 32
  #define _MAX_MOVELIST_SIZE 950
 #endif
 
@@ -35,8 +35,6 @@
 
 const std::vector<std::string> _possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA"};
 
-extern size_t _ruleCount;
-extern size_t _maxSteps;
 extern size_t _maxFrameDiff;
 
 class Frame
@@ -55,9 +53,6 @@ class Frame
 
   // Values of the difference with respect to a base frame
   uint8_t frameDiffValues[_MAX_FRAME_DIFF];
-
-  // Stores the entire move history of the frame
-  char moveHistory[_MAX_MOVELIST_STORAGE];
 
   // Rule status vector
   char rulesStatus[_MAX_RULE_COUNT];
@@ -78,6 +73,11 @@ class Frame
     memcpy(stateData, baseFrameData, _FRAME_DATA_SIZE);
     for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffPositions[i]] = frameDiffValues[i];
   }
+
+#ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
+  // Stores the entire move history of the frame
+  char moveHistory[_MAX_MOVELIST_STORAGE];
 
   // Move r/w operations
   inline void setMove(const size_t idx, const uint8_t move)
@@ -100,6 +100,8 @@ class Frame
    if (idx % 2 == 1) val = val >> 4;
    return val;
   }
+
+#endif
 
 };
 

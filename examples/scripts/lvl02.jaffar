@@ -19,9 +19,7 @@
      { "Index": 314, "Type": "Full" },
      { "Index": 47,  "Type": "Index Only" },
      { "Index": 266, "Type": "Full" },
-     { "Index": 536, "Type": "Full" },
-     { "Index": 251, "Type": "Index Only" },
-     { "Index": 673, "Type": "Full" }
+     { "Index": 536, "Type": "Full" }
    ]
   },
   
@@ -504,6 +502,62 @@
      { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
      { "Property": "Kid Room", "Op": "==", "Value":  9 },
      { "Property": "Kid Position Y", "Op": ">", "Value":  118 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
+    "Label": 2024,
+    "Description": "Fail standing jump.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  16 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
+    "Label": 2025,
+    "Description": "Fail careful step on room 9 after opening door.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  121 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
+    "Label": 2026,
+    "Description": "Fail crouch on room 9 after opening door.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  107 }
     ],
     
     "Dependencies": [ ],

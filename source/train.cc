@@ -110,11 +110,15 @@ void Train::run()
 
     printRuleStatus(_winFrame);
 
+    #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
     // Print Move History
     printf("[Jaffar]  + Move List: ");
     for (size_t i = 0; i <= _currentStep; i++)
       printf("%s ", _possibleMoves[_winFrame.getMove(i)].c_str());
     printf("\n");
+
+    #endif
   }
 
   // Marking the end of the run
@@ -260,8 +264,12 @@ void Train::computeFrames()
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>(baseFrame);
 
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
         // If required, store move history
         newFrame->setMove(_currentStep, moveId);
+
+        #endif
 
         // Evaluating rules on the new frame
         evaluateRules(*newFrame);
@@ -517,12 +525,16 @@ void Train::printTrainStatus()
   printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", guardMagnet.intensityX, guardMagnet.positionX);
   printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", guardMagnet.intensityY);
 
+  #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
   // Print Move History
   printf("[Jaffar]  + Last 30 Moves: ");
   size_t startMove = (size_t)std::max((int)0, (int)_currentStep-30);
   for (size_t i = startMove; i <= _currentStep; i++)
     printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
   printf("\n");
+
+  #endif
 }
 
 magnetInfo_t Train::getKidMagnetValues(const Frame &frame, const int room)
@@ -1039,12 +1051,16 @@ void Train::showSavingLoop()
         _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData.data());
         saveStringToFile(bestFrameData, _outputSaveBestPath.c_str());
 
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
         // Storing the solution sequence
         std::string solutionString;
         solutionString += _possibleMoves[_bestFrame.getMove(0)];
         for (size_t i = 1; i <= _currentStep; i++)
          solutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
         saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+
+        #endif
 
         // Resetting timer
         bestFrameSaveTimer = std::chrono::steady_clock::now();
@@ -1063,12 +1079,16 @@ void Train::showSavingLoop()
        _showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData, showFrameData.data());
        saveStringToFile(showFrameData, _outputSaveCurrentPath.c_str());
 
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
         // Storing the solution sequence
         std::string solutionString;
         solutionString += _possibleMoves[_showFrameDB[currentFrameId].getMove(0)];
         for (size_t i = 1; i <= _currentStep; i++)
          solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].getMove(i)];
         saveStringToFile(solutionString, _outputSolutionCurrentPath.c_str());
+
+        #endif
 
         // Resetting timer
         currentFrameSaveTimer = std::chrono::steady_clock::now();
@@ -1090,12 +1110,16 @@ void Train::showSavingLoop()
    lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
    saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
 
+   #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
    // Storing the solution sequence
    std::string solutionString;
    solutionString += _possibleMoves[lastFrame.getMove(0)];
    for (size_t i = 1; i <= _currentStep; i++)
     solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
    saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+
+   #endif
   }
 }
 

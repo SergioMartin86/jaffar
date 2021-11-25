@@ -57,6 +57,7 @@ class Train
   std::vector<miniPoPInstance*> _miniPop;
   std::vector<State *> _state;
   std::vector<std::vector<Rule *>> _rules;
+  size_t _ruleCount;
 
   // Storage for source frame data for differential load/save
   char _sourceFrameData[_FRAME_DATA_SIZE];
