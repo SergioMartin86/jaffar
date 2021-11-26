@@ -14,10 +14,12 @@
    
    "Active Objects Hash Types":
    [
-     { "Index": 519, "Type": "Full" },
-     { "Index": 189, "Type": "Full" },
+     { "Index": 519, "Type": "Index Only" },
+     { "Index": 189, "Type": "Index Only" },
      { "Index": 314, "Type": "Full" },
-     { "Index": 266, "Type": "Full" }
+     { "Index": 47,  "Type": "Index Only" },
+     { "Index": 266, "Type": "Full" }, 
+     { "Index": 536, "Type": "Full" }
    ]
   },
   
@@ -164,7 +166,6 @@
     
     "Actions":
     [
-     { "Type": "Flush Database" },
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 1, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 22, "Value": 1.0 },
@@ -377,7 +378,6 @@
     
     "Actions":
     [
-     { "Type": "Flush Database" },
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 21, "Value": 50.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 21, "Value": 0.0 }
