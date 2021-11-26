@@ -4,12 +4,11 @@
   "State Configuration":
   {
    "Property Hash Types": [ "Kid Current HP" ],
-   "Static Tile Hash Types": [ 36 ],
+   "Static Tile Hash Types": [ ],
    
    "Falling Tiles Hash Types": 
    [
-    { "Room": 9, "Column": 24, "Type": "Full" },
-    { "Room": 2, "Column": 24, "Type": "Full" }
+
    ],
    
    "Active Objects Hash Types":
@@ -18,7 +17,6 @@
      { "Index": 189, "Type": "Index Only" },
      { "Index": 314, "Type": "Full" },
      { "Index": 47,  "Type": "Index Only" },
-     { "Index": 266, "Type": "Full" }, 
      { "Index": 536, "Type": "Full" }
    ]
   },
@@ -233,6 +231,25 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 21, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 21, "Value": 86 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 21, "Value": 1.0 }
+    ]
+   },
+   
+   {
+    "Label": 2216,
+    "Description": "Fail if HP == 1.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "==", "Value":  21 },
+     { "Property": "Kid Current HP", "Op": "==", "Value":  1 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
     ]
    },
    
