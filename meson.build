@@ -65,6 +65,15 @@ executable('jaffar-train',
   link_args: [ '-ldl' ],
   cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
   )
+  
+executable('jaffar-tester',
+  'source/tester.cc',
+  jaffarFiles,
+  dependencies: deps,
+  include_directories: inc,
+  link_args: [ '-ldl' ],
+  cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
+  )
 
 checkStyleCommand = find_program('./tools/check_style.sh', required: true)
 test('C++ Style check', checkStyleCommand)

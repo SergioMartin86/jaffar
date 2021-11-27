@@ -591,7 +591,7 @@ Train::Train(int argc, char *argv[])
     _state[threadId] = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
   }
 
-  printf("[Jaffar] SDLPop initialized.\n");
+  printf("[Jaffar] miniPop initialized.\n");
 
   // Setting initial values
   _hasFinalized = false;
@@ -599,6 +599,7 @@ Train::Train(int argc, char *argv[])
   _bestFrameReward = 0;
 
   // Check rule count does not exceed maximum
+  _ruleCount = _state[0]->_rules.size();
   if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this level.\n", _MAX_RULE_COUNT, _ruleCount);
 
   // Checking level optimization

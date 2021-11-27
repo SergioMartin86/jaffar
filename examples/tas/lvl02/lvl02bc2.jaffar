@@ -271,6 +271,7 @@
      { "Type": "Trigger Win" }
     ]
    },
+   
    {
     "Label": 2020,
     "Description": "If Kid dies, then fail.",
