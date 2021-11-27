@@ -216,9 +216,6 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
   pushState();
 
-  // Checking if correct level
-  if (current_level != _JAFFAR_LEVEL) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run level %d, but running level %d instead. Modify frame.h and rebuild to run this level.\n", _JAFFAR_LEVEL, current_level);
-
   // Starting level
   _miniPop->startLevel(next_level);
 
@@ -252,6 +249,7 @@ uint64_t State::computeHash() const
 
   // Manual hashing
 
+  hash.Update(_miniPop->isExitDoorOpen);
   hash.Update(level.guards_x);
   hash.Update(level.guards_dir);
   if (Guard.alive) hash.Update(Guard);

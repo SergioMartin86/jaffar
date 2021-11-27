@@ -122,9 +122,6 @@ Tester::Tester(int argc, char *argv[])
   _ruleCount = _state[0]->_rules.size();
   if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this level.\n", _MAX_RULE_COUNT, _ruleCount);
 
-  // Checking level optimization
-  if (current_level != _JAFFAR_LEVEL) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run level %d, but running level %d instead. Modify frame.h and rebuild to run this level.\n", _JAFFAR_LEVEL, current_level);
-
   // Creating base frame
   _baseFrame = std::make_unique<Frame>();
   _state[0]->popState();

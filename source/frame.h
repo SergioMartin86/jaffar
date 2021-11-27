@@ -1,36 +1,9 @@
 #pragma once
 
-// Select level we are optimizing jaffar for
-#define _JAFFAR_LEVEL 1
-
-// Level 1 Configuration
-#if _JAFFAR_LEVEL==1
- #define _MAX_FRAME_DIFF 150
- #define _MAX_RULE_COUNT 10
- #define _MAX_MOVELIST_SIZE 260
-#endif
-
-// Level 2 Configuration
-#if _JAFFAR_LEVEL==2
-
- #define _MAX_FRAME_DIFF 200
- #define _MAX_RULE_COUNT 32
- #define _MAX_MOVELIST_SIZE 950
-
-// #define _MAX_FRAME_DIFF 170
-// #define _MAX_RULE_COUNT 24
-// #define _MAX_MOVELIST_SIZE 450
-
-#endif
-
-// Level 11 Configuration
-#if _JAFFAR_LEVEL==11
- #define _MAX_FRAME_DIFF 250
- #define _MAX_RULE_COUNT 32
- #define _MAX_MOVELIST_SIZE 1440
-#endif
-
-
+#define _MAX_FRAME_DIFF 150
+#define _MAX_RULE_COUNT 15
+//#define _MAX_MOVELIST_SIZE 530 // 3a
+#define _MAX_MOVELIST_SIZE 400 // 3b
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 #define _FRAME_DATA_SIZE 2710
 
