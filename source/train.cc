@@ -104,11 +104,10 @@ void Train::run()
     size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
 
-    _winFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_stateData);
+    _winFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
     _state[0]->pushState();
-    _miniPop[0]->printFrameInfo();
-
-    printRuleStatus(_winFrame);
+    _state[0]->_miniPop->printFrameInfo();
+    _state[0]->printRuleStatus(_winFrame);
 
     #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
@@ -126,17 +125,6 @@ void Train::run()
 
   // Stopping show thread
   pthread_join(_showThreadId, NULL);
-}
-
-void Train::printRuleStatus(const Frame &frame)
-{
- printf("[Jaffar]  + Rule Status: ");
- for (size_t i = 0; i < _ruleCount; i++)
- {
-   if (i > 0 && i % 60 == 0) printf("\n                         ");
-   printf("%d", frame.rulesStatus[i] ? 1 : 0);
- }
- printf("\n");
 }
 
 void Train::computeFrames()
@@ -199,7 +187,12 @@ void Train::computeFrames()
       threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
       // Getting possible moves for the current frame
-      std::vector<uint8_t> possibleMoveIds = getPossibleMoveIds(baseFrame);
+      t0 = std::chrono::steady_clock::now(); // Profiling
+      memcpy(_state[threadId]->_inputStateData, baseFrameData, _FRAME_DATA_SIZE);
+      _state[threadId]->pushState();
+      std::vector<uint8_t> possibleMoveIds = _state[threadId]->getPossibleMoveIds(baseFrame);
+      tf = std::chrono::steady_clock::now();
+      threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
@@ -213,21 +206,24 @@ void Train::computeFrames()
         // Getting possible move string
         std::string move = _possibleMoves[moveId].c_str();
 
-        t0 = std::chrono::steady_clock::now(); // Profiling
-        memcpy(_state[threadId]->_stateData, baseFrameData, _FRAME_DATA_SIZE);
-        _state[threadId]->pushState();
-        tf = std::chrono::steady_clock::now();
-        threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+        // If this comes after the first move, we need to reload the base state
+        if (idx > 0)
+        {
+         t0 = std::chrono::steady_clock::now(); // Profiling
+         _state[threadId]->pushState();
+         tf = std::chrono::steady_clock::now();
+         threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+        }
 
         // Getting current level
         auto curLevel = current_level;
 
         // Perform the selected move
         t0 = std::chrono::steady_clock::now(); // Profiling
-        _miniPop[threadId]->performMove(move);
+        _state[threadId]->_miniPop->performMove(move);
 
         // Advance a single frame
-        _miniPop[threadId]->advanceFrame();
+        _state[threadId]->_miniPop->advanceFrame();
         tf = std::chrono::steady_clock::now();
         threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -275,7 +271,7 @@ void Train::computeFrames()
         #endif
 
         // Evaluating rules on the new frame
-        evaluateRules(*newFrame);
+        _state[threadId]->evaluateRules(*newFrame);
 
         // If frame has failed, discard it and proceed to the next one
         if (newFrame->_type == f_fail) continue;
@@ -284,18 +280,18 @@ void Train::computeFrames()
         if (curLevel == newLevel)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
-         _state[threadId]->getState();
+         _state[threadId]->popState();
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
          t0 = std::chrono::steady_clock::now(); // Profiling
-         newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->_stateData);
+         newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->_outputStateData);
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
 
         // Calculating current reward
-        newFrame->reward = getFrameReward(*newFrame);
+        newFrame->reward = _state[threadId]->getFrameReward(*newFrame);
 
         // If frame has succeded, then flag it
         if (newFrame->_type == f_win)
@@ -397,69 +393,7 @@ void Train::computeFrames()
   _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
 }
 
-void Train::evaluateRules(Frame &frame)
-{
-  // Getting thread id
-  int threadId = omp_get_thread_num();
 
-  for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  {
-    // Evaluate rule only if it's active
-    if (frame.rulesStatus[ruleId] == false)
-    {
-      // Checking dependencies first. If not met, continue to the next rule
-      bool dependenciesMet = true;
-      for (size_t i = 0; i < _rules[threadId][ruleId]->_dependenciesIndexes.size(); i++)
-        if (frame.rulesStatus[_rules[threadId][ruleId]->_dependenciesIndexes[i]] == false)
-          dependenciesMet = false;
-
-      // If dependencies aren't met, then continue to next rule
-      if (dependenciesMet == false) continue;
-
-      // Checking if conditions are met
-      bool isSatisfied = _rules[threadId][ruleId]->evaluate();
-
-      // If it's achieved, update its status and run its actions
-      if (isSatisfied) satisfyRule(frame, ruleId);
-    }
-  }
-}
-
-float Train::getRuleRewards(const Frame &frame)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- float reward = 0.0;
-
- for (size_t ruleId = 0; ruleId < _rules[threadId].size(); ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-    reward += _rules[threadId][ruleId]->_reward;
- return reward;
-}
-
-void Train::satisfyRule(Frame &frame, const size_t ruleId)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- // Recursively run actions for the yet unsatisfied rules that are satisfied by this one and mark them as satisfied
- for (size_t satisfiedIdx = 0; satisfiedIdx < _rules[threadId][ruleId]->_satisfiesIndexes.size(); satisfiedIdx++)
- {
-  // Obtaining index
-  size_t subRuleId = _rules[threadId][ruleId]->_satisfiesIndexes[satisfiedIdx];
-
-  // Only activate it if it hasn't been activated before
-  if(frame.rulesStatus[subRuleId] == false) satisfyRule(frame, subRuleId);
- }
-
- // Setting status to satisfied
- frame.rulesStatus[ruleId] = true;
-
- if (_rules[threadId][ruleId]->_isFlushDBRule == true) frame._type = f_flush;
- if (_rules[threadId][ruleId]->_isFailRule == true) frame._type = f_fail;
- if (_rules[threadId][ruleId]->_isWinRule == true) frame._type = f_win;
-}
 
 void Train::printTrainStatus()
 {
@@ -502,16 +436,16 @@ void Train::printTrainStatus()
   printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(hashDatabasesEntries * sizeof(uint64_t)) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
-  _bestFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_stateData);
+  _bestFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
   _state[0]->pushState();
-  _miniPop[0]->printFrameInfo();
-  printRuleStatus(_bestFrame);
+  _state[0]->_miniPop->printFrameInfo();
+  _state[0]->printRuleStatus(_bestFrame);
 
   // Getting kid room
   int kidCurrentRoom = Kid.room;
 
   // Getting magnet values for the kid
-  auto kidMagnet = getKidMagnetValues(_bestFrame, kidCurrentRoom);
+  auto kidMagnet = _state[0]->getKidMagnetValues(_bestFrame, kidCurrentRoom);
 
   printf("[Jaffar]  + Kid Horizontal Magnet Intensity / Position: %.1f / %.0f\n", kidMagnet.intensityX, kidMagnet.positionX);
   printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", kidMagnet.intensityY);
@@ -520,7 +454,7 @@ void Train::printTrainStatus()
   int guardCurrentRoom = Guard.room;
 
   // Getting magnet values for the guard
-  auto guardMagnet = getGuardMagnetValues(_bestFrame, guardCurrentRoom);
+  auto guardMagnet = _state[0]->getGuardMagnetValues(_bestFrame, guardCurrentRoom);
 
   printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", guardMagnet.intensityX, guardMagnet.positionX);
   printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", guardMagnet.intensityY);
@@ -535,241 +469,6 @@ void Train::printTrainStatus()
   printf("\n");
 
   #endif
-}
-
-magnetInfo_t Train::getKidMagnetValues(const Frame &frame, const int room)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- // Storage for magnet information
- magnetInfo_t magnetInfo;
- magnetInfo.positionX = 0.0f;
- magnetInfo.intensityX = 0.0f;
- magnetInfo.intensityY = 0.0f;
-
- // Iterating rule vector
- for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
- {
-  if (frame.rulesStatus[ruleId] == true)
-  {
-    const auto& rule = _rules[threadId][ruleId];
-
-    for (size_t i = 0; i < _rules[threadId][ruleId]->_kidMagnetPositionX.size(); i++)
-     if (rule->_kidMagnetPositionX[i].room == room)
-      magnetInfo.positionX = rule->_kidMagnetPositionX[i].value;
-
-    for (size_t i = 0; i < _rules[threadId][ruleId]->_kidMagnetIntensityX.size(); i++)
-     if (rule->_kidMagnetIntensityX[i].room == room)
-      magnetInfo.intensityX = rule->_kidMagnetIntensityX[i].value;
-
-    for (size_t i = 0; i < _rules[threadId][ruleId]->_kidMagnetIntensityY.size(); i++)
-     if (rule->_kidMagnetIntensityY[i].room == room)
-      magnetInfo.intensityY = rule->_kidMagnetIntensityY[i].value;
-  }
- }
-
- return magnetInfo;
-}
-
-magnetInfo_t Train::getGuardMagnetValues(const Frame &frame, const int room)
-{
- // Getting thread id
- int threadId = omp_get_thread_num();
-
- // Storage for magnet information
- magnetInfo_t magnetInfo;
- magnetInfo.positionX = 0.0f;
- magnetInfo.intensityX = 0.0f;
- magnetInfo.intensityY = 0.0f;
-
- // Iterating rule vector
- for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-  {
-    const auto& rule = _rules[threadId][ruleId];
-
-    for (size_t i = 0; i < _rules[threadId][ruleId]->_guardMagnetPositionX.size(); i++)
-     if (rule->_guardMagnetPositionX[i].room == room)
-      magnetInfo.positionX = rule->_guardMagnetPositionX[i].value;
-
-    for (size_t i = 0; i < _rules[threadId][ruleId]->_guardMagnetIntensityX.size(); i++)
-     if (rule->_guardMagnetIntensityX[i].room == room)
-      magnetInfo.intensityX = rule->_guardMagnetIntensityX[i].value;
-
-    for (size_t i = 0; i < _rules[threadId][ruleId]->_guardMagnetIntensityY.size(); i++)
-     if (rule->_guardMagnetIntensityY[i].room == room)
-      magnetInfo.intensityY = rule->_guardMagnetIntensityY[i].value;
-  }
-
- return magnetInfo;
-}
-
-float Train::getFrameReward(const Frame &frame)
-{
-  // Accumulator for total reward
-  float reward = getRuleRewards(frame);
-
-  // Getting kid room
-  int kidCurrentRoom = Kid.room;
-
-  // Getting magnet values for the kid
-  auto kidMagnet = getKidMagnetValues(frame, kidCurrentRoom);
-
-  // Getting kid's current frame
-  const auto curKidFrame = Kid.frame;
-
-  // Evaluating kidMagnet's reward on the X axis
-  const float kidDiffX = std::abs(Kid.x - kidMagnet.positionX);
-  reward += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
-
-  // For positive Y axis kidMagnet, rewarding climbing frames
-  if ((float) kidMagnet.intensityY > 0.0f)
-  {
-    // Jumphang, because it preludes climbing (Score + 1-20)
-    if (curKidFrame >= 67 && curKidFrame <= 80)
-     reward += (float) kidMagnet.intensityY * (curKidFrame - 66);
-
-    // Hang, because it preludes climbing (Score +21)
-    if (curKidFrame == 91) reward += 21.0f * (float) kidMagnet.intensityY;
-
-    // Climbing (Score +22-38)
-    if (curKidFrame >= 135 && curKidFrame <= 149) reward += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
-
-    // Adding absolute reward for Y position
-    reward += (float) kidMagnet.intensityY * (256.0f - Kid.y);
-  }
-
-  // For negative Y axis kidMagnet, rewarding falling/climbing down frames
-  if ((float) kidMagnet.intensityY < 0.0f)
-  {
-    // Turning around, because it generally preludes climbing down
-    if (curKidFrame >= 45 && curKidFrame <= 52) reward += -0.5f * (float) kidMagnet.intensityY;
-
-    // Hanging, because it preludes falling
-    if (curKidFrame >= 87 && curKidFrame <= 99) reward += -0.5f * (float) kidMagnet.intensityY;
-
-    // Hang drop, because it preludes falling
-    if (curKidFrame >= 81 && curKidFrame <= 85) reward += -1.0f * (float) kidMagnet.intensityY;
-
-    // Falling start
-    if (curKidFrame >= 102 && curKidFrame <= 105) reward += -1.0f * (float) kidMagnet.intensityY;
-
-    // Falling itself
-    if (curKidFrame == 106) reward += -2.0f + (float) kidMagnet.intensityY;
-
-    // Climbing down
-    if (curKidFrame == 148) reward += -2.0f + (float) kidMagnet.intensityY;
-
-    // Adding absolute reward for Y position
-    reward += (float) -1.0f * kidMagnet.intensityY * (Kid.y);
-  }
-
-  // Getting guard room
-  int guardCurrentRoom = Guard.room;
-
-  // Getting magnet values for the guard
-  auto guardMagnet = getGuardMagnetValues(frame, guardCurrentRoom);
-
-  // Getting guard's current frame
-  const auto curGuardFrame = Guard.frame;
-
-  // Evaluating guardMagnet's reward on the X axis
-  const float guardDiffX = std::abs(Guard.x - guardMagnet.positionX);
-  reward += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
-
-  // For positive Y axis guardMagnet
-  if ((float) guardMagnet.intensityY > 0.0f)
-  {
-   // Adding absolute reward for Y position
-   reward += (float) guardMagnet.intensityY * (256.0f - Guard.y);
-  }
-
-  // For negative Y axis guardMagnet, rewarding falling/climbing down frames
-  if ((float) guardMagnet.intensityY < 0.0f)
-  {
-    // Falling start
-    if (curGuardFrame >= 102 && curGuardFrame <= 105) reward += -1.0f * (float) guardMagnet.intensityY;
-
-    // Falling itself
-    if (curGuardFrame == 106) reward += -2.0f + (float) guardMagnet.intensityY;
-
-    // Adding absolute reward for Y position
-    reward += (float) -1.0f * guardMagnet.intensityY * (Guard.y);
-  }
-
-  // Apply bonus when kid is inside a non-visible room
-  if (kidCurrentRoom == 0 || kidCurrentRoom >= 25) reward += 128.0f;
-
-  // Apply bonus when kid is climbing exit stairs
-  if (curKidFrame >= 217 || curKidFrame <= 228) reward += 128.0f;
-
-  // Returning reward
-  return reward;
-}
-
-std::vector<uint8_t> Train::getPossibleMoveIds(const Frame &frame)
-{
-  // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
-  //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
-
-  // Getting thread id
-  int threadId = omp_get_thread_num();
-
-  // Loading frame state
-  frame.getFrameDataFromDifference(_sourceFrameData, _state[threadId]->_stateData);
-  _state[threadId]->pushState();
-
-  // If dead, do nothing
-  if (Kid.alive >= 0)
-    return {0};
-
-  // For level 1, if kid touches ground and music plays, try restarting level
-  if (Kid.frame == 109 && need_level1_music == 33)
-    return {0, 14};
-
-  // If bumped, nothing to do
-  if (Kid.action == actions_5_bumped)
-    return {0};
-
-  // If in mid air or free fall, hope to grab on to something
-  if (Kid.action == actions_3_in_midair || Kid.action == actions_4_in_freefall)
-    return {0, 1};
-
-  // Move, sheath, attack, parry
-  if (Kid.sword == sword_2_drawn)
-    return {0, 1, 2, 3, 4, 5};
-
-  // Kid is standing or finishing a turn, try all possibilities
-  if (Kid.frame == frame_15_stand || (Kid.frame >= frame_50_turn && Kid.frame < 53))
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-
-  // Turning frame, try all possibilities
-  if (Kid.frame == frame_48_turn)
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-
-  // Start running animation, all movement without shift
-  if (Kid.frame < 4)
-    return {0, 2, 3, 4, 5, 6, 7, 8, 9};
-
-  // Starting jump up, check directions, jump and shift
-  if (Kid.frame >= frame_67_start_jump_up_1 && Kid.frame < frame_70_jumphang)
-    return {0, 1, 2, 3, 4, 5, 6, 8, 12};
-
-  // Running, all movement without shift
-  if (Kid.frame < 15)
-    return {0, 2, 3, 4, 5, 6, 7, 8, 9};
-
-  // Hanging, up and shift are only options
-  if (Kid.frame >= frame_87_hanging_1 && Kid.frame < 100)
-    return {0, 1, 2, 12};
-
-  // Crouched, can only stand, drink, or hop
-  if (Kid.frame == frame_109_crouch)
-    return {0, 1, 3, 4, 5, 7, 9, 13};
-
-  // Default, no nothing
-  return {0};
 }
 
 Train::Train(int argc, char *argv[])
@@ -879,11 +578,8 @@ Train::Train(int argc, char *argv[])
   // Checking whether it contains the rules field
   if (isDefined(scriptJs, "State Configuration") == false) EXIT_WITH_ERROR("[ERROR] Configuration file '%s' missing 'State Configuration' key.\n", _scriptFile.c_str());
 
-
   // Resizing containers based on thread count
-  _miniPop.resize(_threadCount);
   _state.resize(_threadCount);
-  _rules.resize(_threadCount);
 
   // Initializing thread-specific SDL instances
   #pragma omp parallel
@@ -892,75 +588,7 @@ Train::Train(int argc, char *argv[])
    int threadId = omp_get_thread_num();
 
    #pragma omp critical
-   {
-    _miniPop[threadId] = new miniPoPInstance();
-    _miniPop[threadId]->initialize();
-
-    // Initializing State Handler
-     _state[threadId] = new State(_miniPop[threadId], sourceString, scriptJs["State Configuration"]);
-
-    //If overriding seed, do it now
-    if (overrideRNGSeedActive == true)
-    {
-     _miniPop[threadId]->setSeed(overrideRNGSeedValue);
-     _state[threadId]->getState();
-     memcpy(sourceString.data(), _state[threadId]->_stateData, _FRAME_DATA_SIZE);
-     delete(_state[threadId]);
-     _state[threadId] = new State(_miniPop[threadId], sourceString, scriptJs["State Configuration"]);
-    }
-   }
-
-   // Adding rules, pointing to the thread-specific sdlpop instances
-   for (size_t ruleId = 0; ruleId < scriptJs["Rules"].size(); ruleId++)
-    _rules[threadId].push_back(new Rule(scriptJs["Rules"][ruleId], _miniPop[threadId]));
-
-   // Setting global rule count
-   _ruleCount = _rules[threadId].size();
-
-   // Checking for repeated rule labels
-   std::set<size_t> ruleLabelSet;
-   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-   {
-    size_t label = _rules[threadId][ruleId]->_label;
-    ruleLabelSet.insert(label);
-    if (ruleLabelSet.size() < ruleId + 1)
-     EXIT_WITH_ERROR("[ERROR] Rule label %lu is repeated in the configuration file.\n", label);
-   }
-
-   // Looking for rule dependency indexes that match their labels
-   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-    for (size_t depId = 0; depId < _rules[threadId][ruleId]->_dependenciesLabels.size(); depId++)
-    {
-     bool foundLabel = false;
-     size_t label = _rules[threadId][ruleId]->_dependenciesLabels[depId];
-     if (label == _rules[threadId][ruleId]->_label) EXIT_WITH_ERROR("[ERROR] Rule %lu references itself in dependencies vector.\n", label);
-     for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
-      if (_rules[threadId][subRuleId]->_label == label)
-      {
-       _rules[threadId][ruleId]->_dependenciesIndexes[depId] = subRuleId;
-       foundLabel = true;
-       break;
-      }
-     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as dependency by rule %lu.\n", label, _rules[threadId][ruleId]->_label);
-    }
-
-   // Looking for rule satisfied sub-rules indexes that match their labels
-   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-    for (size_t satisfiedId = 0; satisfiedId < _rules[threadId][ruleId]->_satisfiesLabels.size(); satisfiedId++)
-    {
-     bool foundLabel = false;
-     size_t label = _rules[threadId][ruleId]->_satisfiesLabels[satisfiedId];
-     if (label == _rules[threadId][ruleId]->_label) EXIT_WITH_ERROR("[ERROR] Rule %lu references itself in satisfied vector.\n", label);
-
-     for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
-      if (_rules[threadId][subRuleId]->_label == label)
-      {
-       _rules[threadId][ruleId]->_satisfiesIndexes[satisfiedId] = subRuleId;
-       foundLabel = true;
-       break;
-      }
-     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as satisfied by rule %lu.\n", label, satisfiedId);
-    }
+    _state[threadId] = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
   }
 
   printf("[Jaffar] SDLPop initialized.\n");
@@ -990,15 +618,15 @@ Train::Train(int argc, char *argv[])
   const auto hash = _state[0]->computeHash();
 
   auto initialFrame = std::make_unique<Frame>();
-  _state[0]->getState();
-  initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->_stateData);
+  _state[0]->popState();
+  initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->_outputStateData);
   for (size_t i = 0; i < _ruleCount; i++) initialFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame
-  evaluateRules(*initialFrame);
+  _state[0]->evaluateRules(*initialFrame);
 
   // Evaluating Score on initial frame
-  initialFrame->reward = getFrameReward(*initialFrame);
+  initialFrame->reward = _state[0]->getFrameReward(*initialFrame);
 
   // Registering hash for initial frame
   _hashDatabases[_hashAgeThreshold-1]->insert({ hash, 0 });

@@ -19,14 +19,6 @@
 // Number of frames to cache for showing purposes
 #define SHOW_FRAME_COUNT 1000
 
-// Struct to hold all of the frame's magnet information
-struct magnetInfo_t
-{
- float positionX;
- float intensityX;
- float intensityY;
-};
-
 class Train
 {
   public:
@@ -53,10 +45,8 @@ class Train
   // Communication schedule for frame exchange
   std::vector<size_t> _communicationSchedule;
 
-  // Craeting SDLPop and State class instances and rule vector, one per openMP thread
-  std::vector<miniPoPInstance*> _miniPop;
+  // Craeting State class instance, one per openMP thread
   std::vector<State *> _state;
-  std::vector<std::vector<Rule *>> _rules;
   size_t _ruleCount;
 
   // Storage for source frame data for differential load/save
@@ -102,37 +92,15 @@ class Train
   // Each worker processes their own unique base frames to produce new frames
   void computeFrames();
 
-  // Obtains the score of a given frame
-  float getFrameReward(const Frame &frame);
-
-  // Evaluates the rule set on a given frame. Returns true if it is a fail.
-  void evaluateRules(Frame &frame);
-
-  // Marks the given rule as satisfied, executes its actions, and recursively runs on its sub-satisfied rules
-  void satisfyRule(Frame &frame, const size_t ruleId);
-
-  // Print Rule information
-  void printRuleStatus(const Frame &frame);
-
   // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
   void addHashEntry(uint64_t hash);
 
   // Argument parser
   void parseArgs(int argc, char *argv[]);
 
-  // Function to determine the current possible moves
-  std::vector<uint8_t> getPossibleMoveIds(const Frame &frame);
-
   // Function for the show thread (saves states from time to time to display progress)
   static void *showThreadFunction(void *trainPtr);
   void showSavingLoop();
-
-  // Function to get the static rewards obtained from rules
-  float getRuleRewards(const Frame &frame);
-
-  // Function to get magnet information
-  magnetInfo_t getKidMagnetValues(const Frame &frame, const int room);
-  magnetInfo_t getGuardMagnetValues(const Frame &frame, const int room);
 
   // Profiling and Debugging
   double _searchTotalTime;
