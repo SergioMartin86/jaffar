@@ -151,12 +151,18 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   }
   else EXIT_WITH_ERROR("[Error] State Configuration 'Static Tile Hash Types' was not defined\n");
 
+  // Creating mini pop instance
+  _miniPop = new miniPoPInstance();
+  _miniPop->initialize();
+
   // Processing rules
   for (size_t ruleId = 0; ruleId < rulesConfig.size(); ruleId++)
    _rules.push_back(new Rule(rulesConfig[ruleId], _miniPop));
 
   // Setting global rule count
   _ruleCount = _rules.size();
+
+  if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this level.\n", _MAX_RULE_COUNT, _ruleCount);
 
   // Checking for repeated rule labels
   std::set<size_t> ruleLabelSet;
@@ -206,13 +212,14 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   // Generating hash items map
   _items = GenerateItemsMap(_miniPop);
 
-  // Creating mini pop instance
-  _miniPop = new miniPoPInstance();
-  _miniPop->initialize();
-
   // Update the SDLPop instance with the savefile contents
   memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
   pushState();
+
+  // Checking if correct level
+  if (current_level != _JAFFAR_LEVEL) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run level %d, but running level %d instead. Modify frame.h and rebuild to run this level.\n", _JAFFAR_LEVEL, current_level);
+
+  // Starting level
   _miniPop->startLevel(next_level);
 
   // Backing up current RNG state

@@ -600,10 +600,6 @@ Train::Train(int argc, char *argv[])
 
   // Check rule count does not exceed maximum
   _ruleCount = _state[0]->_rules.size();
-  if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this level.\n", _MAX_RULE_COUNT, _ruleCount);
-
-  // Checking level optimization
-  if (current_level != _JAFFAR_LEVEL) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run level %d, but running level %d instead. Modify frame.h and rebuild to run this level.\n", _JAFFAR_LEVEL, current_level);
 
   // Maximum difference between explored frames and the pivot frame
   _maxFrameDiff = 0;

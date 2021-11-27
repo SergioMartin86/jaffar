@@ -1,9 +1,12 @@
 {
   "Description": "This script searches for the fastest any% solution for vanilla PoP level 1",  
   
+ 
   "State Configuration":
   {
-   "Falling Tiles Hash Type": "Full",
+   "Property Hash Types": [ ],
+   "Static Tile Hash Types": [ ],
+   "Falling Tiles Hash Types": [ ],
    "Active Objects Hash Types":
    [
      { "Index": 26, "Type": "Full" },

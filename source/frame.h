@@ -1,7 +1,7 @@
 #pragma once
 
 // Select level we are optimizing jaffar for
-#define _JAFFAR_LEVEL 2
+#define _JAFFAR_LEVEL 1
 
 // Level 1 Configuration
 #if _JAFFAR_LEVEL==1
