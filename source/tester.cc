@@ -30,7 +30,7 @@ void Tester::run()
     _state[threadId]->evaluateRules(curFrame);
 
     if (curFrame._type == f_fail) break;
-    if (curFrame._type == f_win) { printf("Win: %d\n", curSeed); exit(0); }
+    if (curFrame._type == f_win) { printf("Win: %u\n", curSeed); exit(0); }
    }
   }
  }

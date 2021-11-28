@@ -139,8 +139,6 @@ void miniPoPInstance::startLevel(const word level)
 
   find_start_level_door();
 
-  draw_level_first();
-
   _prevDrawnRoom = drawn_room;
 
   // Setting exit door status
@@ -313,7 +311,10 @@ void miniPoPInstance::advanceFrame()
   play_frame();
 
   if (is_restart_level == 1)
+  {
    startLevel(current_level);
+   draw_level_first();
+  }
 
   // if we're on lvl 4, check mirror
   if (current_level == 4) check_mirror();

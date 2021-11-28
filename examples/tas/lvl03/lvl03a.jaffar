@@ -8,10 +8,12 @@
    
    "Falling Tiles Hash Types": 
    [
+    { "Room": 3, "Column": 8, "Type": "Full" }
    ],
    
    "Active Objects Hash Types":
    [
+     { "Index": 72, "Type": "Full" },
      { "Index": 39, "Type": "Index Only" }
    ]
   },
@@ -133,7 +135,7 @@
       { "Property": "Kid Room", "Op": "==", "Value":  11 }
      ],
      
-     "Dependencies": [ 3004 ],
+     "Dependencies": [ ],
      "Satisfies": [ ],
      
      "Actions":
@@ -154,7 +156,7 @@
       { "Property": "Kid Room", "Op": "==", "Value":  10 }
      ],
      
-     "Dependencies": [ 3005 ],
+     "Dependencies": [ ],
      "Satisfies": [ ],
      
      "Actions":
