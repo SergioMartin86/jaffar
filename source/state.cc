@@ -419,6 +419,7 @@ std::vector<uint8_t> State::getPossibleMoveIds(const Frame &frame)
 {
   // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
   //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
+  return {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14};
 
   // If dead, do nothing
   if (Kid.alive >= 0)

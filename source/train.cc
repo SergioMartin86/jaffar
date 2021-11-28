@@ -464,7 +464,7 @@ void Train::printTrainStatus()
   // Print Move History
   printf("[Jaffar]  + Last 30 Moves: ");
   size_t startMove = (size_t)std::max((int)0, (int)_currentStep-30);
-  for (size_t i = startMove; i <= _currentStep; i++)
+  for (size_t i = startMove; i < _currentStep; i++)
     printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
   printf("\n");
 
