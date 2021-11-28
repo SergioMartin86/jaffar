@@ -419,11 +419,10 @@ std::vector<uint8_t> State::getPossibleMoveIds(const Frame &frame)
 {
   // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
   //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
-  return {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14};
 
   // If dead, do nothing
   if (Kid.alive >= 0)
-    return {0};
+    return {0, 14};
 
   // For level 1, if kid touches ground and music plays, try restarting level
   if (Kid.frame == 109 && need_level1_music == 33)
@@ -431,46 +430,46 @@ std::vector<uint8_t> State::getPossibleMoveIds(const Frame &frame)
 
   // If bumped, nothing to do
   if (Kid.action == actions_5_bumped)
-    return {0};
+    return {0, 14};
 
   // If in mid air or free fall, hope to grab on to something
   if (Kid.action == actions_3_in_midair || Kid.action == actions_4_in_freefall)
-    return {0, 1};
+    return {0, 1, 14};
 
   // Move, sheath, attack, parry
   if (Kid.sword == sword_2_drawn)
-    return {0, 1, 2, 3, 4, 5};
+    return {0, 1, 2, 3, 4, 5, 14};
 
   // Kid is standing or finishing a turn, try all possibilities
   if (Kid.frame == frame_15_stand || (Kid.frame >= frame_50_turn && Kid.frame < 53))
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14};
 
   // Turning frame, try all possibilities
   if (Kid.frame == frame_48_turn)
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14};
 
   // Start running animation, all movement without shift
   if (Kid.frame < 4)
-    return {0, 2, 3, 4, 5, 6, 7, 8, 9};
+    return {0, 2, 3, 4, 5, 6, 7, 8, 9, 14};
 
   // Starting jump up, check directions, jump and shift
   if (Kid.frame >= frame_67_start_jump_up_1 && Kid.frame < frame_70_jumphang)
-    return {0, 1, 2, 3, 4, 5, 6, 8, 12};
+    return {0, 1, 2, 3, 4, 5, 6, 8, 12, 14};
 
   // Running, all movement without shift
   if (Kid.frame < 15)
-    return {0, 2, 3, 4, 5, 6, 7, 8, 9};
+    return {0, 2, 3, 4, 5, 6, 7, 8, 9, 14};
 
   // Hanging, up and shift are only options
   if (Kid.frame >= frame_87_hanging_1 && Kid.frame < 100)
-    return {0, 1, 2, 12};
+    return {0, 1, 2, 12, 14};
 
   // Crouched, can only stand, drink, or hop
   if (Kid.frame == frame_109_crouch)
-    return {0, 1, 3, 4, 5, 7, 9, 13};
+    return {0, 1, 3, 4, 5, 7, 9, 13, 14};
 
   // Default, no nothing
-  return {0};
+  return {0, 14};
 }
 
 magnetInfo_t State::getKidMagnetValues(const Frame &frame, const int room)
