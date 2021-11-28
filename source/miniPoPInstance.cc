@@ -139,7 +139,7 @@ void miniPoPInstance::startLevel(const word level)
 
   find_start_level_door();
 
-//  draw_level_first();
+  draw_level_first();
 
   _prevDrawnRoom = drawn_room;
 

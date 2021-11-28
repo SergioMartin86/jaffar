@@ -3,8 +3,8 @@
 #define _MAX_FRAME_DIFF 150
 #define _MAX_RULE_COUNT 15
 //#define _MAX_MOVELIST_SIZE 530 // 3a
-//#define _MAX_MOVELIST_SIZE 400 // 3b
-#define _MAX_MOVELIST_SIZE 200 // 3c
+#define _MAX_MOVELIST_SIZE 400 // 3b
+//#define _MAX_MOVELIST_SIZE 200 // 3c
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 #define _FRAME_DATA_SIZE 2710
 
