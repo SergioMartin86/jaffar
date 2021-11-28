@@ -73,6 +73,7 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  7 },
+     { "Property": "Guard Room", "Op": "==", "Value":  7 },
      { "Property": "Guard Frame", "Op": "==", "Value": 102 } 
     ],
 
