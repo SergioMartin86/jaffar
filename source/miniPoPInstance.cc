@@ -317,7 +317,11 @@ void miniPoPInstance::advanceFrame()
   }
 
   // if we're on lvl 4, check mirror
-  if (current_level == 4) check_mirror();
+  if (current_level == 4)
+  {
+   if (jumped_through_mirror == -1) Guard.x = 245;
+   check_mirror();
+  }
 
   // If level has changed, then load it
   if (current_level != next_level)
