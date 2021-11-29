@@ -114,6 +114,7 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
    for (const auto& entry : stateConfig["Property Hash Types"])
    {
     if (entry == "Kid Current HP") _hashKidCurrentHp = true;
+    if (entry == "Guard Current HP") _hashGuardCurrentHp = true;
     if (entry == "Trob Count") _hashTrobCount = true;
    }
   }
@@ -255,6 +256,7 @@ uint64_t State::computeHash() const
   hash.Update(level.guards_dir);
   if (Guard.alive) hash.Update(Guard);
   if (_hashKidCurrentHp == true) hash.Update(hitp_curr);
+  if (_hashGuardCurrentHp == true) hash.Update(guardhp_curr);
   if (_hashTrobCount == true) hash.Update(trobs_count);
 
 

@@ -84,6 +84,7 @@ class State
 
   // Hash states
   bool _hashKidCurrentHp;
+  bool _hashGuardCurrentHp;
   bool _hashTrobCount;
 
   std::map<int, hashType> _hashTypeTrobs;

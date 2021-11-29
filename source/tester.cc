@@ -5,13 +5,17 @@
 
 void Tester::run()
 {
+
+ size_t failCount = 0;
+ size_t winCount = 0;
+
  #pragma omp parallel
  {
   // Getting thread id
   int threadId = omp_get_thread_num();
 
-  #pragma omp for
-  for (dword curSeed = 0; curSeed < 4294967295; curSeed++)
+  #pragma omp for reduction(+:failCount) reduction(+:winCount)
+  for (dword curSeed = 0; curSeed < 320000; curSeed++)
   {
    // Resetting state
    _state[threadId]->pushState();
@@ -29,11 +33,15 @@ void Tester::run()
     _state[threadId]->_miniPop->advanceFrame();
     _state[threadId]->evaluateRules(curFrame);
 
-    if (curFrame._type == f_fail) break;
-    if (curFrame._type == f_win) { printf("Win: %u\n", curSeed); exit(0); }
+    if (curFrame._type == f_fail) failCount++;
+    if (curFrame._type == f_win) winCount++;
    }
   }
  }
+
+ printf("Fail: %lu, Win: %lu\n", failCount, winCount);
+
+
 }
 
 Tester::Tester(int argc, char *argv[])
