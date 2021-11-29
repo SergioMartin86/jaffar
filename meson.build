@@ -57,6 +57,16 @@ deps = [
   boost_dep
 ]
 
+executable('jaffar-play',
+  'source/play.cc',
+  jaffarFiles,
+  dependencies: deps,
+  include_directories: inc,
+  link_with: [ ],
+  link_args: [ '-ldl', '-lncurses' ],
+  cpp_args: [ '-Wfatal-errors' ]
+  )
+
 executable('jaffar-train',
   'source/train.cc',
   jaffarFiles,

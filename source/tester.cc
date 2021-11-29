@@ -9,39 +9,79 @@ void Tester::run()
  size_t failCount = 0;
  size_t winCount = 0;
 
- #pragma omp parallel
+// #pragma omp parallel
+// {
+//  // Getting thread id
+//  int threadId = omp_get_thread_num();
+//
+//  #pragma omp for reduction(+:failCount) reduction(+:winCount)
+//  for (dword curSeed = 0; curSeed < 320000; curSeed++)
+//  {
+//   // Resetting state
+//   _state[threadId]->pushState();
+//
+//   // Changing initial rng
+//   _state[threadId]->_miniPop->setSeed(curSeed);
+//
+//   // Creating new current frame
+//   Frame curFrame(*_baseFrame);
+//
+//   // Running entire sequence
+//   for (const auto& move : _moveList)
+//   {
+//    _state[threadId]->_miniPop->performMove(move);
+//    _state[threadId]->_miniPop->advanceFrame();
+//    _state[threadId]->evaluateRules(curFrame);
+//
+//    if (curFrame._type == f_fail) failCount++;
+//    if (curFrame._type == f_win) winCount++;
+//   }
+//  }
+// }
+//
+// printf("Fail: %lu, Win: %lu\n", failCount, winCount);
+
+ for (size_t i = 0; i < _moveList.size(); i++)
  {
-  // Getting thread id
   int threadId = omp_get_thread_num();
+  printf("Move %lu: %s\n", i+1, _moveList[i+1].c_str());
+  _state[threadId]->_miniPop->performMove(_moveList[i]);
+  _state[threadId]->_miniPop->advanceFrame();
 
-  #pragma omp for reduction(+:failCount) reduction(+:winCount)
-  for (dword curSeed = 0; curSeed < 320000; curSeed++)
-  {
-   // Resetting state
-   _state[threadId]->pushState();
+  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
+         int(Kid.room),
+         int(Kid.x),
+         int(Kid.y),
+         int(Kid.curr_row),
+         int(Kid.curr_col),
+         int(Kid.fall_y),
+         int(Kid.frame),
+         int(hitp_curr),
+         int(hitp_max),
+         int(Kid.direction),
+         Kid.curr_seq);
 
-   // Changing initial rng
-   _state[threadId]->_miniPop->setSeed(curSeed);
+  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
+         int(Guard.room),
+         int(Guard.x),
+         int(Guard.y),
+         int(Guard.curr_row),
+         int(Guard.curr_col),
+         int(Guard.fall_y),
+         int(Guard.frame),
+         int(guardhp_curr),
+         int(guardhp_max),
+         int(Guard.direction),
+         Guard.curr_seq);
 
-   // Creating new current frame
-   Frame curFrame(*_baseFrame);
+  printf("[Jaffar]  + Reached Checkpoint: %s (%d)\n", checkpoint ? "Yes" : "No", checkpoint);
+  printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
+  printf("[Jaffar]  + Need Lvl1 Music: %d\n", need_level1_music);
+  printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
+  printf("[Jaffar]  + Demo Index: %d, Time: %d\n", demo_index, demo_time);
+  printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
 
-   // Running entire sequence
-   for (const auto& move : _moveList)
-   {
-    _state[threadId]->_miniPop->performMove(move);
-    _state[threadId]->_miniPop->advanceFrame();
-    _state[threadId]->evaluateRules(curFrame);
-
-    if (curFrame._type == f_fail) failCount++;
-    if (curFrame._type == f_win) winCount++;
-   }
-  }
  }
-
- printf("Fail: %lu, Win: %lu\n", failCount, winCount);
-
-
 }
 
 Tester::Tester(int argc, char *argv[])
