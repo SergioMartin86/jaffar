@@ -12,7 +12,8 @@
    
    "Active Objects Hash Types":
    [
-    { "Index": 536, "Type": "Full" }
+    { "Index": 536, "Type": "Full" },
+    { "Index": 519, "Type": "Full" }
    ]
   },
   
