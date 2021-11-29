@@ -3,7 +3,7 @@
 
   "State Configuration":
   {
-   "Property Hash Types": [ "Kid Current HP", "Guard Current HP" ],
+   "Property Hash Types": [ ],
    "Static Tile Hash Types": [ ],
    
    "Falling Tiles Hash Types": 
@@ -12,9 +12,8 @@
    
    "Active Objects Hash Types":
    [
-    { "Index": 314, "Type": "Full" },
-    { "Index": 311, "Type": "Full" },
-    { "Index": 519, "Type": "Full" }
+    { "Index": 311, "Type": "Index Only" },
+    { "Index": 519, "Type": "Index Only" }
    ]
   },
   
