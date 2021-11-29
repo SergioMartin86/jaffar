@@ -8,9 +8,11 @@
 
 std::vector<std::string> split(const std::string &s, char delim)
 {
-  std::vector<std::string> elems;
-  split(s, delim, std::back_inserter(elems));
-  return elems;
+ std::string newString = s;
+ std::replace(newString.begin(), newString.end(), '\n', ' ');
+ std::vector<std::string> elems;
+ split(newString, delim, std::back_inserter(elems));
+ return elems;
 }
 
 void exitWithError [[noreturn]] (const char *fileName, const int lineNumber, const char *format, ...)

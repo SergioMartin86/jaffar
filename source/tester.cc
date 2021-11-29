@@ -5,10 +5,6 @@
 
 void Tester::run()
 {
- size_t threadSuccessCounter = 0;
- size_t threadFailCounter = 0;
- dword winSeed = 0;
-
  #pragma omp parallel
  {
   // Getting thread id
@@ -33,18 +29,8 @@ void Tester::run()
     _state[threadId]->_miniPop->advanceFrame();
     _state[threadId]->evaluateRules(curFrame);
 
-    if (curFrame._type == f_fail)
-    {
-     #pragma omp atomic
-     threadFailCounter++;
-     winSeed = curSeed;
-    }
-
-    if (curFrame._type == f_win)
-     #pragma omp atomic
-     threadSuccessCounter++;
-
-    if (threadSuccessCounter >= 10000) { printf("Thread: %d - Success: %lu, Fail: %lu. Eg: %d\n", threadId, threadSuccessCounter, threadFailCounter, winSeed); exit(0); }
+    if (curFrame._type == f_fail) break;
+    if (curFrame._type == f_win) { printf("Win: %u\n", curSeed); exit(0); }
    }
   }
  }
