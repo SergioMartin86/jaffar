@@ -36,7 +36,7 @@
     ]
    },
    
-   {
+   { 
     "Label": 8001,
     "Description": "Setting magnet to make kid advance to the left screen while luring the guard.",
     "Conditions":
