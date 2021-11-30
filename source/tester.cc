@@ -56,6 +56,9 @@ void Tester::run()
   // Getting thread id
   int threadId = omp_get_thread_num();
 
+  // Remember win seed
+  dword winSeed = 0;
+
   #pragma omp for reduction(+:failCount) reduction(+:winCount)
   for (dword curSeed = 0; curSeed < 320000; curSeed++)
   {
@@ -76,9 +79,11 @@ void Tester::run()
     _state[threadId]->evaluateRules(curFrame);
 
     if (curFrame._type == f_fail) failCount++;
-    if (curFrame._type == f_win) winCount++;
+    if (curFrame._type == f_win) { winCount++; winSeed = curSeed; };
    }
   }
+
+  printf("Thread %d - Win Seed: %u\n", threadId, winSeed);
  }
 
  printf("Fail: %lu, Win: %lu\n", failCount, winCount);

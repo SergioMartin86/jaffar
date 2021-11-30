@@ -275,6 +275,7 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Is Upside Down") return dt_word;
   if (property == "Needs Level 1 Music") return dt_word;
   if (property == "United With Shadow") return dt_short;
+  if (property == "Exit Door Timer") return dt_word;
 
   if (property == "Current Step") return dt_ulong;
 
@@ -333,6 +334,7 @@ void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdl
   if (property == "Is Feather Fall") return &is_feather_fall;
   if (property == "Needs Level 1 Music") return &need_level1_music;
   if (property == "United With Shadow") return &united_with_shadow;
+  if (property == "Exit Door Timer") return &leveldoor_open;
 
   // Level-Specific Properties
   if (property == "Level 9 Rightmost Door State") return &level.bg[349];

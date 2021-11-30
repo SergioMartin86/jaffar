@@ -205,7 +205,7 @@
     [
      { "Property": "Current Level", "Op": "==", "Value":  8 },
      { "Property": "Kid Room", "Op": "==", "Value":  16 },
-     { "Property": "Exit Door Open", "Op": "==", "Value":  1 }
+     { "Property": "Exit Door Timer", "Op": ">", "Value":  1 }
     ],
    
     "Dependencies": [ ],
