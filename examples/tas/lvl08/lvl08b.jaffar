@@ -109,26 +109,7 @@
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 2, "Value": 1.0 }
     ]
    },
-   
-      {
-    "Label": 8023,
-    "Description": "Setting magnet to make kid go back to the potion room with the guard.",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  8 },
-     { "Property": "Kid Room", "Op": "==", "Value":  2 },
-     { "Property": "Kid Position Y", "Op": ">", "Value": 120 }
-    ],
-   
-    "Dependencies": [ ],
-    "Satisfies": [ 8003 ],
 
-    "Actions":
-    [
-     { "Type": "Trigger Win"}
-    ]
-   },
-   
    {
     "Label": 8004,
     "Description": "Reward achieving the clip.",

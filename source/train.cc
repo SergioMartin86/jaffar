@@ -462,9 +462,8 @@ void Train::printTrainStatus()
   #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
   // Print Move History
-  printf("[Jaffar]  + Last 30 Moves: ");
-  size_t startMove = 0;//(size_t)std::max((int)0, (int)_currentStep-30);
-  for (size_t i = startMove; i < _currentStep; i++)
+  printf("[Jaffar]  + Move List: ");
+  for (size_t i = 0; i < _currentStep; i++)
     printf("%s ", _possibleMoves[_bestFrame.getMove(i)].c_str());
   printf("\n");
 
