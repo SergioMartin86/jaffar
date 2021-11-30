@@ -92,7 +92,11 @@
      { "Property": "Current Level", "Op": "==", "Value":  8 },
      { "Property": "Kid Room", "Op": "==", "Value":  1 },
      { "Property": "Guard Room", "Op": "==", "Value":  1 },
-     { "Property": "Kid Position X", "Op": ">", "Value":  179 },
+     { "Property": "Kid Frame", "Op": "==", "Value":  109 },
+     { "Property": "Kid Position X", "Op": "==", "Value":  186 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  118 },
+     { "Property": "Guard Frame", "Op": "==", "Value":  163 },
+     { "Property": "Guard Position X", "Op": "==", "Value":  155 },
      { "Property": "Guard Position Y", "Op": "==", "Value":  118 }
     ],
    
