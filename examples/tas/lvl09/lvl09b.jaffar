@@ -136,6 +136,49 @@
 
     "Actions":
     [
+     { "Type": "Add Reward", "Value": 10000 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 12, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 12, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 12, "Value": 115.0 }
+    ]
+   },
+   
+   {
+    "Label": 9013,
+    "Description": "[Checkpoint] Reward arriving to the next screen",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  9 },
+     { "Property": "Kid Room", "Op": "==", "Value":  18 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ 9012 ],
+
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 10000 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 12, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 12, "Value": 0.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 18, "Value": 1.0 }
+    ]
+   },
+   
+   {
+    "Label": 9014,
+    "Description": "[Checkpoint] Reward arriving to the next screen",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  9 },
+     { "Property": "Kid Room", "Op": "==", "Value":  18 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ 9013 ],
+
+    "Actions":
+    [
      { "Type": "Trigger Win" }
     ]
    },
