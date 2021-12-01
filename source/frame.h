@@ -1,8 +1,8 @@
 #pragma once
 
 #define _MAX_FRAME_DIFF 160
-#define _MAX_RULE_COUNT 6
-#define _MAX_MOVELIST_SIZE 210
+#define _MAX_RULE_COUNT 9
+#define _MAX_MOVELIST_SIZE 190
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 #define _FRAME_DATA_SIZE 2710
 
