@@ -17,6 +17,27 @@
   
   "Rules":
   [
+  
+   {
+    "Label": 9007,
+    "Description": "Once up in room 16, go to the right",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  9 },
+     { "Property": "Kid Room", "Op": "==", "Value":  16 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [  ],
+
+    "Actions":
+    [
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 16, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 105.0 }
+    ]
+   },
+   
    {
     "Label": 9008,
     "Description": "Once up in room 16, go to the right",
@@ -28,10 +49,12 @@
     ],
    
     "Dependencies": [ ],
-    "Satisfies": [  ],
+    "Satisfies": [ 9007 ],
 
     "Actions":
     [
+     { "Type": "Add Reward", "Value": 2000 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 16, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 220.0 }
     ]
