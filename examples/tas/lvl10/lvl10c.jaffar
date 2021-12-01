@@ -3,15 +3,17 @@
 
   "State Configuration":
   {
-   "Property Hash Types": [ ],
-   "Static Tile Hash Types": [ ],
+   "Property Hash Types": [ "Kid Current HP" ],
+   "Static Tile Hash Types": [ 120 ],
    
    "Falling Tiles Hash Types": 
    [
+    { "Room": 11, "Column": 0, "Type": "Full", "Description": "Falling Tile" }
    ],
    
    "Active Objects Hash Types":
    [
+     { "Index": 320, "Type": "Full", "Description": "Loose Tile on Top" }
    ]
   },
   
@@ -23,11 +25,11 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  10 },
-     { "Property": "Kid Room", "Op": "==", "Value": 1 },
+     { "Property": "Kid Room", "Op": "==", "Value": 1 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 10006 ],
+    "Satisfies": [ ],
 
     "Actions":
     [
@@ -48,7 +50,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 10006 ],
+    "Satisfies": [ 10007 ],
 
     "Actions":
     [
