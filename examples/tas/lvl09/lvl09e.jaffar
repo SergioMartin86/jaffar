@@ -1,8 +1,23 @@
 {
   "Description": "This script searches for the fastest any% solution for vanilla PoP level 9.",
   
+  "State Configuration":
+  {
+   "Property Hash Types": [ ],
+   "Static Tile Hash Types": [ ],
+   
+   "Falling Tiles Hash Types": 
+   [
+   ],
+   
+   "Active Objects Hash Types":
+   [
+   ]
+  },
+  
   "Rules":
   [
+  
    {
     "Label": 9023,
     "Description": "If door open, go right and exit room",
