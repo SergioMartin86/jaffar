@@ -8,11 +8,13 @@
    
    "Falling Tiles Hash Types": 
    [
-    { "Room": 9, "Column": 4, "Type": "Full", "Description": "Falling Tile" },
-    { "Room": 9, "Column": 0, "Type": "Full", "Description": "Falling Tile" },
-    { "Room": 1, "Column": 36, "Type": "Full", "Description": "Falling Tile" },
-    { "Room": 8, "Column": 8, "Type": "Full", "Description": "Falling Tile" },
-    { "Room": 8, "Column": 20, "Type": "Full", "Description": "Falling Tile" }
+    { "Room": 9, "Column": 4, "Type": "Index Only", "Description": "Falling Tile" },
+    { "Room": 9, "Column": 0, "Type": "Index Only", "Description": "Falling Tile" },
+    { "Room": 1, "Column": 36, "Type": "Index Only", "Description": "Falling Tile" },
+    { "Room": 8, "Column": 8, "Type": "Index Only", "Description": "Falling Tile" },
+    { "Room": 8, "Column": 20, "Type": "Index Only", "Description": "Falling Tile" },
+    { "Room": 24, "Column": 8, "Type": "Full", "Description": "Falling Tile" },
+    { "Room": 14, "Column": 8, "Type": "Full", "Description": "Falling Tile" }
    ],
    
    "Active Objects Hash Types":
