@@ -8,13 +8,21 @@
    
    "Falling Tiles Hash Types": 
    [
-    { "Room": 24, "Column": 8, "Type": "Full", "Description": "Falling Tile" },
-    { "Room": 14, "Column": 8, "Type": "Full", "Description": "Falling Tile" }
+    { "Room": 9, "Column": 4, "Type": "Full", "Description": "Falling Tile" },
+    { "Room": 9, "Column": 0, "Type": "Full", "Description": "Falling Tile" },
+    { "Room": 1, "Column": 36, "Type": "Full", "Description": "Falling Tile" },
+    { "Room": 8, "Column": 8, "Type": "Full", "Description": "Falling Tile" },
+    { "Room": 8, "Column": 20, "Type": "Full", "Description": "Falling Tile" }
    ],
    
    "Active Objects Hash Types":
    [
-     { "Index": 412, "Type": "Full", "Description": "Loose Tile on Top L1" }
+     { "Index": 412, "Type": "Full", "Description": "Loose Tile on Top L1" },
+     { "Index": 241, "Type": "Full", "Description": "Loose Tile on Top L1" },
+     { "Index": 242, "Type": "Full", "Description": "Loose Tile on Top L1" },
+     { "Index": 240, "Type": "Full", "Description": "Loose Tile on Top L1" },
+     { "Index": 222, "Type": "Full", "Description": "Loose Tile on Top L1" },
+     { "Index": 225, "Type": "Full", "Description": "Loose Tile on Top L1" }
    ]
   },
   
