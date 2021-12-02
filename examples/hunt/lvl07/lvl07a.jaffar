@@ -58,6 +58,24 @@
    },
  
    {
+    "Label": 7201,
+    "Description": "Setting magnet to make kid go advancing to the right screen while luring guard.",
+    "Conditions":
+    [
+     { "Property": "Kid Room", "Op": "==", "Value":  2 },
+     { "Property": "Kid Position X", "Op": "==", "Value":  11 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [  ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
+   {
     "Label": 7998,
     "Description": "If Kid Gets to lower ground, win.",
     "Conditions":
