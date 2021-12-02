@@ -77,7 +77,7 @@ class Rule
   // is a template that is created at compilation time.
   std::vector<Condition *> _conditions;
   datatype_t getPropertyType(const std::string &property);
-  void *getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop);
+  void *getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop, const int index);
   operator_t getOperationType(const std::string &operation);
 
   // Function to parse the json-encoded actions

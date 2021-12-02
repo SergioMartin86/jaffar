@@ -426,7 +426,7 @@ void Train::printTrainStatus()
   printf("[Jaffar]   + Frame Postprocessing:    %3.3fs\n", _framePostprocessingTime / 1.0e+9);
   printf("[Jaffar]     + DB Sorting               %3.3fs\n", _DBSortingTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
-  printf("[Jaffar] Max Frame State Difference: %lu\n", _maxFrameDiff);
+  printf("[Jaffar] Max Frame State Difference: %lu / %d\n", _maxFrameDiff, _MAX_FRAME_DIFF);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
 
   size_t hashDatabasesEntries = 0;

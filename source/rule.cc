@@ -28,7 +28,14 @@ Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
     if (isDefined(conditionJs, "Property") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition missing 'Property' key.\n", _label);
     if (conditionJs["Property"].is_string() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition operand 1 must be a string with the name of a property.\n", _label);
     datatype_t dtype = getPropertyType(conditionJs["Property"].get<std::string>());
-    auto property = getPropertyPointer(conditionJs["Property"].get<std::string>(), sdlPop);
+
+    int index = -1;
+    if (isDefined(conditionJs, "Index") == true)
+    {
+     if (conditionJs["Index"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu tile index must be an integer.\n", _label);
+     index = conditionJs["Index"].get<int>();
+    }
+    auto property = getPropertyPointer(conditionJs["Property"].get<std::string>(), sdlPop, index);
 
     // Parsing second operand (number)
     if (isDefined(conditionJs, "Value") == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition missing 'Value' key.\n", _label);
@@ -59,7 +66,7 @@ Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
      if (valueType != dtype) EXIT_WITH_ERROR("[ERROR] Rule %lu, property (%s) and value (%s) types must coincide.\n", _label, conditionJs["Property"].get<std::string>(), conditionJs["Value"].get<std::string>());
 
      // Getting value pointer
-     auto valuePtr = getPropertyPointer(conditionJs["Value"].get<std::string>(), sdlPop);
+     auto valuePtr = getPropertyPointer(conditionJs["Value"].get<std::string>(), sdlPop, index);
 
      // Adding condition to the list
      Condition *condition;
@@ -276,18 +283,19 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Needs Level 1 Music") return dt_word;
   if (property == "United With Shadow") return dt_short;
   if (property == "Exit Door Timer") return dt_word;
-
   if (property == "Current Step") return dt_ulong;
 
-  // Level-Specific Properties
-  if (property == "Level 9 Rightmost Door State") return dt_byte;
+  // Tile Configuration
+  if (property == "Tile FG State") return dt_byte;
+  if (property == "Tile BG State") return dt_byte;
+
 
   EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
   return dt_byte;
 }
 
-void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop)
+void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop, const int index)
 {
   if (property == "Kid Frame") return &Kid.frame;
   if (property == "Kid Current HP") return &hitp_curr;
@@ -335,11 +343,10 @@ void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdl
   if (property == "Needs Level 1 Music") return &need_level1_music;
   if (property == "United With Shadow") return &united_with_shadow;
   if (property == "Exit Door Timer") return &leveldoor_open;
-
-  // Level-Specific Properties
-  if (property == "Level 9 Rightmost Door State") return &level.bg[349];
-
   if (property == "Current Step") return &_currentStep;
+
+  if (property == "Tile FG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile FG State.\n"); return &level.fg[index]; }
+  if (property == "Tile BG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile BG State.\n"); return &level.bg[index]; }
 
   EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
