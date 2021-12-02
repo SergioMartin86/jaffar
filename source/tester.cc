@@ -78,8 +78,18 @@ void Tester::run()
     _state[threadId]->_miniPop->advanceFrame();
     _state[threadId]->evaluateRules(curFrame);
 
-    if (curFrame._type == f_fail) failCount++;
-    if (curFrame._type == f_win) { winCount++; winSeed = curSeed; };
+    if (curFrame._type == f_fail)
+    {
+     #pragma omp atomic
+     failCount++;
+    }
+
+    if (curFrame._type == f_win)
+    {
+     #pragma omp atomic
+     winCount++;
+     winSeed = curSeed;
+    }
    }
   }
 
@@ -87,6 +97,8 @@ void Tester::run()
  }
 
  printf("Fail: %lu, Win: %lu\n", failCount, winCount);
+ printf("1/P = %.9f\n", ((double)failCount+(double)winCount) / (double)winCount);
+
 }
 
 Tester::Tester(int argc, char *argv[])
