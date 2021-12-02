@@ -73,9 +73,31 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value": 24 },
-     { "Property": "Kid Position Y", "Op": "==", "Value": 118 },
-     { "Property": "Kid Position X", "Op": ">=", "Value": 135 }
+     { "Property": "Kid Room", "Op": "==", "Value": 16 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 11009 ],
+
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 24, "Value": 0.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 24, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 120.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 16, "Value": 1.0 }
+    ]
+   },
+
+   {
+    "Label": 11011,
+    "Description": "Keep going to the right.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Kid Room", "Op": "==", "Value": 16 },
+     { "Property": "Kid Position Y", "Op": "==", "Value": 55 }
     ],
     
     "Dependencies": [ ],
@@ -86,7 +108,7 @@
      { "Type": "Trigger Win" }
     ]
    },
-
+   
    {
     "Label": 11019,
     "Description": "If Kid dies, then fail.",
