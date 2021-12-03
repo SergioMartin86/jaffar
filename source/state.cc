@@ -102,6 +102,8 @@ std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, exit_room_timer, PER_FRAME_STATE);
   // replay recording state
   AddItem(&dest, replay_curr_tick, PER_FRAME_STATE);
+  AddItem(&dest, is_guard_notice, PER_FRAME_STATE);
+  AddItem(&dest, can_guard_see_kid, PER_FRAME_STATE);
   return dest;
 }
 
