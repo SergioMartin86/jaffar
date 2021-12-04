@@ -87,18 +87,34 @@
     "Description": "Win on opener.",
     "Conditions":
     [
-     { "Property": "Tile BG State", "Index": 558, "Op": ">", "Value": 0 },
-     { "Property": "Guard Position Y", "Op": "==", "Value": 118 },
-     { "Property": "Guard Position X", "Op": "<", "Value": "Kid Position X" }
+     { "Property": "Tile BG State", "Index": 558, "Op": ">", "Value": 0 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 11101 ],
+    "Satisfies": [ ],
     
     "Actions":
     [
-     { "Type": "Add Reward", "Value": 15000 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 2, "Value": 250.0 },
+     { "Type": "Add Reward", "Value": 6000 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 2, "Value": 250.0 }
+    ]
+   },
+   
+   {
+    "Label": 11025,
+    "Description": "Win on opener.",
+    "Conditions":
+    [
+     { "Property": "Guard Room", "Op": "==", "Value": 2 },
+     { "Property": "Guard Position Y", "Op": ">", "Value": 60 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 5000 },
      { "Type": "Set Guard Vertical Magnet Intensity", "Room": 2, "Value": 0.0 },
      { "Type": "Set Guard Horizontal Magnet Position", "Room": 2, "Value": 250.0 }
     ]
