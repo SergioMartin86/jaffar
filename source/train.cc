@@ -522,7 +522,7 @@ Train::Train(int argc, char *argv[])
   // Parsing command line arguments
   argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
 
-  program.add_argument("--savFile")
+  program.add_argument("savFile")
     .help("Specifies the path to the SDLPop savefile (.sav) from which to start.")
     .default_value(std::string("quicksave.sav"))
     .required();
@@ -540,7 +540,7 @@ Train::Train(int argc, char *argv[])
   catch (const std::runtime_error &err) { EXIT_WITH_ERROR("%s\n%s", err.what(), program.help().str().c_str()); }
 
   // Getting savefile path
-  auto saveFilePath = program.get<std::string>("--savFile");
+  auto saveFilePath = program.get<std::string>("savFile");
 
   // Getting user-defined RNG seed
   auto RNGSeedSetting = program.get<std::string>("--RNGSeed");

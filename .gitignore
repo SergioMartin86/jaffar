@@ -1,3 +1,7 @@
+*.txt
+*.sav
+*.sh
+*.jaffar
 jaffar.best.sav
 jaffar.current.sav
 subprojects/abseil-cpp*
