@@ -1,8 +1,8 @@
 #pragma once
 
-#define _MAX_FRAME_DIFF 140
+#define _MAX_FRAME_DIFF 160
 #define _MAX_RULE_COUNT 12
-#define _MAX_MOVELIST_SIZE 260
+#define _MAX_MOVELIST_SIZE 250
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 #define _FRAME_DATA_SIZE 2714
 
@@ -23,6 +23,12 @@ enum frameType
 
 extern size_t _maxFrameDiff;
 
+struct frameDiff_t
+{
+ uint16_t pos;
+ uint8_t val;
+};
+
 class Frame
 {
   public:
@@ -35,10 +41,7 @@ class Frame
   uint16_t frameDiffCount;
 
   // Positions of the difference with respect to a base frame
-  uint16_t frameDiffPositions[_MAX_FRAME_DIFF];
-
-  // Values of the difference with respect to a base frame
-  uint8_t frameDiffValues[_MAX_FRAME_DIFF];
+  frameDiff_t frameDiffs[_MAX_FRAME_DIFF];
 
   // Rule status vector
   char rulesStatus[_MAX_RULE_COUNT];
@@ -50,16 +53,16 @@ class Frame
   inline void computeFrameDifference(const char* __restrict__ baseFrameData, const char* __restrict__ newFrameData)
   {
    frameDiffCount = 0;
-   for (uint16_t i = 0; i < _FRAME_DATA_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffPositions[frameDiffCount++] = i;
+   for (uint16_t i = 0; i < _FRAME_DATA_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++].pos = i;
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
    if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d\n", frameDiffCount, _MAX_FRAME_DIFF);
-   for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffValues[i] = newFrameData[frameDiffPositions[i]];
+   for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffs[i].val = newFrameData[frameDiffs[i].pos];
   }
 
   inline void getFrameDataFromDifference(const char* __restrict__ baseFrameData, char* __restrict__ stateData) const
   {
     memcpy(stateData, baseFrameData, _FRAME_DATA_SIZE);
-    for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffPositions[i]] = frameDiffValues[i];
+    for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffs[i].pos] = frameDiffs[i].val;
   }
 
 #ifndef JAFFAR_DISABLE_MOVE_HISTORY
