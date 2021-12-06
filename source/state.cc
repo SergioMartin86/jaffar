@@ -15,7 +15,7 @@ void AddItem(std::vector<Item> *dest, T &val, ItemType type)
   dest->push_back({&val, sizeof(val), type});
 }
 
-std::vector<Item> GenerateSDLPoPItemsMap(miniPoPInstance *_miniPop)
+std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
 {
   std::vector<Item> dest;
   AddItem(&dest, quick_control, PER_FRAME_STATE);
@@ -101,88 +101,6 @@ std::vector<Item> GenerateSDLPoPItemsMap(miniPoPInstance *_miniPop)
   // Support for overflow glitch
   AddItem(&dest, exit_room_timer, PER_FRAME_STATE);
   // replay recording state
-  AddItem(&dest, replay_curr_tick, PER_FRAME_STATE);
-  AddItem(&dest, is_guard_notice, PER_FRAME_STATE);
-  AddItem(&dest, can_guard_see_kid, PER_FRAME_STATE);
-  return dest;
-}
-
-std::vector<Item> GenerateJaffarDifferentialItemsMap(miniPoPInstance *_miniPop)
-{
-  std::vector<Item> dest;
-  AddItem(&dest, quick_control, PER_FRAME_STATE);
-  AddItem(&dest, level, HASHABLE_MANUAL);
-  AddItem(&dest, trobs, HASHABLE_MANUAL);
-  AddItem(&dest, mobs, HASHABLE_MANUAL);
-  return dest;
-}
-
-std::vector<Item> GenerateJaffarFixedItemsMap(miniPoPInstance *_miniPop)
-{
-  std::vector<Item> dest;
-  AddItem(&dest, checkpoint, PER_FRAME_STATE);
-  AddItem(&dest, upside_down, PER_FRAME_STATE);
-  AddItem(&dest, drawn_room, HASHABLE);
-  AddItem(&dest, current_level, PER_FRAME_STATE);
-  AddItem(&dest, next_level, PER_FRAME_STATE);
-  AddItem(&dest, mobs_count, HASHABLE_MANUAL);
-  AddItem(&dest, trobs_count, HASHABLE_MANUAL);
-  AddItem(&dest, leveldoor_open, HASHABLE);
-  AddItem(&dest, Kid, HASHABLE);
-  AddItem(&dest, hitp_curr, HASHABLE_MANUAL);
-  AddItem(&dest, hitp_max, PER_FRAME_STATE);
-  AddItem(&dest, hitp_beg_lev, PER_FRAME_STATE);
-  AddItem(&dest, grab_timer, HASHABLE);
-  AddItem(&dest, holding_sword, HASHABLE);
-  AddItem(&dest, united_with_shadow, HASHABLE);
-  AddItem(&dest, have_sword, HASHABLE);
-  AddItem(&dest, kid_sword_strike, HASHABLE);
-  AddItem(&dest, pickup_obj_type, PER_FRAME_STATE);
-  AddItem(&dest, offguard, HASHABLE);
-  AddItem(&dest, Guard, PER_FRAME_STATE);
-  AddItem(&dest, Char, PER_FRAME_STATE);
-  AddItem(&dest, Opp, PER_FRAME_STATE);
-  AddItem(&dest, guardhp_curr, PER_FRAME_STATE);
-  AddItem(&dest, guardhp_max, PER_FRAME_STATE);
-  AddItem(&dest, demo_index, PER_FRAME_STATE);
-  AddItem(&dest, demo_time, PER_FRAME_STATE);
-  AddItem(&dest, curr_guard_color, PER_FRAME_STATE);
-  AddItem(&dest, guard_notice_timer, HASHABLE);
-  AddItem(&dest, guard_skill, PER_FRAME_STATE);
-  AddItem(&dest, shadow_initialized, PER_FRAME_STATE);
-  AddItem(&dest, guard_refrac, HASHABLE);
-  AddItem(&dest, justblocked, HASHABLE);
-  AddItem(&dest, droppedout, HASHABLE);
-  AddItem(&dest, curr_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, curr_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, below_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, below_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, above_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, above_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, prev_collision_row, PER_FRAME_STATE);
-  AddItem(&dest, flash_color, PER_FRAME_STATE);
-  AddItem(&dest, flash_time, PER_FRAME_STATE);
-  AddItem(&dest, need_level1_music, HASHABLE);
-  AddItem(&dest, is_screaming, HASHABLE);
-  AddItem(&dest, is_feather_fall, PER_FRAME_STATE);
-  AddItem(&dest, last_loose_sound, PER_FRAME_STATE);
-  AddItem(&dest, random_seed, PER_FRAME_STATE);
-  AddItem(&dest, rem_min, PER_FRAME_STATE);
-  AddItem(&dest, rem_tick, PER_FRAME_STATE);
-  AddItem(&dest, control_x, PER_FRAME_STATE);
-  AddItem(&dest, control_y, PER_FRAME_STATE);
-  AddItem(&dest, control_shift, PER_FRAME_STATE);
-  AddItem(&dest, control_forward, PER_FRAME_STATE);
-  AddItem(&dest, control_backward, PER_FRAME_STATE);
-  AddItem(&dest, control_up, PER_FRAME_STATE);
-  AddItem(&dest, control_down, PER_FRAME_STATE);
-  AddItem(&dest, control_shift2, PER_FRAME_STATE);
-  AddItem(&dest, ctrl1_forward, PER_FRAME_STATE);
-  AddItem(&dest, ctrl1_backward, PER_FRAME_STATE);
-  AddItem(&dest, ctrl1_up, PER_FRAME_STATE);
-  AddItem(&dest, ctrl1_down, PER_FRAME_STATE);
-  AddItem(&dest, ctrl1_shift2, PER_FRAME_STATE);
-  AddItem(&dest, exit_room_timer, PER_FRAME_STATE);
   AddItem(&dest, replay_curr_tick, PER_FRAME_STATE);
   AddItem(&dest, is_guard_notice, PER_FRAME_STATE);
   AddItem(&dest, can_guard_see_kid, PER_FRAME_STATE);
@@ -296,12 +214,11 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
    }
 
   // Generating hash items map
-  _SDLPopItems = GenerateSDLPoPItemsMap(_miniPop);
-  _jaffarDifferentialItems = GenerateJaffarDifferentialItemsMap(_miniPop);
-  _jaffarFixedItems = GenerateJaffarFixedItemsMap(_miniPop);
+  _items = GenerateItemsMap(_miniPop);
 
   // Update the SDLPop instance with the savefile contents
-  setSDLPopState(saveString);
+  memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
+  pushState();
 
   // Starting level
   _miniPop->startLevel(next_level);
@@ -314,7 +231,8 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   play_frame();
 
   // Update the SDLPop instance with the savefile contents again
-  setSDLPopState(saveString);
+  memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
+  pushState();
 
   // If we require seed to be overwitten, do it now:
   if (seed >= 0)
@@ -331,7 +249,7 @@ uint64_t State::computeHash() const
   MetroHash64 hash;
 
   // For items that are automatically hashable, do that now
-  for (const auto &item : _SDLPopItems) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
+  for (const auto &item : _items) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
 
   // Manual hashing
 
@@ -382,13 +300,13 @@ uint64_t State::computeHash() const
 void State::pushState()
 {
   size_t pos = 0;
-  for (const auto &item : _jaffarDifferentialItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
-  if (pos != _JAFFAR_FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("Jaffar State size (%lu) so far does not coincide with configured jaffar differential state size (%u)\n", pos, _JAFFAR_FRAME_DIFFERENTIAL_SIZE);
-  for (const auto &item : _jaffarFixedItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
-  if (pos != _JAFFAR_FRAME_DATA_SIZE) EXIT_WITH_ERROR("Jaffar State size (%lu) does not coincide with configured state size (%u)\n", pos, _JAFFAR_FRAME_DATA_SIZE);
+  for (const auto &item : _items) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
+  if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
   _miniPop->isExitDoorOpen = _miniPop->isLevelExitDoorOpen();
 
   different_room = 1;
+  // Show the room where the prince is, even if the player moved the view away
+  // from it (with the H,J,U,N keys).
   next_room = drawn_room = Kid.room;
   load_room_links();
 }
@@ -396,31 +314,8 @@ void State::pushState()
 void State::popState()
 {
   size_t pos = 0;
-  for (const auto &item : _jaffarDifferentialItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
-  if (pos != _JAFFAR_FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("Jaffar State size (%lu) so far does not coincide with configured jaffar differential state size (%u)\n", pos, _JAFFAR_FRAME_DIFFERENTIAL_SIZE);
-  for (const auto &item : _jaffarFixedItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
-  if (pos != _JAFFAR_FRAME_DATA_SIZE) EXIT_WITH_ERROR("Jaffar State size (%lu) does not coincide with configured state size (%u)\n", pos, _JAFFAR_FRAME_DATA_SIZE);
-}
-
-std::string State::getSDLPopState()
-{
- std::string sdlPopState;
- sdlPopState.resize(_SDLPOP_FRAME_DATA_SIZE);
- size_t pos = 0;
- for (const auto &item : _SDLPopItems) { memcpy(&sdlPopState[pos], item.ptr, item.size); pos += item.size; }
- if (pos != _SDLPOP_FRAME_DATA_SIZE) EXIT_WITH_ERROR("SDLPop State size (%lu) does not coincide with configured state size (%u)\n", pos, _SDLPOP_FRAME_DATA_SIZE);
- return sdlPopState;
-}
-
-void State::setSDLPopState(const std::string& sdlPopSaveState)
-{
- size_t pos = 0;
- for (const auto &item : _SDLPopItems) { memcpy(item.ptr, &sdlPopSaveState[pos],item.size); pos += item.size; }
- if (pos != _SDLPOP_FRAME_DATA_SIZE) EXIT_WITH_ERROR("SDLPop State size (%lu) does not coincide with configured state size (%u)\n", pos, _SDLPOP_FRAME_DATA_SIZE);
-
- different_room = 1;
- next_room = drawn_room = Kid.room;
- load_room_links();
+  for (const auto &item : _items) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
+  if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
 }
 
 float State::getFrameReward(const Frame &frame)
