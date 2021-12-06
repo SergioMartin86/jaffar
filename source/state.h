@@ -93,5 +93,6 @@ class State
   std::vector<Rule *> _rules;
   size_t _ruleCount;
   miniPoPInstance *_miniPop;
-  std::vector<Item> _items;
+  std::vector<Item> _differentialItems;
+  std::vector<Item> _fixedItems;
 };
