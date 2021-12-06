@@ -29,13 +29,13 @@ std::vector<Item> GenerateDifferentialItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, mobs, HASHABLE_MANUAL);
   AddItem(&dest, trobs_count, HASHABLE_MANUAL);
   AddItem(&dest, trobs, HASHABLE_MANUAL);
-  AddItem(&dest, leveldoor_open, HASHABLE);
   return dest;
 }
 
 std::vector<Item> GenerateFixedItemsMap(miniPoPInstance *_miniPop)
 {
   std::vector<Item> dest;
+  AddItem(&dest, leveldoor_open, HASHABLE);
   AddItem(&dest, Kid, HASHABLE);
   AddItem(&dest, hitp_curr, HASHABLE_MANUAL);
   AddItem(&dest, hitp_max, PER_FRAME_STATE);
@@ -293,6 +293,7 @@ void State::pushState()
 {
   size_t pos = 0;
   for (const auto &item : _differentialItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
+  if (pos != _FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with differential state size (%u)\n", pos, _FRAME_DIFFERENTIAL_SIZE);
   for (const auto &item : _fixedItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
   if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
   _miniPop->isExitDoorOpen = _miniPop->isLevelExitDoorOpen();
@@ -308,6 +309,7 @@ void State::popState()
 {
   size_t pos = 0;
   for (const auto &item : _differentialItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
+  if (pos != _FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with differential state size (%u)\n", pos, _FRAME_DIFFERENTIAL_SIZE);
   for (const auto &item : _fixedItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
   if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
 }
