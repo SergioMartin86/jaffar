@@ -110,42 +110,32 @@ std::vector<Item> GenerateSDLPoPItemsMap(miniPoPInstance *_miniPop)
 std::vector<Item> GenerateJaffarDifferentialItemsMap(miniPoPInstance *_miniPop)
 {
   std::vector<Item> dest;
+  AddItem(&dest, quick_control, PER_FRAME_STATE);
   AddItem(&dest, level, HASHABLE_MANUAL);
-  AddItem(&dest, mobs, HASHABLE_MANUAL);
   AddItem(&dest, trobs, HASHABLE_MANUAL);
-  AddItem(&dest, curr_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, curr_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, below_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, below_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, above_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, above_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, prev_collision_row, PER_FRAME_STATE);
-  AddItem(&dest, united_with_shadow, HASHABLE);
-  AddItem(&dest, have_sword, HASHABLE);
-  AddItem(&dest, hitp_max, PER_FRAME_STATE);
-  AddItem(&dest, hitp_beg_lev, PER_FRAME_STATE);
-  AddItem(&dest, current_level, PER_FRAME_STATE);
-  AddItem(&dest, next_level, PER_FRAME_STATE);
-  AddItem(&dest, upside_down, PER_FRAME_STATE);
-  AddItem(&dest, checkpoint, PER_FRAME_STATE);
-  AddItem(&dest, demo_index, PER_FRAME_STATE);
-  AddItem(&dest, demo_time, PER_FRAME_STATE);
-  AddItem(&dest, need_level1_music, HASHABLE);
-  AddItem(&dest, is_feather_fall, PER_FRAME_STATE);
+  AddItem(&dest, mobs, HASHABLE_MANUAL);
   return dest;
 }
 
 std::vector<Item> GenerateJaffarFixedItemsMap(miniPoPInstance *_miniPop)
 {
   std::vector<Item> dest;
-  AddItem(&dest, trobs_count, HASHABLE_MANUAL);
-  AddItem(&dest, mobs_count, HASHABLE_MANUAL);
+  AddItem(&dest, checkpoint, PER_FRAME_STATE);
+  AddItem(&dest, upside_down, PER_FRAME_STATE);
   AddItem(&dest, drawn_room, HASHABLE);
+  AddItem(&dest, current_level, PER_FRAME_STATE);
+  AddItem(&dest, next_level, PER_FRAME_STATE);
+  AddItem(&dest, mobs_count, HASHABLE_MANUAL);
+  AddItem(&dest, trobs_count, HASHABLE_MANUAL);
   AddItem(&dest, leveldoor_open, HASHABLE);
   AddItem(&dest, Kid, HASHABLE);
   AddItem(&dest, hitp_curr, HASHABLE_MANUAL);
+  AddItem(&dest, hitp_max, PER_FRAME_STATE);
+  AddItem(&dest, hitp_beg_lev, PER_FRAME_STATE);
   AddItem(&dest, grab_timer, HASHABLE);
   AddItem(&dest, holding_sword, HASHABLE);
+  AddItem(&dest, united_with_shadow, HASHABLE);
+  AddItem(&dest, have_sword, HASHABLE);
   AddItem(&dest, kid_sword_strike, HASHABLE);
   AddItem(&dest, pickup_obj_type, PER_FRAME_STATE);
   AddItem(&dest, offguard, HASHABLE);
@@ -154,6 +144,8 @@ std::vector<Item> GenerateJaffarFixedItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, Opp, PER_FRAME_STATE);
   AddItem(&dest, guardhp_curr, PER_FRAME_STATE);
   AddItem(&dest, guardhp_max, PER_FRAME_STATE);
+  AddItem(&dest, demo_index, PER_FRAME_STATE);
+  AddItem(&dest, demo_time, PER_FRAME_STATE);
   AddItem(&dest, curr_guard_color, PER_FRAME_STATE);
   AddItem(&dest, guard_notice_timer, HASHABLE);
   AddItem(&dest, guard_skill, PER_FRAME_STATE);
@@ -161,11 +153,22 @@ std::vector<Item> GenerateJaffarFixedItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, guard_refrac, HASHABLE);
   AddItem(&dest, justblocked, HASHABLE);
   AddItem(&dest, droppedout, HASHABLE);
+  AddItem(&dest, curr_row_coll_room, PER_FRAME_STATE);
+  AddItem(&dest, curr_row_coll_flags, PER_FRAME_STATE);
+  AddItem(&dest, below_row_coll_room, PER_FRAME_STATE);
+  AddItem(&dest, below_row_coll_flags, PER_FRAME_STATE);
+  AddItem(&dest, above_row_coll_room, PER_FRAME_STATE);
+  AddItem(&dest, above_row_coll_flags, PER_FRAME_STATE);
+  AddItem(&dest, prev_collision_row, PER_FRAME_STATE);
+  AddItem(&dest, flash_color, PER_FRAME_STATE);
+  AddItem(&dest, flash_time, PER_FRAME_STATE);
+  AddItem(&dest, need_level1_music, HASHABLE);
+  AddItem(&dest, is_screaming, HASHABLE);
+  AddItem(&dest, is_feather_fall, PER_FRAME_STATE);
   AddItem(&dest, last_loose_sound, PER_FRAME_STATE);
   AddItem(&dest, random_seed, PER_FRAME_STATE);
-  AddItem(&dest, exit_room_timer, PER_FRAME_STATE);
-  AddItem(&dest, is_guard_notice, PER_FRAME_STATE);
-  AddItem(&dest, can_guard_see_kid, PER_FRAME_STATE);
+  AddItem(&dest, rem_min, PER_FRAME_STATE);
+  AddItem(&dest, rem_tick, PER_FRAME_STATE);
   AddItem(&dest, control_x, PER_FRAME_STATE);
   AddItem(&dest, control_y, PER_FRAME_STATE);
   AddItem(&dest, control_shift, PER_FRAME_STATE);
@@ -179,6 +182,10 @@ std::vector<Item> GenerateJaffarFixedItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, ctrl1_up, PER_FRAME_STATE);
   AddItem(&dest, ctrl1_down, PER_FRAME_STATE);
   AddItem(&dest, ctrl1_shift2, PER_FRAME_STATE);
+  AddItem(&dest, exit_room_timer, PER_FRAME_STATE);
+  AddItem(&dest, replay_curr_tick, PER_FRAME_STATE);
+  AddItem(&dest, is_guard_notice, PER_FRAME_STATE);
+  AddItem(&dest, can_guard_see_kid, PER_FRAME_STATE);
   return dest;
 }
 
