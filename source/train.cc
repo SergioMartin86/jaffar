@@ -181,14 +181,14 @@ void Train::computeFrames()
 
       // Loading frame state
       auto t0 = std::chrono::steady_clock::now(); // Profiling
-      char baseFrameData[_FRAME_DATA_SIZE];
+      char baseFrameData[_JAFFAR_FRAME_DATA_SIZE];
       baseFrame.getFrameDataFromDifference(_sourceFrameData, baseFrameData);
       auto tf = std::chrono::steady_clock::now();
       threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
       // Getting possible moves for the current frame
       t0 = std::chrono::steady_clock::now(); // Profiling
-      memcpy(_state[threadId]->_inputStateData, baseFrameData, _FRAME_DATA_SIZE);
+      memcpy(_state[threadId]->_inputStateData, baseFrameData, _JAFFAR_FRAME_DATA_SIZE);
       _state[threadId]->pushState();
       std::vector<uint8_t> possibleMoveIds = _state[threadId]->getPossibleMoveIds(baseFrame);
       tf = std::chrono::steady_clock::now();
@@ -552,12 +552,8 @@ Train::Train(int argc, char *argv[])
   std::string sourceString;
   bool status = loadStringFromFile(sourceString, saveFilePath.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
-  if (sourceString.size() != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), _FRAME_DATA_SIZE, sourceString.size());
+  if (sourceString.size() != _SDLPOP_FRAME_DATA_SIZE) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), _SDLPOP_FRAME_DATA_SIZE, sourceString.size());
 
-  // If size is correct, copy it to the source frame value
-  memcpy(_sourceFrameData, sourceString.data(), _FRAME_DATA_SIZE);
-
-  // Calculating DB sizes
   _maxDatabaseSize = floor(((double)maxDBSizeMb * 1024.0 * 1024.0) / ((double)sizeof(Frame)));
 
   // Parsing config files
@@ -589,6 +585,10 @@ Train::Train(int argc, char *argv[])
    #pragma omp critical
     _state[threadId] = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
   }
+
+  // If size is correct, copy it to the source frame value
+  _state[0]->popState();
+  memcpy(_sourceFrameData, _state[0]->_outputStateData, _JAFFAR_FRAME_DATA_SIZE);
 
   printf("[Jaffar] miniPop initialized.\n");
 
@@ -671,7 +671,7 @@ void Train::showSavingLoop()
       {
         // Saving best frame data
         std::string bestFrameData;
-        bestFrameData.resize(_FRAME_DATA_SIZE);
+        bestFrameData.resize(_SDLPOP_FRAME_DATA_SIZE);
         _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData.data());
         saveStringToFile(bestFrameData, _outputSaveBestPath.c_str());
 
@@ -699,7 +699,7 @@ void Train::showSavingLoop()
       {
         // Saving best frame data
        std::string showFrameData;
-       showFrameData.resize(_FRAME_DATA_SIZE);
+       showFrameData.resize(_SDLPOP_FRAME_DATA_SIZE);
        _showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData, showFrameData.data());
        saveStringToFile(showFrameData, _outputSaveCurrentPath.c_str());
 
@@ -730,7 +730,7 @@ void Train::showSavingLoop()
 
    // Saving best frame data
    std::string winFrameData;
-   winFrameData.resize(_FRAME_DATA_SIZE);
+   winFrameData.resize(_SDLPOP_FRAME_DATA_SIZE);
    lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
    saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
 

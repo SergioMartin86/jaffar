@@ -25,7 +25,7 @@ class Tester
   std::string _scriptFile;
 
   // Storage for source frame data for differential load/save
-  char _sourceFrameData[_FRAME_DATA_SIZE];
+  char _sourceFrameData[_JAFFAR_FRAME_DATA_SIZE];
   std::unique_ptr<Frame> _baseFrame;
 
   // Creating State class instance, one per openMP thread
