@@ -301,6 +301,7 @@ void State::pushState()
 {
   size_t pos = 0;
   for (const auto &item : _items) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
+  if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
   _miniPop->isExitDoorOpen = _miniPop->isLevelExitDoorOpen();
 
   different_room = 1;
@@ -314,6 +315,7 @@ void State::popState()
 {
   size_t pos = 0;
   for (const auto &item : _items) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
+  if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
 }
 
 float State::getFrameReward(const Frame &frame)
