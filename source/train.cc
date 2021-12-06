@@ -576,6 +576,9 @@ Train::Train(int argc, char *argv[])
   // Resizing containers based on thread count
   _state.resize(_threadCount);
 
+  // Instantiating state for result showing purposes
+  _showState = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
+
   // Initializing thread-specific SDL instances
   #pragma omp parallel
   {
@@ -670,10 +673,9 @@ void Train::showSavingLoop()
       if (bestFrameTimerElapsed / 1.0e+9 > _outputSaveBestSeconds)
       {
         // Saving best frame data
-        std::string bestFrameData;
-        bestFrameData.resize(_SDLPOP_FRAME_DATA_SIZE);
-        _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData.data());
-        saveStringToFile(bestFrameData, _outputSaveBestPath.c_str());
+        _bestFrame.getFrameDataFromDifference(_sourceFrameData, _showState->_inputStateData);
+        _showState->pushState();
+        saveStringToFile(_showState->getSDLPopState(), _outputSaveBestPath.c_str());
 
         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
@@ -698,10 +700,9 @@ void Train::showSavingLoop()
       if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
       {
         // Saving best frame data
-       std::string showFrameData;
-       showFrameData.resize(_SDLPOP_FRAME_DATA_SIZE);
-       _showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData, showFrameData.data());
-       saveStringToFile(showFrameData, _outputSaveCurrentPath.c_str());
+       _showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData, _showState->_inputStateData);
+       _showState->pushState();
+       saveStringToFile(_showState->getSDLPopState(), _outputSaveBestPath.c_str());
 
         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
@@ -729,10 +730,9 @@ void Train::showSavingLoop()
    auto lastFrame = _winFrameFound ? _winFrame : _bestFrame;
 
    // Saving best frame data
-   std::string winFrameData;
-   winFrameData.resize(_SDLPOP_FRAME_DATA_SIZE);
-   lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
-   saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
+   lastFrame.getFrameDataFromDifference(_sourceFrameData, _showState->_inputStateData);
+   _showState->pushState();
+   saveStringToFile(_showState->getSDLPopState(), _outputSaveBestPath.c_str());
 
    #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
