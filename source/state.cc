@@ -15,7 +15,7 @@ void AddItem(std::vector<Item> *dest, T &val, ItemType type)
   dest->push_back({&val, sizeof(val), type});
 }
 
-std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
+std::vector<Item> GenerateDifferentialItemsMap(miniPoPInstance *_miniPop)
 {
   std::vector<Item> dest;
   AddItem(&dest, quick_control, PER_FRAME_STATE);
@@ -30,6 +30,12 @@ std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, trobs_count, HASHABLE_MANUAL);
   AddItem(&dest, trobs, HASHABLE_MANUAL);
   AddItem(&dest, leveldoor_open, HASHABLE);
+  return dest;
+}
+
+std::vector<Item> GenerateFixedItemsMap(miniPoPInstance *_miniPop)
+{
+  std::vector<Item> dest;
   AddItem(&dest, Kid, HASHABLE);
   AddItem(&dest, hitp_curr, HASHABLE_MANUAL);
   AddItem(&dest, hitp_max, PER_FRAME_STATE);
@@ -38,15 +44,9 @@ std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, holding_sword, HASHABLE);
   AddItem(&dest, united_with_shadow, HASHABLE);
   AddItem(&dest, have_sword, HASHABLE);
-  /*AddItem(&dest, ctrl1_forward, HASHABLE);
-  AddItem(&dest, ctrl1_backward, HASHABLE);
-  AddItem(&dest, ctrl1_up, HASHABLE);
-  AddItem(&dest, ctrl1_down, HASHABLE);
-  AddItem(&dest, ctrl1_shift2, HASHABLE);*/
   AddItem(&dest, kid_sword_strike, HASHABLE);
   AddItem(&dest, pickup_obj_type, PER_FRAME_STATE);
   AddItem(&dest, offguard, HASHABLE);
-  // guard
   AddItem(&dest, Guard, PER_FRAME_STATE);
   AddItem(&dest, Char, PER_FRAME_STATE);
   AddItem(&dest, Opp, PER_FRAME_STATE);
@@ -61,7 +61,6 @@ std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, guard_refrac, HASHABLE);
   AddItem(&dest, justblocked, HASHABLE);
   AddItem(&dest, droppedout, HASHABLE);
-  // collision
   AddItem(&dest, curr_row_coll_room, PER_FRAME_STATE);
   AddItem(&dest, curr_row_coll_flags, PER_FRAME_STATE);
   AddItem(&dest, below_row_coll_room, PER_FRAME_STATE);
@@ -69,22 +68,15 @@ std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, above_row_coll_room, PER_FRAME_STATE);
   AddItem(&dest, above_row_coll_flags, PER_FRAME_STATE);
   AddItem(&dest, prev_collision_row, PER_FRAME_STATE);
-  // flash
   AddItem(&dest, flash_color, PER_FRAME_STATE);
   AddItem(&dest, flash_time, PER_FRAME_STATE);
-  // sounds
   AddItem(&dest, need_level1_music, HASHABLE);
   AddItem(&dest, is_screaming, HASHABLE);
   AddItem(&dest, is_feather_fall, PER_FRAME_STATE);
   AddItem(&dest, last_loose_sound, PER_FRAME_STATE);
-  // AddItem(&dest, next_sound, HASHABLE);
-  // AddItem(&dest, current_sound, HASHABLE);
-  // random
   AddItem(&dest, random_seed, PER_FRAME_STATE);
-  // remaining time
   AddItem(&dest, rem_min, PER_FRAME_STATE);
   AddItem(&dest, rem_tick, PER_FRAME_STATE);
-  // saved controls
   AddItem(&dest, control_x, PER_FRAME_STATE);
   AddItem(&dest, control_y, PER_FRAME_STATE);
   AddItem(&dest, control_shift, PER_FRAME_STATE);
@@ -98,9 +90,7 @@ std::vector<Item> GenerateItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, ctrl1_up, PER_FRAME_STATE);
   AddItem(&dest, ctrl1_down, PER_FRAME_STATE);
   AddItem(&dest, ctrl1_shift2, PER_FRAME_STATE);
-  // Support for overflow glitch
   AddItem(&dest, exit_room_timer, PER_FRAME_STATE);
-  // replay recording state
   AddItem(&dest, replay_curr_tick, PER_FRAME_STATE);
   AddItem(&dest, is_guard_notice, PER_FRAME_STATE);
   AddItem(&dest, can_guard_see_kid, PER_FRAME_STATE);
@@ -214,7 +204,8 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
    }
 
   // Generating hash items map
-  _items = GenerateItemsMap(_miniPop);
+  _differentialItems = GenerateDifferentialItemsMap(_miniPop);
+  _fixedItems = GenerateFixedItemsMap(_miniPop);
 
   // Update the SDLPop instance with the savefile contents
   memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
@@ -249,7 +240,8 @@ uint64_t State::computeHash() const
   MetroHash64 hash;
 
   // For items that are automatically hashable, do that now
-  for (const auto &item : _items) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
+  for (const auto &item : _differentialItems) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
+  for (const auto &item : _fixedItems) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
 
   // Manual hashing
 
@@ -300,7 +292,8 @@ uint64_t State::computeHash() const
 void State::pushState()
 {
   size_t pos = 0;
-  for (const auto &item : _items) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
+  for (const auto &item : _differentialItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
+  for (const auto &item : _fixedItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
   if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
   _miniPop->isExitDoorOpen = _miniPop->isLevelExitDoorOpen();
 
@@ -314,7 +307,8 @@ void State::pushState()
 void State::popState()
 {
   size_t pos = 0;
-  for (const auto &item : _items) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
+  for (const auto &item : _differentialItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
+  for (const auto &item : _fixedItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
   if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
 }
 

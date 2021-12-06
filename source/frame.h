@@ -1,10 +1,13 @@
 #pragma once
 
-#define _MAX_FRAME_DIFF 160
+#define _MAX_FRAME_DIFF 50
 #define _MAX_RULE_COUNT 12
-#define _MAX_MOVELIST_SIZE 250
+#define _MAX_MOVELIST_SIZE 450
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
-#define _FRAME_DATA_SIZE 2714
+
+#define _FRAME_DIFFERENTIAL_SIZE 2504
+#define _FRAME_FIXED_SIZE 210
+#define _FRAME_DATA_SIZE (_FRAME_DIFFERENTIAL_SIZE + _FRAME_FIXED_SIZE)
 
 #include "nlohmann/json.hpp"
 #include "rule.h"
@@ -43,6 +46,9 @@ class Frame
   // Positions of the difference with respect to a base frame
   frameDiff_t frameDiffs[_MAX_FRAME_DIFF];
 
+  // Fixed state data
+  char fixedStateData[_FRAME_FIXED_SIZE];
+
   // Rule status vector
   char rulesStatus[_MAX_RULE_COUNT];
 
@@ -53,16 +59,18 @@ class Frame
   inline void computeFrameDifference(const char* __restrict__ baseFrameData, const char* __restrict__ newFrameData)
   {
    frameDiffCount = 0;
-   for (uint16_t i = 0; i < _FRAME_DATA_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++].pos = i;
+   for (uint16_t i = 0; i < _FRAME_DIFFERENTIAL_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++].pos = i;
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
    if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d\n", frameDiffCount, _MAX_FRAME_DIFF);
    for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffs[i].val = newFrameData[frameDiffs[i].pos];
+   memcpy(fixedStateData, &newFrameData[_FRAME_DIFFERENTIAL_SIZE], _FRAME_FIXED_SIZE);
   }
 
   inline void getFrameDataFromDifference(const char* __restrict__ baseFrameData, char* __restrict__ stateData) const
   {
     memcpy(stateData, baseFrameData, _FRAME_DATA_SIZE);
     for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffs[i].pos] = frameDiffs[i].val;
+    memcpy(&stateData[_FRAME_DIFFERENTIAL_SIZE], fixedStateData, _FRAME_FIXED_SIZE);
   }
 
 #ifndef JAFFAR_DISABLE_MOVE_HISTORY
