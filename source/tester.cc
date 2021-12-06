@@ -146,10 +146,10 @@ Tester::Tester(int argc, char *argv[])
   std::string sourceString;
   status = loadStringFromFile(sourceString, saveFilePath.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
-  if (sourceString.size() != _SDLPOP_FRAME_DATA_SIZE) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), _SDLPOP_FRAME_DATA_SIZE, sourceString.size());
+  if (sourceString.size() != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), _FRAME_DATA_SIZE, sourceString.size());
 
   // If size is correct, copy it to the source frame value
-  memcpy(_sourceFrameData, sourceString.data(), _SDLPOP_FRAME_DATA_SIZE);
+  memcpy(_sourceFrameData, sourceString.data(), _FRAME_DATA_SIZE);
 
   // Parsing config files
   _scriptFile = program.get<std::string>("jaffarFile");

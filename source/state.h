@@ -74,15 +74,13 @@ class State
   // Serialization/Deserialization Routines
   void pushState();
   void popState();
-  std::string getSDLPopState();
-  void setSDLPopState(const std::string& sdlPopSaveState);
 
   // Print Rule information
   void printRuleStatus(const Frame &frame);
 
   // Storage for state data (input and output)
-  char _inputStateData[_JAFFAR_FRAME_DATA_SIZE];
-  char _outputStateData[_JAFFAR_FRAME_DATA_SIZE];
+  char _inputStateData[_FRAME_DATA_SIZE];
+  char _outputStateData[_FRAME_DATA_SIZE];
 
   // Hash states
   bool _hashKidCurrentHp;
@@ -95,8 +93,5 @@ class State
   std::vector<Rule *> _rules;
   size_t _ruleCount;
   miniPoPInstance *_miniPop;
-  std::vector<Item> _SDLPopItems;
-
-  std::vector<Item> _jaffarDifferentialItems;
-  std::vector<Item> _jaffarFixedItems;
+  std::vector<Item> _items;
 };
