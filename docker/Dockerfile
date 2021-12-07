@@ -1,4 +1,5 @@
 FROM docker.io/ubuntu:hirsute
+MAINTAINER Sergio Martin <eienburuu@gmail.com>
 
 # update aptitude
 ENV TZ=Europe/Zurich
@@ -51,17 +52,24 @@ RUN meson --buildtype=release build
 RUN meson compile -C build 
 
 # Adding required environment variables
-ENV JAFFAR_MAX_FRAME_DATABASE_SIZE_MB=500
-ENV JAFFAR_HASH_AGE_THRESHOLD=10
-ENV JAFFAR_DISABLE_MOVE_HISTORY=FALSE
-ENV JAFFAR_SAVE_BEST_EVERY_SECONDS=1
-ENV JAFFAR_SAVE_CURRENT_EVERY_SECONDS=0
-ENV JAFFAR_SHOW_UPDATE_EVERY_SECONDS=0
-ENV SDLPOP_ROOT=$HOME/jaffar-play/extern/SDLPoP
-ENV JAFFAR_SAVE_BEST_PATH=$HOME/jaffar.best.sav
-ENV JAFFAR_SAVE_CURRENT_PATH=$HOME/jaffar.current.sav
-ENV JAFFAR_SOLUTION_BEST_PATH=$HOME/jaffar.best.sol
-ENV JAFFAR_SOLUTION_CURRENT_PATH=$HOME/jaffar.current.sol
+WORKDIR /home/jaffar
+RUN echo "export JAFFAR_MAX_FRAME_DATABASE_SIZE_MB=500" >> .bashrc; \
+echo "export JAFFAR_HASH_AGE_THRESHOLD=10" >> .bashrc; \
+echo "export JAFFAR_DISABLE_MOVE_HISTORY=FALSE" >> .bashrc; \
+echo "export JAFFAR_SAVE_BEST_EVERY_SECONDS=1" >> .bashrc; \
+echo "export JAFFAR_SAVE_CURRENT_EVERY_SECONDS=0" >> .bashrc; \
+echo "export JAFFAR_SHOW_UPDATE_EVERY_SECONDS=0" >> .bashrc; \
+echo "export JAFFAR_SAVE_BEST_PATH=/home/jaffar/jaffar.best.sav" >> .bashrc; \
+echo "export JAFFAR_SAVE_CURRENT_PATH=/home/jaffar/jaffar.current.sav" >> .bashrc; \
+echo "export JAFFAR_SOLUTION_BEST_PATH=/home/jaffar/jaffar.best.sol" >> .bashrc; \
+echo "export JAFFAR_SOLUTION_CURRENT_PATH=/home/jaffar/jaffar.current.sol" >> .bashrc; \
+echo "export PATH=/home/jaffar/jaffar/build:/home/jaffar/jaffar-play/build:\$PATH" >> .bashrc; \
+echo "export LD_LIBRARY_PATH=/home/jaffar/jaffar/build:/home/jaffar/jaffar-play/build:\$LD_LIBRARY_PATH" >> .bashrc; \
+echo "export SDLPOP_ROOT=/home/jaffar/jaffar-play/extern/SDLPoP" >> .bashrc
+
+# Print welcome message
+RUN echo '[ ! -z "$TERM" -a -r /home/jaffar/.motd ] && cat /home/jaffar/.motd' >> .bashrc
+RUN echo "Welcome to Jaffar. For instructions, see: https://github.com/SergioMartin86/jaffar/" > .motd
 
 # Changing dir to the examples folder
 WORKDIR /home/jaffar/jaffar/examples
