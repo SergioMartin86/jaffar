@@ -156,7 +156,7 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   // Setting global rule count
   _ruleCount = _rules.size();
 
-  if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this level.\n", _MAX_RULE_COUNT, _ruleCount);
+  if (_ruleCount > _MAX_RULE_COUNT) EXIT_WITH_ERROR("[ERROR] Configured Jaffar to run %lu rules, but the specified script contains %lu. Modify frame.h and rebuild to run this script.\n", _MAX_RULE_COUNT, _ruleCount);
 
   // Checking for repeated rule labels
   std::set<size_t> ruleLabelSet;

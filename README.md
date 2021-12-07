@@ -2,12 +2,21 @@
 
 ![](jaffar.png)
 
-High-performance fully scalable solver for Prince of Persia (DOS) tool-assisted speedrunning.  
+High-performance solver for Prince of Persia (DOS) tool-assisted speedrunning.  
 
-This software is based on the sdlpop-tricks (https://bitbucket.org/mooskagh/sdlpop-tricks) bot.
+Docker
+===============
+
+To get a ready-to-run Docker container with Jaffar, simply run:
+
+```
+docker run sergiom86/jaffar:latest
+```
 
 Installation
 ===============
+
+Follow these steps to manually install in your system
 
 1) Get code
 
@@ -35,42 +44,30 @@ Installation
 Requisites
 ============
 
-
-- MPI - For distributed execution. Jaffar has been tested exclusively on MPICH
 - Meson - For compilation
 - Ninja - For compilation
 - SDL2: Jaffar has been tested using SDL2 2.0.14. 
 - SDL2-image: Jaffar has been tested using SDL2_image 2.0.5.
-- libncurses: For console output
 
 Usage
 =========
 
-Commands:
------------
-
-+ To run the training process on 16 MPI ranks:
 
 ```
-mpirun -n 16 jaffar-train example.config 
+jaffar-train example.sav example.jaffar
 ```
 
+Where example.sav is a SDLPop-compatible savestate, and example.jaffar is a Jaffar script with rules to solve the level.
 
-NOTE: `jaffar-train` requires an input file that describes the rules for exploration. Many examples of such a config file can be found in the `examples` folder. Detailed documentation is not currently availble as the contents of these files are still subject to changes.
-
-
-+ To playback, analyze, produce replay or savestates for a given sequence of comands:
+NOTE: If you see the following message:
 
 ```
-jaffar-play example.config example.seq 
+[ERROR] Wrong size of input state lvl06b.sav. Expected: 2714, Read: 2710 bytes.
 ```
 
-+ To showcase the current/best state of training:
+This means you have produced the .sav file with an older version of SDLPop. Yo solve this, add additional zeros at the end of the savestate, until it meets the required size.
 
-```
-jaffar-show jaffar.current.sav
-jaffar-show jaffar.best.sav  
-```
+For tools to display the current state of training and/or the final results, see: `https://github.com/SergioMartin86/jaffar-play`
 
 Environment Variables:
 ------------------------
@@ -81,16 +78,22 @@ Indicate where the SDLpop root folder is located:
 export SDLPOP_ROOT=$HOME/jaffar/extern/SDLPoP
 ```
 
+Indicate number of OMP threads to use. Leave empty if unsure of how many to use.
+
+```
+export OMP_NUM_THREADS=16
+```
+
 Specify maximum memory size to be used for frame database per worker (in megabytes): 
 
 ```
-export JAFFAR_MAX_WORKER_FRAME_DATABASE_SIZE_MB=1000
+export JAFFAR_MAX_FRAME_DATABASE_SIZE_MB=1000
 ```
 
-Specify maximum memory size to be used for hash databases per worker (in megabytes):
+Specify maximum hash table history (last N game frames during which Jaffar will check for duplicates):
 
 ```
-export JAFFAR_MAX_WORKER_HASH_DATABASE_SIZE_MB=100
+export JAFFAR_HASH_AGE_THRESHOLD=100
 ```
 
 Specify how frequently (in seconds) and where the `jaffar-train` command should save the best state of exploration:
@@ -107,12 +110,6 @@ export JAFFAR_SAVE_CURRENT_EVERY_SECONDS=1
 export JAFFAR_SAVE_CURRENT_PATH=jaffar.current.sav
 ```
 
-Specify how frequently (in seconds) the `jaffar-show` command should check for updates in the save file:
-
-```
-JAFFAR_SHOW_UPDATE_EVERY_SECONDS
-```
-
 Authors
 =============
 
@@ -120,9 +117,6 @@ Authors
   + Github: https://github.com/SergioMartin86
   + Twitch: https://www.twitch.tv/eien86
   + Youtube: https://www.youtube.com/channel/UCSXpK3d6vUq58fjgF5jFoKA
-  
-- Alexander Lyashuk (mooskagh, crem) 
-  + Github: https://github.com/mooskagh
-  + Twitch: https://www.twitch.tv/mooskagh
-  
-Also thanks to Dávid Nagy and the developers of SDLPop (https://github.com/NagyD/SDLPoP) for reverse engineering Prince of Persia and making this possible.
+   
+Credits to Alexander Lyashuk (mooskagh, crem) for the initial idea and development of an initial version of the bot (https://bitbucket.org/mooskagh/sdlpop-tricks).
+Credits to David Nagy and the developers of SDLPop (https://github.com/NagyD/SDLPoP) for reverse engineering Prince of Persia and making this possible.

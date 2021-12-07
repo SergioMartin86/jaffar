@@ -87,6 +87,7 @@ void Train::run()
     if (_currentStep > _MAX_MOVELIST_SIZE-1)
     {
       printf("[Jaffar] Maximum frame number reached, finishing...\n");
+      printf("[Jaffar] To run Jaffar for more steps, modify this limit in frame.h and rebuild.\n");
       terminate = true;
     }
 
