@@ -32,7 +32,7 @@ RUN python3 -m pip install cmake
 CMD ["/bin/bash"]
 
 # add non-root user
-RUN useradd -m jaffar
+RUN useradd -m -s /bin/bash jaffar
 WORKDIR /home/jaffar
 USER jaffar
 
