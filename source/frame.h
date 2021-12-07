@@ -1,10 +1,18 @@
 #pragma once
 
-#define _MAX_FRAME_DIFF 60
-#define _MAX_RULE_COUNT 12
-#define _MAX_MOVELIST_SIZE 450
-#define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
+#ifndef _MAX_FRAME_DIFF
+ #define _MAX_FRAME_DIFF 100
+#endif
 
+#ifndef _MAX_RULE_COUNT
+ #define _MAX_RULE_COUNT 30
+#endif
+
+#ifndef _MAX_MOVELIST_SIZE
+ #define _MAX_MOVELIST_SIZE 500
+#endif
+
+#define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
 #define _FRAME_DIFFERENTIAL_SIZE 2502
 #define _FRAME_FIXED_SIZE 212
 #define _FRAME_DATA_SIZE (_FRAME_DIFFERENTIAL_SIZE + _FRAME_FIXED_SIZE)
@@ -61,7 +69,7 @@ class Frame
    frameDiffCount = 0;
    for (uint16_t i = 0; i < _FRAME_DIFFERENTIAL_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++].pos = i;
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
-   if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d\n", frameDiffCount, _MAX_FRAME_DIFF);
+   if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d. Increase this maximum in the frame.h source file and rebuild.\n", frameDiffCount, _MAX_FRAME_DIFF);
    for (uint16_t i = 0; i < frameDiffCount; i++) frameDiffs[i].val = newFrameData[frameDiffs[i].pos];
    memcpy(fixedStateData, &newFrameData[_FRAME_DIFFERENTIAL_SIZE], _FRAME_FIXED_SIZE);
   }
