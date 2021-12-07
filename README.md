@@ -69,6 +69,18 @@ This means you have produced the .sav file with an older version of SDLPop. Yo s
 
 For tools to display the current state of training and/or the final results, see: `https://github.com/SergioMartin86/jaffar-play`
 
+
+Tunable Compilation-Time Parameters:
+--------------------------------------
+
+The file `source/frame.h` contains a few tunable parameters that allows for smaller state sizes to save memory and run with much larger frame databases:
+
+- `_MAX_FRAME_DIFF`: Defines the maximum number of byte differences between the frames in the database and the original savestate. Each reduction in this number will save 3 bytes per Frame. If training exceeds the number of differences, Jaffar will print an error. In that case, the user must increase this value and recompile Jaffar.
+
+- `_MAX_RULE_COUNT`: Defines the maximum number of rules in a Jaffar script. Every reduction in this number will save one byte per Frame. If the number of rules in the Jaffar script exceeds this number, Jaffar will print an error. In that case, the user must increase this value and recompile Jaffar.
+
+- `_MAX_MOVELIST_SIZE`: Defines the maximum number of moves to include in a solution. Frames will contain one less byte for every 2 moves reduced. If the number of moves in the Jaffar excecution exceeds this number, Jaffar will end without producing a solution. In that case, the user must increase this value and recompile Jaffar.
+
 Environment Variables:
 ------------------------
 
@@ -108,6 +120,12 @@ Specify how frequently (in seconds) and where the `jaffar-train` command should 
 ```
 export JAFFAR_SAVE_CURRENT_EVERY_SECONDS=1
 export JAFFAR_SAVE_CURRENT_PATH=jaffar.current.sav
+```
+
+Indicates whether to produce a move list for a solution. If TRUE, frame states will not store or show the move list and will occupy many fewer bytes in memory. You need to recompile Jaffar for this to take effect.
+
+```
+export JAFFAR_DISABLE_MOVE_HISTORY=TRUE
 ```
 
 Authors
