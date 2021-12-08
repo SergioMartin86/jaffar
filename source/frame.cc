@@ -7,8 +7,5 @@ Frame::Frame()
 {
   // Setting initially with no differences wrt base frame
   frameDiffCount = 0;
-
-  // Setting frame type
-  _type = f_regular;
 }
 

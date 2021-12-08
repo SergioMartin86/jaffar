@@ -1,5 +1,4 @@
 #include "state.h"
-#include "frame.h"
 #include "metrohash64.h"
 #include "utils.h"
 
@@ -314,16 +313,19 @@ void State::popState()
   if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
 }
 
-float State::getFrameReward(const Frame &frame)
+float State::getFrameReward(const bool* rulesStatus)
 {
-  // Accumulator for total reward
-  float reward = getRuleRewards(frame);
+  // Getting rewards from rules
+  float reward = 0.0;
+  for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
+   if (rulesStatus[ruleId] == true)
+    reward += _rules[ruleId]->_reward;
 
   // Getting kid room
   int kidCurrentRoom = Kid.room;
 
   // Getting magnet values for the kid
-  auto kidMagnet = getKidMagnetValues(frame, kidCurrentRoom);
+  auto kidMagnet = getKidMagnetValues(rulesStatus, kidCurrentRoom);
 
   // Getting kid's current frame
   const auto curKidFrame = Kid.frame;
@@ -378,7 +380,7 @@ float State::getFrameReward(const Frame &frame)
   int guardCurrentRoom = Guard.room;
 
   // Getting magnet values for the guard
-  auto guardMagnet = getGuardMagnetValues(frame, guardCurrentRoom);
+  auto guardMagnet = getGuardMagnetValues(rulesStatus, guardCurrentRoom);
 
   // Getting guard's current frame
   const auto curGuardFrame = Guard.frame;
@@ -417,7 +419,7 @@ float State::getFrameReward(const Frame &frame)
   return reward;
 }
 
-std::vector<uint8_t> State::getPossibleMoveIds(const Frame &frame)
+std::vector<uint8_t> State::getPossibleMoveIds()
 {
   // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
   //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
@@ -474,9 +476,8 @@ std::vector<uint8_t> State::getPossibleMoveIds(const Frame &frame)
   return {0};
 }
 
-magnetInfo_t State::getKidMagnetValues(const Frame &frame, const int room)
+magnetInfo_t State::getKidMagnetValues(const bool* rulesStatus, const int room)
 {
-
  // Storage for magnet information
  magnetInfo_t magnetInfo;
  magnetInfo.positionX = 0.0f;
@@ -486,7 +487,7 @@ magnetInfo_t State::getKidMagnetValues(const Frame &frame, const int room)
  // Iterating rule vector
  for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
  {
-  if (frame.rulesStatus[ruleId] == true)
+  if (rulesStatus[ruleId] == true)
   {
     const auto& rule = _rules[ruleId];
 
@@ -507,7 +508,7 @@ magnetInfo_t State::getKidMagnetValues(const Frame &frame, const int room)
  return magnetInfo;
 }
 
-magnetInfo_t State::getGuardMagnetValues(const Frame &frame, const int room)
+magnetInfo_t State::getGuardMagnetValues(const bool* rulesStatus, const int room)
 {
 
  // Storage for magnet information
@@ -518,7 +519,7 @@ magnetInfo_t State::getGuardMagnetValues(const Frame &frame, const int room)
 
  // Iterating rule vector
  for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
+  if (rulesStatus[ruleId] == true)
   {
     const auto& rule = _rules[ruleId];
 
@@ -538,17 +539,17 @@ magnetInfo_t State::getGuardMagnetValues(const Frame &frame, const int room)
  return magnetInfo;
 }
 
-void State::evaluateRules(Frame &frame)
+void State::evaluateRules(bool* rulesStatus)
 {
   for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
   {
     // Evaluate rule only if it's active
-    if (frame.rulesStatus[ruleId] == false)
+    if (rulesStatus[ruleId] == false)
     {
       // Checking dependencies first. If not met, continue to the next rule
       bool dependenciesMet = true;
       for (size_t i = 0; i < _rules[ruleId]->_dependenciesIndexes.size(); i++)
-        if (frame.rulesStatus[_rules[ruleId]->_dependenciesIndexes[i]] == false)
+        if (rulesStatus[_rules[ruleId]->_dependenciesIndexes[i]] == false)
           dependenciesMet = false;
 
       // If dependencies aren't met, then continue to next rule
@@ -558,22 +559,12 @@ void State::evaluateRules(Frame &frame)
       bool isSatisfied = _rules[ruleId]->evaluate();
 
       // If it's achieved, update its status and run its actions
-      if (isSatisfied) satisfyRule(frame, ruleId);
+      if (isSatisfied) satisfyRule(rulesStatus, ruleId);
     }
   }
 }
 
-float State::getRuleRewards(const Frame &frame)
-{
- float reward = 0.0;
-
- for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
-  if (frame.rulesStatus[ruleId] == true)
-    reward += _rules[ruleId]->_reward;
- return reward;
-}
-
-void State::satisfyRule(Frame &frame, const size_t ruleId)
+void State::satisfyRule(bool* rulesStatus, const size_t ruleId)
 {
  // Recursively run actions for the yet unsatisfied rules that are satisfied by this one and mark them as satisfied
  for (size_t satisfiedIdx = 0; satisfiedIdx < _rules[ruleId]->_satisfiesIndexes.size(); satisfiedIdx++)
@@ -582,23 +573,35 @@ void State::satisfyRule(Frame &frame, const size_t ruleId)
   size_t subRuleId = _rules[ruleId]->_satisfiesIndexes[satisfiedIdx];
 
   // Only activate it if it hasn't been activated before
-  if (frame.rulesStatus[subRuleId] == false) satisfyRule(frame, subRuleId);
+  if (rulesStatus[subRuleId] == false) satisfyRule(rulesStatus, subRuleId);
  }
 
  // Setting status to satisfied
- frame.rulesStatus[ruleId] = true;
-
- if (_rules[ruleId]->_isFailRule == true) frame._type = f_fail;
- if (_rules[ruleId]->_isWinRule == true) frame._type = f_win;
+ rulesStatus[ruleId] = true;
 }
 
-void State::printRuleStatus(const Frame &frame)
+void State::printRuleStatus(const bool* rulesStatus)
 {
  printf("[Jaffar]  + Rule Status: ");
  for (size_t i = 0; i < _ruleCount; i++)
  {
    if (i > 0 && i % 60 == 0) printf("\n                         ");
-   printf("%d", frame.rulesStatus[i] ? 1 : 0);
+   printf("%d", rulesStatus[i] ? 1 : 0);
  }
  printf("\n");
+}
+
+// Get frame type
+frameType State::getFrameType(const bool* rulesStatus)
+{
+ frameType type = f_regular;
+
+ for (size_t ruleId = 0; ruleId < _rules.size(); ruleId++)
+  if (rulesStatus[ruleId] == true)
+  {
+   if (_rules[ruleId]->_isFailRule == true) type = f_fail;
+   if (_rules[ruleId]->_isWinRule == true) type = f_win;
+  }
+
+ return type;
 }

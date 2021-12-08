@@ -53,30 +53,30 @@ class State
   uint64_t computeHash() const;
 
   // Obtains the score of a given frame
-  float getFrameReward(const Frame &frame);
+  float getFrameReward(const bool* rulesStatus);
 
   // Function to determine the current possible moves
-  std::vector<uint8_t> getPossibleMoveIds(const Frame &frame);
+  std::vector<uint8_t> getPossibleMoveIds();
 
   // Function to get magnet information
-  magnetInfo_t getKidMagnetValues(const Frame &frame, const int room);
-  magnetInfo_t getGuardMagnetValues(const Frame &frame, const int room);
+  magnetInfo_t getKidMagnetValues(const bool* rulesStatus, const int room);
+  magnetInfo_t getGuardMagnetValues(const bool* rulesStatus, const int room);
 
   // Evaluates the rule set on a given frame. Returns true if it is a fail.
-  void evaluateRules(Frame &frame);
+  void evaluateRules(bool* rulesStatus);
 
   // Marks the given rule as satisfied, executes its actions, and recursively runs on its sub-satisfied rules
-  void satisfyRule(Frame &frame, const size_t ruleId);
+  void satisfyRule(bool* rulesStatus, const size_t ruleId);
 
-  // Function to get the static rewards obtained from rules
-  float getRuleRewards(const Frame &frame);
+  // Get frame type
+  frameType getFrameType(const bool* rulesStatus);
 
   // Serialization/Deserialization Routines
   void pushState();
   void popState();
 
   // Print Rule information
-  void printRuleStatus(const Frame &frame);
+  void printRuleStatus(const bool* rulesStatus);
 
   // Storage for state data (input and output)
   char _inputStateData[_FRAME_DATA_SIZE];

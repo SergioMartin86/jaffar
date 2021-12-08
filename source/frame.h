@@ -5,7 +5,7 @@
 #endif
 
 #ifndef _MAX_RULE_COUNT
- #define _MAX_RULE_COUNT 10
+ #define _MAX_RULE_COUNT 32
 #endif
 
 #ifndef _MAX_MOVELIST_SIZE
@@ -28,8 +28,7 @@ enum frameType
 {
   f_regular,
   f_win,
-  f_fail,
-  f_flush
+  f_fail
 };
 
 extern size_t _maxFrameDiff;
@@ -58,10 +57,7 @@ class Frame
   char fixedStateData[_FRAME_FIXED_SIZE];
 
   // Rule status vector
-  char rulesStatus[_MAX_RULE_COUNT];
-
-  // Frame type
-  frameType _type;
+  bool rulesStatus[_MAX_RULE_COUNT];
 
   // Differentiation functions
   inline void computeFrameDifference(const char* __restrict__ baseFrameData, const char* __restrict__ newFrameData)

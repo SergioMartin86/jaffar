@@ -76,15 +76,16 @@ void Tester::run()
    {
     _state[threadId]->_miniPop->performMove(move);
     _state[threadId]->_miniPop->advanceFrame();
-    _state[threadId]->evaluateRules(curFrame);
+    _state[threadId]->evaluateRules(curFrame.rulesStatus);
+    frameType type = _state[threadId]->getFrameType(curFrame.rulesStatus);
 
-    if (curFrame._type == f_fail)
+    if (type == f_fail)
     {
      #pragma omp atomic
      failCount++;
     }
 
-    if (curFrame._type == f_win)
+    if (type == f_win)
     {
      #pragma omp atomic
      winCount++;
@@ -194,10 +195,10 @@ Tester::Tester(int argc, char *argv[])
   for (size_t i = 0; i < _ruleCount; i++) _baseFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame
-  _state[0]->evaluateRules(*_baseFrame);
+  _state[0]->evaluateRules(_baseFrame->rulesStatus);
 
   // Evaluating Score on initial frame
-  _baseFrame->reward = _state[0]->getFrameReward(*_baseFrame);
+  _baseFrame->reward = _state[0]->getFrameReward(_baseFrame->rulesStatus);
 }
 
 int main(int argc, char *argv[])

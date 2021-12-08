@@ -108,7 +108,7 @@ void Train::run()
     _winFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
     _state[0]->pushState();
     _state[0]->_miniPop->printFrameInfo();
-    _state[0]->printRuleStatus(_winFrame);
+    _state[0]->printRuleStatus(_winFrame.rulesStatus);
 
     #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
@@ -144,6 +144,10 @@ void Train::computeFrames()
   _stepFrameAdvanceTime = 0.0;
   _stepFrameSerializationTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
+
+  // Counters
+  size_t newFrameCount = 0;
+  float worseFrameReward = +std::numeric_limits<float>::infinity();
 
   // Creating thread-local storage for new frames
   std::vector<std::vector<std::unique_ptr<Frame>>> newThreadFrames(_threadCount);
@@ -188,7 +192,7 @@ void Train::computeFrames()
       t0 = std::chrono::steady_clock::now(); // Profiling
       memcpy(_state[threadId]->_inputStateData, baseFrameData, _FRAME_DATA_SIZE);
       _state[threadId]->pushState();
-      std::vector<uint8_t> possibleMoveIds = _state[threadId]->getPossibleMoveIds(baseFrame);
+      std::vector<uint8_t> possibleMoveIds = _state[threadId]->getPossibleMoveIds();
       tf = std::chrono::steady_clock::now();
       threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -261,18 +265,27 @@ void Train::computeFrames()
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>(baseFrame);
 
-        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
-
-        // If required, store move history
-        newFrame->setMove(_currentStep, moveId);
-
-        #endif
-
         // Evaluating rules on the new frame
-        _state[threadId]->evaluateRules(*newFrame);
+        _state[threadId]->evaluateRules(newFrame->rulesStatus);
+
+        // Getting frame type
+        frameType type = _state[threadId]->getFrameType(newFrame->rulesStatus);
 
         // If frame has failed, discard it and proceed to the next one
-        if (newFrame->_type == f_fail) continue;
+        if (type == f_fail) continue;
+
+        // If frame has succeded, then flag it
+        if (type == f_win)
+        {
+          _winFrameFound = true;
+           #pragma omp critical(winFrame)
+           _winFrame = *newFrame;
+        }
+
+        // If required, store move history
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+        newFrame->setMove(_currentStep, moveId);
+        #endif
 
         // Storing the frame data, only if if belongs to the same level
         if (curLevel == newLevel)
@@ -289,15 +302,19 @@ void Train::computeFrames()
         }
 
         // Calculating current reward
-        newFrame->reward = _state[threadId]->getFrameReward(*newFrame);
+        newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
 
-        // If frame has succeded, then flag it
-        if (newFrame->_type == f_win)
-        {
-          _winFrameFound = true;
-           #pragma omp critical(winFrame)
-           _winFrame = *newFrame;
-        }
+        // Checking if reward if worse than the current worse
+        bool isWorst = false;
+        #pragma omp critical(reward)
+        if (newFrame->reward < worseFrameReward) { worseFrameReward = newFrame->reward; isWorst = true; }
+
+        // Don't add new frame if already reached maximum frames and new frame is worse than the rest
+        if (newFrameCount >= _maxDatabaseSize && isWorst == true) continue;
+
+        // Increasing frame counter
+        #pragma omp atomic
+        newFrameCount++;
 
         // Adding novel frame in the next frame database
         newThreadFrames[threadId].push_back(std::move(newFrame));
@@ -415,13 +432,13 @@ void Train::printTrainStatus()
   _bestFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
   _state[0]->pushState();
   _state[0]->_miniPop->printFrameInfo();
-  _state[0]->printRuleStatus(_bestFrame);
+  _state[0]->printRuleStatus(_bestFrame.rulesStatus);
 
   // Getting kid room
   int kidCurrentRoom = Kid.room;
 
   // Getting magnet values for the kid
-  auto kidMagnet = _state[0]->getKidMagnetValues(_bestFrame, kidCurrentRoom);
+  auto kidMagnet = _state[0]->getKidMagnetValues(_bestFrame.rulesStatus, kidCurrentRoom);
 
   printf("[Jaffar]  + Kid Horizontal Magnet Intensity / Position: %.1f / %.0f\n", kidMagnet.intensityX, kidMagnet.positionX);
   printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", kidMagnet.intensityY);
@@ -430,7 +447,7 @@ void Train::printTrainStatus()
   int guardCurrentRoom = Guard.room;
 
   // Getting magnet values for the guard
-  auto guardMagnet = _state[0]->getGuardMagnetValues(_bestFrame, guardCurrentRoom);
+  auto guardMagnet = _state[0]->getGuardMagnetValues(_bestFrame.rulesStatus, guardCurrentRoom);
 
   printf("[Jaffar]  + Guard Horizontal Magnet Intensity / Position: %.1f / %.0f\n", guardMagnet.intensityX, guardMagnet.positionX);
   printf("[Jaffar]  + Guard Vertical Magnet Intensity: %.1f\n", guardMagnet.intensityY);
@@ -598,10 +615,10 @@ Train::Train(int argc, char *argv[])
   for (size_t i = 0; i < _ruleCount; i++) initialFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame
-  _state[0]->evaluateRules(*initialFrame);
+  _state[0]->evaluateRules(initialFrame->rulesStatus);
 
   // Evaluating Score on initial frame
-  initialFrame->reward = _state[0]->getFrameReward(*initialFrame);
+  initialFrame->reward = _state[0]->getFrameReward(initialFrame->rulesStatus);
 
   // Registering hash for initial frame
   _hashDatabases[_hashAgeThreshold-1]->insert({ hash, 0 });
