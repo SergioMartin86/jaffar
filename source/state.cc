@@ -588,7 +588,6 @@ void State::satisfyRule(Frame &frame, const size_t ruleId)
  // Setting status to satisfied
  frame.rulesStatus[ruleId] = true;
 
- if (_rules[ruleId]->_isFlushDBRule == true) frame._type = f_flush;
  if (_rules[ruleId]->_isFailRule == true) frame._type = f_fail;
  if (_rules[ruleId]->_isWinRule == true) frame._type = f_win;
 }
