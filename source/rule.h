@@ -53,7 +53,6 @@ class Rule
   // Special condition flags
   bool _isWinRule;
   bool _isFailRule;
-  bool _isFlushDBRule;
 
   // Stores magnet information
   std::vector<magnet_t> _kidMagnetPositionX;

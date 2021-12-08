@@ -148,9 +148,6 @@ void Train::computeFrames()
   // Creating thread-local storage for new frames
   std::vector<std::vector<std::unique_ptr<Frame>>> newThreadFrames(_threadCount);
 
-  // Creating storage for flush-trigger frames
-  std::vector<std::unique_ptr<Frame>> flushDBFrames;
-
   // Processing frame database in parallel
   auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
@@ -302,23 +299,8 @@ void Train::computeFrames()
            _winFrame = *newFrame;
         }
 
-        // Adding novel frame in the next frame database, if regular
-        if (newFrame->_type == f_regular)
-        {
-         newThreadFrames[threadId].push_back(std::move(newFrame));
-         continue;
-        }
-
-        if (newFrame->_type == f_flush) // Else flush database if it's tagged to flush the database
-        {
-         // Setting new frame as regular from now on
-         newFrame->_type = f_regular;
-
-         // Pushing it into the special flush DB, in case there are more like it in this frame
-         #pragma omp critical(flushDB)
-         flushDBFrames.push_back(std::move(newFrame));
-         continue;
-        }
+        // Adding novel frame in the next frame database
+        newThreadFrames[threadId].push_back(std::move(newFrame));
       }
     }
 
@@ -353,23 +335,16 @@ void Train::computeFrames()
   // Clearing all old frames
   _frameDB.clear();
 
-  // If there are no flush type frames, continue normally
-  if (flushDBFrames.size() == 0)
-  {
-   // Getting total new frames and displacements
-   size_t totalNewFrameCount = 0;
-   std::vector<size_t> totalNewFrameDisplacements(_threadCount);
-   for (int i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
+  // Getting total new frames and displacements
+  size_t totalNewFrameCount = 0;
+  std::vector<size_t> totalNewFrameDisplacements(_threadCount);
+  for (int i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
 
-   // Passing new frames into the new frame database
-   _frameDB.resize(totalNewFrameCount);
-   #pragma omp parallel for
-   for (int i = 0; i < _threadCount; i++)
-    for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
-  }
-
-  // If there are flush type frames, push them into the database.
-  if (flushDBFrames.size() > 0) _frameDB = std::move(flushDBFrames);
+  // Passing new frames into the new frame database
+  _frameDB.resize(totalNewFrameCount);
+  #pragma omp parallel for
+  for (int i = 0; i < _threadCount; i++)
+   for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
 
   // Sorting local DB frames by reward
   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
