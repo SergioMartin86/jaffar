@@ -20,14 +20,6 @@ if res.returncode() == 0
   endif
 endif
 
-res = run_command(python, '-c', 'import os; print(os.environ["JAFFAR_DISABLE_MOVE_HISTORY"])')
-if res.returncode() == 0
-  value = res.stdout().strip()
-  if value == 'TRUE'
-   jaffar_flags += '-DJAFFAR_DISABLE_MOVE_HISTORY'
-  endif
-endif
-
 
 inc = include_directories([
  'extern/metrohash64',
@@ -56,10 +48,6 @@ sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('SDL2_image')
 boost_dep = dependency('boost')
 
-pkg = import('pkgconfig')
-jemalloc_lib = library('jemalloc')
-pkg.generate(jemalloc_lib)
-
 deps = [
   sdl2_dep,
   sdl2_image_dep,
@@ -75,7 +63,6 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_args: [ ],
-  link_with: [ jemalloc_lib ],
   cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
   )
   
@@ -84,7 +71,7 @@ executable('jaffar-tester',
   jaffarFiles,
   dependencies: deps,
   include_directories: inc,
-  link_args: [ '-ldl' ],
+  link_args: [ ],
   cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
   )
 
