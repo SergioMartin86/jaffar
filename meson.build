@@ -63,7 +63,7 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_args: [ ],
-  cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
+  cpp_args: [ '-Wfatal-errors', '-funroll-loops' ] + jaffar_flags
   )
   
 executable('jaffar-tester',
