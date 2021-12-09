@@ -32,11 +32,8 @@ class Train
 
   // File output config
   double _outputSaveBestSeconds;
-  double _outputSaveCurrentSeconds;
   std::string _outputSaveBestPath;
-  std::string _outputSaveCurrentPath;
   std::string _outputSolutionBestPath;
-  std::string _outputSolutionCurrentPath;
   bool _showSDLPopPreview;
 
   // Store the number of openMP threads in use
@@ -60,7 +57,7 @@ class Train
   // Frame databases
   size_t _databaseSize;
   size_t _maxDatabaseSize;
-  std::vector<std::unique_ptr<Frame>> _frameDB;
+  std::map<size_t, std::vector<std::unique_ptr<Frame>>> _frameDB;
 
   // Frame database for showing
   std::vector<Frame> _showFrameDB;

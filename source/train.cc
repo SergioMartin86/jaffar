@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <set>
 #include <boost/sort/sort.hpp>
-#include <random>
 
 void Train::run()
 {
@@ -21,13 +20,6 @@ void Train::run()
     printf("[Jaffar] Saving best frame every: %.3f seconds.\n", _outputSaveBestSeconds);
     printf("[Jaffar]  + Savefile Path: %s\n", _outputSaveBestPath.c_str());
     printf("[Jaffar]  + Solution Path: %s\n", _outputSolutionBestPath.c_str());
-  }
-
-  if (_outputSaveCurrentSeconds > 0)
-  {
-    printf("[Jaffar] Saving current frame every: %.3f seconds.\n", _outputSaveCurrentSeconds);
-    printf("[Jaffar]  + Savefile Path: %s\n", _outputSaveCurrentPath.c_str());
-    printf("[Jaffar]  + Solution Path: %s\n", _outputSolutionCurrentPath.c_str());
   }
 
   // Sleep for a second to show this message
@@ -52,13 +44,6 @@ void Train::run()
     // Printing search status
     printTrainStatus();
 
-    // Updating show frames (random selection)
-    std::random_device rd;     // only used once to initialise (seed) engine
-    std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
-    std::uniform_int_distribution<int> uni(0, _frameDB.size()-1); // guaranteed unbiased
-
-    for (size_t i = 0; i < SHOW_FRAME_COUNT; i++) _showFrameDB[i] = *_frameDB[uni(rng)];
-
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle begin
     /////////////////////////////////////////////////////////////////
@@ -69,8 +54,11 @@ void Train::run()
     /// Main frame processing cycle end
     /////////////////////////////////////////////////////////////////
 
+    // Advancing step
+    _currentStep++;
+
     // Terminate if DB is depleted and no winning rule was found
-    if (_frameDB.size() == 0)
+    if (_frameDB[_currentStep].size() == 0)
     {
       printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
       terminate = true;
@@ -90,9 +78,6 @@ void Train::run()
       printf("[Jaffar] To run Jaffar for more steps, modify this limit in frame.h and rebuild.\n");
       terminate = true;
     }
-
-    // Advancing step
-    _currentStep++;
   }
 
   // Print winning frame if found
@@ -149,18 +134,12 @@ void Train::computeFrames()
   size_t newFrameCount = 0;
   float worseFrameReward = +std::numeric_limits<float>::infinity();
 
-  // Creating thread-local storage for new frames
-  std::vector<std::vector<std::unique_ptr<Frame>>> newThreadFrames(_threadCount);
-
   // Processing frame database in parallel
   auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
   {
     // Getting thread id
     int threadId = omp_get_thread_num();
-
-    // Reserving space for frame pointers
-    newThreadFrames[threadId].reserve(_maxDatabaseSize / _threadCount);
 
     // Profiling timers
     double threadHashCalculationTime = 0.0;
@@ -173,10 +152,10 @@ void Train::computeFrames()
 
     // Computing always the last frame while resizing the database to reduce memory footprint
     #pragma omp for schedule(guided)
-    for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB.size(); baseFrameIdx++)
+    for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB[_currentStep].size(); baseFrameIdx++)
     {
       // Storage for the base frame
-      const auto baseFrame = std::move(_frameDB[baseFrameIdx]);
+      const auto baseFrame = std::move(_frameDB[_currentStep][baseFrameIdx]);
 
       // Loading frame state
       auto t0 = std::chrono::steady_clock::now(); // Profiling
@@ -311,7 +290,8 @@ void Train::computeFrames()
         newFrameCount++;
 
         // Adding novel frame in the next frame database
-        newThreadFrames[threadId].push_back(std::move(newFrame));
+        #pragma omp critical(insertFrame)
+        _frameDB[_currentStep+1].push_back(std::move(newFrame));
       }
     }
 
@@ -344,31 +324,20 @@ void Train::computeFrames()
   auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
   // Clearing all old frames
-  _frameDB.clear();
-
-  // Getting total new frames and displacements
-  size_t totalNewFrameCount = 0;
-  std::vector<size_t> totalNewFrameDisplacements(_threadCount);
-  for (int i = 0; i < _threadCount; i++) { totalNewFrameDisplacements[i] = totalNewFrameCount; totalNewFrameCount += newThreadFrames[i].size(); }
-
-  // Passing new frames into the new frame database
-  _frameDB.resize(totalNewFrameCount);
-  #pragma omp parallel for
-  for (int i = 0; i < _threadCount; i++)
-   for (size_t j = 0; j < newThreadFrames[i].size(); j++) _frameDB[j + totalNewFrameDisplacements[i]] = std::move(newThreadFrames[i][j]);
+  _frameDB.erase(_currentStep);
 
   // Sorting local DB frames by reward
   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  boost::sort::block_indirect_sort(_frameDB.begin(), _frameDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+  boost::sort::block_indirect_sort(_frameDB[_currentStep+1].begin(), _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
   // If global frames exceed the maximum allowed, sort and truncate all excessive frames
-  if (_frameDB.size() > _maxDatabaseSize) _frameDB.resize(_maxDatabaseSize);
+  if (_frameDB[_currentStep+1].size() > _maxDatabaseSize) _frameDB[_currentStep+1].resize(_maxDatabaseSize);
 
   // Storing best frame
   _bestFrameReward = -1.0;
-  if (_frameDB.empty() == false) { _bestFrame = *_frameDB[0]; _bestFrameReward = _bestFrame.reward; }
+  if (_frameDB[_currentStep+1].empty() == false) { _bestFrame = *_frameDB[_currentStep+1][0]; _bestFrameReward = _bestFrame.reward; }
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
@@ -491,20 +460,14 @@ Train::Train(int argc, char *argv[])
   // Parsing file output frequency
   _outputSaveBestSeconds = -1.0;
   if (const char *outputSaveBestSecondsEnv = std::getenv("JAFFAR_SAVE_BEST_EVERY_SECONDS")) _outputSaveBestSeconds = std::stof(outputSaveBestSecondsEnv);
-  _outputSaveCurrentSeconds = -1.0;
-  if (const char *outputSaveCurrentSecondsEnv = std::getenv("JAFFAR_SAVE_CURRENT_EVERY_SECONDS")) _outputSaveCurrentSeconds = std::stof(outputSaveCurrentSecondsEnv);
 
   // Parsing savegame files output path
   _outputSaveBestPath = "/tmp/jaffar.best.sav";
   if (const char *outputSaveBestPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestPathEnv);
-  _outputSaveCurrentPath = "/tmp/jaffar.current.sav";
-  if (const char *outputSaveCurrentPathEnv = std::getenv("JAFFAR_SAVE_CURRENT_PATH")) _outputSaveCurrentPath = std::string(outputSaveCurrentPathEnv);
 
   // Parsing solution files output path
   _outputSolutionBestPath = "/tmp/jaffar.best.sol";
   if (const char *outputSolutionBestPathEnv = std::getenv("JAFFAR_SOLUTION_BEST_PATH")) _outputSolutionBestPath = std::string(outputSolutionBestPathEnv);
-  _outputSolutionCurrentPath = "/tmp/jaffar.current.sol";
-  if (const char *outputSolutionCurrentPathEnv = std::getenv("JAFFAR_SOLUTION_CURRENT_PATH")) _outputSolutionCurrentPath = std::string(outputSolutionCurrentPathEnv);
 
   // Parsing command line arguments
   argparse::ArgumentParser program("jaffar-train", JAFFAR_VERSION);
@@ -620,12 +583,8 @@ Train::Train(int argc, char *argv[])
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
 
-  // Filling show database
-  _showFrameDB.resize(SHOW_FRAME_COUNT);
-  for (size_t i = 0; i < SHOW_FRAME_COUNT; i++) _showFrameDB[i] = *initialFrame;
-
-  // Adding frame to the current database
-  _frameDB.push_back(std::move(initialFrame));
+  // Adding frame to the initial database
+  _frameDB[0].push_back(std::move(initialFrame));
 
   // Initializing show thread
   if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)
@@ -643,10 +602,6 @@ void Train::showSavingLoop()
 {
   // Timer for saving frames
   auto bestFrameSaveTimer = std::chrono::steady_clock::now();
-  auto currentFrameSaveTimer = std::chrono::steady_clock::now();
-
-  // Counter for the current best frame id
-  size_t currentFrameId = 0;
 
   while (_hasFinalized == false)
   {
@@ -678,37 +633,6 @@ void Train::showSavingLoop()
 
         // Resetting timer
         bestFrameSaveTimer = std::chrono::steady_clock::now();
-      }
-    }
-
-    // Checking if we need to save current frame
-    if (_outputSaveCurrentSeconds > 0.0)
-    {
-      double currentFrameTimerElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - currentFrameSaveTimer).count();
-      if (currentFrameTimerElapsed / 1.0e+9 > _outputSaveCurrentSeconds)
-      {
-        // Saving best frame data
-       std::string showFrameData;
-       showFrameData.resize(_FRAME_DATA_SIZE);
-       _showFrameDB[currentFrameId].getFrameDataFromDifference(_sourceFrameData, showFrameData.data());
-       saveStringToFile(showFrameData, _outputSaveCurrentPath.c_str());
-
-        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
-
-        // Storing the solution sequence
-        std::string solutionString;
-        solutionString += _possibleMoves[_showFrameDB[currentFrameId].getMove(0)];
-        for (size_t i = 1; i < _currentStep; i++)
-         solutionString += std::string(" ") + _possibleMoves[_showFrameDB[currentFrameId].getMove(i)];
-        saveStringToFile(solutionString, _outputSolutionCurrentPath.c_str());
-
-        #endif
-
-        // Resetting timer
-        currentFrameSaveTimer = std::chrono::steady_clock::now();
-
-        // Increasing counter
-        currentFrameId = (currentFrameId + 1) % SHOW_FRAME_COUNT;
       }
     }
   }
