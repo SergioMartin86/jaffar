@@ -10,8 +10,7 @@ void Tester::run()
  // {
  //  int threadId = omp_get_thread_num();
  //  printf("Move %lu: %s\n", i+1, _moveList[i+1].c_str());
- //  _state[threadId]->_miniPop->performMove(_moveList[i]);
- //  _state[threadId]->_miniPop->advanceFrame();
+ //  _state[threadId]->_miniPop->advanceFrame(_moveList[i]);
  //
  //  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
  //         int(Kid.room),
@@ -74,8 +73,7 @@ void Tester::run()
    // Running entire sequence
    for (const auto& move : _moveList)
    {
-    _state[threadId]->_miniPop->performMove(move);
-    _state[threadId]->_miniPop->advanceFrame();
+    _state[threadId]->_miniPop->advanceFrame(move);
     _state[threadId]->evaluateRules(curFrame.rulesStatus);
     frameType type = _state[threadId]->getFrameType(curFrame.rulesStatus);
 

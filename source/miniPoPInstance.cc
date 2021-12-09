@@ -240,52 +240,6 @@ void miniPoPInstance::deserializeFileCache(const std::string& cache)
  }
 }
 
-void miniPoPInstance::performMove(const std::string &move)
-{
-  key_states[SDL_SCANCODE_UP] = 0;
-  key_states[SDL_SCANCODE_DOWN] = 0;
-  key_states[SDL_SCANCODE_LEFT] = 0;
-  key_states[SDL_SCANCODE_RIGHT] = 0;
-  key_states[SDL_SCANCODE_RSHIFT] = 0;
-
-  bool recognizedMove = false;
-
-  if (move.find(".") != std::string::npos) { recognizedMove = true; }
-  if (move.find("R") != std::string::npos)
-  {
-    key_states[SDL_SCANCODE_RIGHT] = 1;
-    recognizedMove = true;
-  }
-  if (move.find("L") != std::string::npos)
-  {
-    key_states[SDL_SCANCODE_LEFT] = 1;
-    recognizedMove = true;
-  }
-  if (move.find("U") != std::string::npos)
-  {
-    key_states[SDL_SCANCODE_UP] = 1;
-    recognizedMove = true;
-  }
-  if (move.find("D") != std::string::npos)
-  {
-    key_states[SDL_SCANCODE_DOWN] = 1;
-    recognizedMove = true;
-  }
-  if (move.find("S") != std::string::npos)
-  {
-    key_states[SDL_SCANCODE_RSHIFT] = 1;
-    recognizedMove = true;
-  }
-  if (move == "CA") // Ctrl+A
-  {
-    is_restart_level = 1;
-    recognizedMove = true;
-  }
-
-  if (recognizedMove == false)
-    EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
-}
-
 dword miniPoPInstance::advanceRNGState(const dword randomSeed)
 {
  return randomSeed * 214013 + 2531011;
@@ -297,43 +251,85 @@ dword miniPoPInstance::reverseRNGState(const dword randomSeed)
 }
 
 
-void miniPoPInstance::advanceFrame()
+void miniPoPInstance::advanceFrame(const std::string &move)
 {
-  guardhp_delta = 0;
-  hitp_delta = 0;
-  timers();
+ key_states[SDL_SCANCODE_UP] = 0;
+ key_states[SDL_SCANCODE_DOWN] = 0;
+ key_states[SDL_SCANCODE_LEFT] = 0;
+ key_states[SDL_SCANCODE_RIGHT] = 0;
+ key_states[SDL_SCANCODE_RSHIFT] = 0;
 
-  play_frame();
+ bool recognizedMove = false;
 
-  if (is_restart_level == 1)
-  {
-   startLevel(current_level);
-   draw_level_first();
-  }
+ if (move.find(".") != std::string::npos) { recognizedMove = true; }
+ if (move.find("R") != std::string::npos)
+ {
+   key_states[SDL_SCANCODE_RIGHT] = 1;
+   recognizedMove = true;
+ }
+ if (move.find("L") != std::string::npos)
+ {
+   key_states[SDL_SCANCODE_LEFT] = 1;
+   recognizedMove = true;
+ }
+ if (move.find("U") != std::string::npos)
+ {
+   key_states[SDL_SCANCODE_UP] = 1;
+   recognizedMove = true;
+ }
+ if (move.find("D") != std::string::npos)
+ {
+   key_states[SDL_SCANCODE_DOWN] = 1;
+   recognizedMove = true;
+ }
+ if (move.find("S") != std::string::npos)
+ {
+   key_states[SDL_SCANCODE_RSHIFT] = 1;
+   recognizedMove = true;
+ }
+ if (move == "CA") // Ctrl+A
+ {
+   is_restart_level = 1;
+   recognizedMove = true;
+ }
 
-  // if we're on lvl 4, check mirror
-  if (current_level == 4)
-  {
-   if (jumped_through_mirror == -1) Guard.x = 245;
-   check_mirror();
-  }
+ if (recognizedMove == false)
+   EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
 
-  // If level has changed, then load it
-  if (current_level != next_level)
-  {
-   if (current_level == custom->copyprot_level-1 && next_level == custom->copyprot_level)
-    next_level = 15;
+ guardhp_delta = 0;
+ hitp_delta = 0;
+ timers();
+ play_frame();
 
-   if (current_level == 15)
-    next_level = custom->copyprot_level;
+ if (is_restart_level == 1)
+ {
+  startLevel(current_level);
+  draw_level_first();
+ }
 
-   startLevel(next_level);
+ // if we're on lvl 4, check mirror
+ if (current_level == 4)
+ {
+  if (jumped_through_mirror == -1) Guard.x = 245;
+  check_mirror();
+ }
 
-   // Handle cutscenes
-   //if (next_level == 2) for (size_t i = 0; i < 3; i++) random_seed = advanceRNGState(random_seed);
-  }
+ // If level has changed, then load it
+ if (current_level != next_level)
+ {
+  if (current_level == custom->copyprot_level-1 && next_level == custom->copyprot_level)
+   next_level = 15;
 
-  is_restart_level = 0;
+  if (current_level == 15)
+   next_level = custom->copyprot_level;
+
+  startLevel(next_level);
+
+  // Handle cutscenes
+  //if (next_level == 2) for (size_t i = 0; i < 3; i++) random_seed = advanceRNGState(random_seed);
+ }
+
+ is_restart_level = 0;
 }
 
 int miniPoPInstance::getKidSequenceId()
@@ -367,9 +363,6 @@ void miniPoPInstance::printFrameInfo()
   printf("[Jaffar]  + Reached Checkpoint: %s\n", checkpoint ? "Yes" : "No");
   printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
   printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
-
-  // Level-Specific Settings
-  if (current_level == 9) printf("[Jaffar]  + Rightmost Door: %d\n", level.bg[349]);
 }
 
 miniPoPInstance::miniPoPInstance()

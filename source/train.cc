@@ -176,15 +176,12 @@ void Train::computeFrames()
     for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB.size(); baseFrameIdx++)
     {
       // Storage for the base frame
-      const auto baseFrame = *_frameDB[baseFrameIdx];
-
-      // Freeing memory for the used base frame
-      _frameDB[baseFrameIdx].reset();
+      const auto baseFrame = std::move(_frameDB[baseFrameIdx]);
 
       // Loading frame state
       auto t0 = std::chrono::steady_clock::now(); // Profiling
       char baseFrameData[_FRAME_DATA_SIZE];
-      baseFrame.getFrameDataFromDifference(_sourceFrameData, baseFrameData);
+      baseFrame->getFrameDataFromDifference(_sourceFrameData, baseFrameData);
       auto tf = std::chrono::steady_clock::now();
       threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -222,10 +219,7 @@ void Train::computeFrames()
 
         // Perform the selected move
         t0 = std::chrono::steady_clock::now(); // Profiling
-        _state[threadId]->_miniPop->performMove(move);
-
-        // Advance a single frame
-        _state[threadId]->_miniPop->advanceFrame();
+        _state[threadId]->_miniPop->advanceFrame(move);
         tf = std::chrono::steady_clock::now();
         threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -263,7 +257,7 @@ void Train::computeFrames()
         if (collisionDetected) continue;
 
         // Creating new frame, mixing base frame information and the current sdlpop state
-        auto newFrame = std::make_unique<Frame>(baseFrame);
+        auto newFrame = std::make_unique<Frame>(*baseFrame);
 
         // Evaluating rules on the new frame
         _state[threadId]->evaluateRules(newFrame->rulesStatus);
