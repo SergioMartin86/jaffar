@@ -181,7 +181,6 @@ __thread word flash_time;
 __thread char_type Guard;
 __thread word need_quotes;
 __thread short roomleave_result;
-__thread word different_room;
 __thread sound_buffer_type *sound_pointers[58];
 __thread word guardhp_max;
 __thread word is_feather_fall;
@@ -922,7 +921,6 @@ void restore_room_after_quick_load()
   next_level = temp2;
 
   //need_full_redraw = 1;
-  different_room = 1;
   // Show the room where the prince is, even if the player moved the view away from it (with the H,J,U,N keys).
   next_room = drawn_room = Kid.room;
   load_room_links();
@@ -1239,7 +1237,6 @@ void __pascal far check_the_end()
   {
     drawn_room = next_room;
     load_room_links();
-    different_room = 1;
     exit_room_timer = 2; // Added to remember exit room timer
     loadkid();
     anim_tile_modif();
@@ -3007,7 +3004,6 @@ void __pascal far draw_level_first()
 void __pascal far redraw_screen(int drawing_different_room)
 {
 
-  different_room = 0;
   clear_kbd_buf();
   exit_room_timer = 2;
 }

@@ -269,7 +269,6 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Current Level") return dt_word;
   if (property == "Next Level") return dt_word;
   if (property == "Drawn Room") return dt_word;
-  if (property == "Exit Door Open") return dt_byte;
   if (property == "Checkpoint Reached") return dt_word;
   if (property == "Is Upside Down") return dt_word;
   if (property == "Needs Level 1 Music") return dt_word;
@@ -328,7 +327,6 @@ void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdl
   if (property == "Current Level") return &current_level;
   if (property == "Next Level") return &next_level;
   if (property == "Drawn Room") return &drawn_room;
-  if (property == "Exit Door Open") return &sdlPop->isExitDoorOpen;
   if (property == "Checkpoint Reached") return &checkpoint;
   if (property == "Is Upside Down") return &upside_down;
   if (property == "Is Feather Fall") return &is_feather_fall;

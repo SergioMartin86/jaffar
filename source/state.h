@@ -84,7 +84,6 @@ class State
 
     // Manual hashing
 
-    hash.Update(_miniPop->isExitDoorOpen);
     hash.Update(level.guards_x);
     hash.Update(level.guards_dir);
     if (Guard.alive) hash.Update(Guard);
@@ -409,9 +408,7 @@ class State
     if (pos != _FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with differential state size (%u)\n", pos, _FRAME_DIFFERENTIAL_SIZE);
     for (const auto &item : _fixedItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
     if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
-    _miniPop->isExitDoorOpen = _miniPop->isLevelExitDoorOpen();
 
-    different_room = 1;
     // Show the room where the prince is, even if the player moved the view away
     // from it (with the H,J,U,N keys).
     next_room = drawn_room = Kid.room;

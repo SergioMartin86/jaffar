@@ -139,11 +139,6 @@ void miniPoPInstance::startLevel(const word level)
 
   find_start_level_door();
 
-  _prevDrawnRoom = drawn_room;
-
-  // Setting exit door status
-  isExitDoorOpen = isLevelExitDoorOpen();
-
  if (need_level1_music != 0 && current_level == custom->intro_music_level)
    need_level1_music = custom->intro_music_time_restart;
 }
@@ -339,8 +334,6 @@ void miniPoPInstance::advanceFrame()
   }
 
   is_restart_level = 0;
-  _prevDrawnRoom = drawn_room;
-  isExitDoorOpen = isLevelExitDoorOpen();
 }
 
 int miniPoPInstance::getKidSequenceId()
@@ -371,35 +364,12 @@ void miniPoPInstance::printFrameInfo()
   printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Seq: %2d (%s)\n", int(Kid.room), int(Kid.x), int(Kid.y), int(Kid.frame), int(hitp_curr), int(hitp_max), kidSeqIdx, seqNames[kidSeqIdx]);
   printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Seq: %2d (%s)\n", int(Guard.room), int(Guard.x), int(Guard.y), int(Guard.frame), int(guardhp_curr), int(guardhp_max), guardSeqIdx, seqNames[guardSeqIdx]);
   printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
-  printf("[Jaffar]  + Exit Door Open: %s\n", isLevelExitDoorOpen() ? "Yes" : "No");
   printf("[Jaffar]  + Reached Checkpoint: %s\n", checkpoint ? "Yes" : "No");
   printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
   printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
 
   // Level-Specific Settings
   if (current_level == 9) printf("[Jaffar]  + Rightmost Door: %d\n", level.bg[349]);
-}
-
-bool miniPoPInstance::isLevelExitDoorOpen()
-{
-  bool door_open = leveldoor_open;
-
-  if (!door_open)
-  {
-    for (int i = 0; i < trobs_count; ++i)
-    {
-      const auto &trob = trobs[i];
-      const auto idx = (trob.room - 1) * 30 + trob.tilepos;
-      const auto type = level.fg[idx] & 0x1f;
-      if (type == tiles_16_level_door_left)
-      {
-        door_open = true;
-        break;
-      }
-    }
-  }
-
-  return door_open;
 }
 
 miniPoPInstance::miniPoPInstance()

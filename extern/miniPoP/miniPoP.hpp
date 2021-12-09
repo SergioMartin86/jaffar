@@ -115,7 +115,6 @@ extern "C" __thread word flash_time;
 extern "C" __thread char_type Guard;
 extern "C" __thread word need_quotes;
 extern "C" __thread short roomleave_result;
-extern "C" __thread word different_room;
 extern "C" __thread sound_buffer_type *sound_pointers[58];
 extern "C" __thread word guardhp_max;
 extern "C" __thread word is_feather_fall;

@@ -37,14 +37,6 @@ class miniPoPInstance
   std::string serializeFileCache();
   void deserializeFileCache(const std::string& cache);
 
-  bool isExitDoorOpen;
-
-  // Check if exit door is open
-  bool isLevelExitDoorOpen();
-
-  // Storing previously drawn room
-  word _prevDrawnRoom;
-
   // Functions to advance/reverse RNG state
   unsigned int advanceRNGState(const unsigned int randomSeed);
   unsigned int reverseRNGState(const unsigned int randomSeed);
