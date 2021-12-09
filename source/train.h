@@ -90,8 +90,8 @@ class Train
   // Each worker processes their own unique base frames to produce new frames
   void computeFrames();
 
-  // Adds a new hash entry while making sure the number of hash entries don't exceed the maximum
-  void addHashEntry(uint64_t hash);
+  // Check for hash collisions
+  bool checkForHashCollision(const uint64_t hash);
 
   // Argument parser
   void parseArgs(int argc, char *argv[]);

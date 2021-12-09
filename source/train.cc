@@ -57,8 +57,10 @@ void Train::run()
     // Advancing step
     _currentStep++;
 
-    // Terminate if DB is depleted and no winning rule was found
-    if (_frameDB[_currentStep].size() == 0)
+    // Terminate if all DBs are depleted and no winning rule was found
+    _databaseSize = 0;
+    for (const auto& db : _frameDB) _databaseSize += db.second.size();
+    if (_databaseSize == 0)
     {
       printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
       terminate = true;
@@ -113,6 +115,26 @@ void Train::run()
   pthread_join(_showThreadId, NULL);
 }
 
+bool Train::checkForHashCollision(const uint64_t hash)
+{
+ bool collisionDetected = false;
+
+ for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--)
+  collisionDetected |= _hashDatabases[i]->contains(hash);
+
+ // If no collision detected with the normal databases, check the newest
+ if (collisionDetected == false)
+  #pragma omp critical
+  {
+    collisionDetected |= _hashDatabases[_hashAgeThreshold-1]->contains(hash);
+
+    // If now there, add it now
+    if (collisionDetected == false) _hashDatabases[_hashAgeThreshold-1]->insert(hash);
+  }
+
+ return collisionDetected;
+}
+
 void Train::computeFrames()
 {
   // Initializing counters
@@ -129,10 +151,6 @@ void Train::computeFrames()
   _stepFrameAdvanceTime = 0.0;
   _stepFrameSerializationTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
-
-  // Counters
-  size_t newFrameCount = 0;
-  float worseFrameReward = +std::numeric_limits<float>::infinity();
 
   // Processing frame database in parallel
   auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -213,39 +231,69 @@ void Train::computeFrames()
 
         // Checking for the existence of the hash in the hash databases (except the current one)
         t0 = std::chrono::steady_clock::now(); // Profiling
-        bool collisionDetected = false;
-        for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--)
-         collisionDetected |= _hashDatabases[i]->contains(hash);
-
-        // If no collision detected with the normal databases, check the newest
-        if (collisionDetected == false)
-         #pragma omp critical
-         {
-           collisionDetected |= _hashDatabases[_hashAgeThreshold-1]->contains(hash);
-
-           // If now there, add it now
-           if (collisionDetected == false) _hashDatabases[_hashAgeThreshold-1]->insert(hash);
-         }
+        bool collisionDetected = checkForHashCollision(hash);
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
-        // If collision detected, increase collision counter, more or less
-        if (collisionDetected) _newCollisionCounter++;
-
         // If collision detected, discard this frame
-        if (collisionDetected) continue;
+        if (collisionDetected) { _newCollisionCounter++; continue; }
 
         // Creating new frame, mixing base frame information and the current sdlpop state
         auto newFrame = std::make_unique<Frame>(*baseFrame);
 
-        // Evaluating rules on the new frame
-        _state[threadId]->evaluateRules(newFrame->rulesStatus);
+        // Storage for frame type
+        frameType type = f_regular;
 
-        // Getting frame type
-        frameType type = _state[threadId]->getFrameType(newFrame->rulesStatus);
+        // Storage for new move ids
+        std::vector<uint8_t> possibleNewMoveIds;
 
-        // If frame has failed, discard it and proceed to the next one
-        if (type == f_fail) continue;
+        // Storage for new frame step
+        size_t newFrameStep = _currentStep+1;
+
+        /////////// While loop for advancement on non divergent states
+        do
+        {
+         // Evaluating rules on the new frame
+         _state[threadId]->evaluateRules(newFrame->rulesStatus);
+
+         // Getting frame type
+         type = _state[threadId]->getFrameType(newFrame->rulesStatus);
+
+         // If required, store move history
+         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+         newFrame->setMove(newFrameStep-1, moveId);
+         #endif
+
+         // Getting possible new set of moves
+         possibleNewMoveIds = _state[threadId]->getPossibleMoveIds();
+
+         // If only one move is possible, run it directly and re-evaluate rules
+         if (possibleNewMoveIds.size() == 1)
+         {
+          newFrameStep++;
+          _stepFramesProcessedCounter++;
+          moveId = possibleNewMoveIds[0];
+          move = _possibleMoves[moveId].c_str();
+          _state[threadId]->_miniPop->advanceFrame(move);
+         }
+        } while(possibleNewMoveIds.size() == 1 && type == f_regular);
+
+        // if we have advanced, we need to recompute and check for hash collisions
+        if (newFrameStep > _currentStep+1)
+        {
+         t0 = std::chrono::steady_clock::now(); // Profiling
+         auto hash = _state[threadId]->computeHash();
+         tf = std::chrono::steady_clock::now();
+         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+         // Checking for the existence of the hash in the hash databases (except the current one)
+         t0 = std::chrono::steady_clock::now(); // Profiling
+         collisionDetected = checkForHashCollision(hash);
+         tf = std::chrono::steady_clock::now();
+         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+         if (collisionDetected) { _newCollisionCounter++; continue; }
+        }
 
         // If frame has succeded, then flag it
         if (type == f_win)
@@ -255,10 +303,11 @@ void Train::computeFrames()
            _winFrame = *newFrame;
         }
 
-        // If required, store move history
-        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
-        newFrame->setMove(_currentStep, moveId);
-        #endif
+        // If frame type is failed, continue to the next one
+        if (type == f_fail) continue;
+
+        // Calculating current reward
+        newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
 
         // Storing the frame data, only if if belongs to the same level
         if (curLevel == newLevel)
@@ -274,24 +323,9 @@ void Train::computeFrames()
          threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
 
-        // Calculating current reward
-        newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
-
-        // Checking if reward if worse than the current worse
-        bool isWorst = false;
-        #pragma omp critical(reward)
-        if (newFrame->reward < worseFrameReward) { worseFrameReward = newFrame->reward; isWorst = true; }
-
-        // Don't add new frame if already reached maximum frames and new frame is worse than the rest
-        if (newFrameCount >= _maxDatabaseSize && isWorst == true) continue;
-
-        // Increasing frame counter
-        #pragma omp atomic
-        newFrameCount++;
-
         // Adding novel frame in the next frame database
         #pragma omp critical(insertFrame)
-        _frameDB[_currentStep+1].push_back(std::move(newFrame));
+        _frameDB[newFrameStep].push_back(std::move(newFrame));
       }
     }
 
@@ -368,7 +402,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
-  printf("[Jaffar] Database Size: %lu / %lu\n", _frameDB.size(), _maxDatabaseSize);
+  printf("[Jaffar] Database Size: %lu / %lu\n", _databaseSize, _maxDatabaseSize);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Frame Computation:       %3.3fs\n", _frameComputationTime / 1.0e+9);
@@ -584,6 +618,7 @@ Train::Train(int argc, char *argv[])
   _bestFrame = *initialFrame;
 
   // Adding frame to the initial database
+  _databaseSize = 1;
   _frameDB[0].push_back(std::move(initialFrame));
 
   // Initializing show thread
