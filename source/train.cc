@@ -67,9 +67,10 @@ void Train::run()
     }
 
     // Terminate if a winning rule was found
-    if (_winFrameFound == true)
+    if (_winFrameDB.find(_currentStep) != _winFrameDB.end())
     {
-      printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep);
+      printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep-1);
+      _winFrameFound = true;
       terminate = true;
     }
 
@@ -92,6 +93,7 @@ void Train::run()
     size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
 
+    _winFrame = *_winFrameDB[_currentStep][0];
     _winFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
     _state[0]->pushState();
     _state[0]->_miniPop->printFrameInfo();
@@ -194,6 +196,7 @@ void Train::computeFrames()
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
       {
         // Increasing  frames processed counter
+        #pragma omp atomic
         _stepFramesProcessedCounter++;
 
         // Getting possible move id
@@ -270,13 +273,21 @@ void Train::computeFrames()
          // If only one move is possible, run it directly and re-evaluate rules
          if (possibleNewMoveIds.size() == 1)
          {
-          newFrameStep++;
+          #pragma omp atomic
           _stepFramesProcessedCounter++;
+
+          newFrameStep++;
           moveId = possibleNewMoveIds[0];
           move = _possibleMoves[moveId].c_str();
           _state[threadId]->_miniPop->advanceFrame(move);
          }
-        } while(possibleNewMoveIds.size() == 1 && type == f_regular);
+        } while(possibleNewMoveIds.size() == 1 && type == f_regular && newFrameStep < _MAX_MOVELIST_SIZE);
+
+        // If this frame exceeded the maximum move list, discard it
+        if (newFrameStep >= _MAX_MOVELIST_SIZE) continue;
+
+        // If frame type is failed, continue to the next one
+        if (type == f_fail) continue;
 
         // if we have advanced, we need to recompute and check for hash collisions
         if (newFrameStep > _currentStep+1)
@@ -293,18 +304,10 @@ void Train::computeFrames()
          threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
          if (collisionDetected) { _newCollisionCounter++; continue; }
-        }
 
-        // If frame has succeded, then flag it
-        if (type == f_win)
-        {
-          _winFrameFound = true;
-           #pragma omp critical(winFrame)
-           _winFrame = *newFrame;
+         // Updating new level
+         newLevel = current_level;
         }
-
-        // If frame type is failed, continue to the next one
-        if (type == f_fail) continue;
 
         // Calculating current reward
         newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
@@ -323,9 +326,12 @@ void Train::computeFrames()
          threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
 
-        // Adding novel frame in the next frame database
+        // If frame has succeded or is a regular frame, adding it in the corresponding database
         #pragma omp critical(insertFrame)
-        _frameDB[newFrameStep].push_back(std::move(newFrame));
+        {
+         if (type == f_win) _winFrameDB[newFrameStep].push_back(std::move(newFrame));
+         if (type == f_regular) _frameDB[newFrameStep].push_back(std::move(newFrame));
+        }
       }
     }
 
@@ -403,8 +409,9 @@ void Train::printTrainStatus()
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
   printf("[Jaffar] Database Size: %lu / %lu\n", _databaseSize, _maxDatabaseSize);
-  for (const auto& db : _frameDB)
-   printf("           + Step %lu: %lu Frames\n", db.first, db.second.size());
+  printf("           + First DB - Step %lu: %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size());
+  printf("           + Last DB  - Step %lu: %lu Frames\n", _frameDB.rbegin()->first, _frameDB.rbegin()->second.size());
+  printf("           + Win DB:  - Step %lu: %lu Frames\n", _winFrameDB.empty() ? 0 : _winFrameDB.begin()->first, _winFrameDB.empty() ? 0 : _winFrameDB.begin()->second.size());
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Frame Computation:       %3.3fs\n", _frameComputationTime / 1.0e+9);

@@ -352,13 +352,10 @@ int miniPoPInstance::getGuardSequenceId()
 
 void miniPoPInstance::printFrameInfo()
 {
-  int kidSeqIdx = getKidSequenceId();
-  int guardSeqIdx = getGuardSequenceId();
-
   printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", current_level, next_level);
   printf("[Jaffar]  + Cumulative IGT: %2lu:%02lu.%03lu\n", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
-  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Seq: %2d (%s)\n", int(Kid.room), int(Kid.x), int(Kid.y), int(Kid.frame), int(hitp_curr), int(hitp_max), kidSeqIdx, seqNames[kidSeqIdx]);
-  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d, Seq: %2d (%s)\n", int(Guard.room), int(Guard.x), int(Guard.y), int(Guard.frame), int(guardhp_curr), int(guardhp_max), guardSeqIdx, seqNames[guardSeqIdx]);
+  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d\n", int(Kid.room), int(Kid.x), int(Kid.y), int(Kid.frame), int(hitp_curr), int(hitp_max));
+  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d\n", int(Guard.room), int(Guard.x), int(Guard.y), int(Guard.frame), int(guardhp_curr), int(guardhp_max));
   printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
   printf("[Jaffar]  + Reached Checkpoint: %s\n", checkpoint ? "Yes" : "No");
   printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
