@@ -171,7 +171,7 @@ void Train::computeFrames()
     double threadFrameEncodingTime = 0.0;
 
     // Computing always the last frame while resizing the database to reduce memory footprint
-    #pragma omp for schedule(guided)
+    #pragma omp for schedule(dynamic, 32)
     for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB[_currentStep].size(); baseFrameIdx++)
     {
       // Storage for the base frame

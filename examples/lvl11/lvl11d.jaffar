@@ -71,7 +71,7 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Exit Door Open", "Op": "==", "Value": 1 }
+     { "Property": "Tile BG State", "Index": 706, "Op": ">", "Value": 0, "Comment": "Exit Door" }
     ],
     
     "Dependencies": [ ],
@@ -92,7 +92,7 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Exit Door Open", "Op": "==", "Value": 1 },
+     { "Property": "Tile BG State", "Index": 706, "Op": ">", "Value": 0, "Comment": "Exit Door" },
      { "Property": "Kid Room", "Op": "==", "Value": 16 }
     ],
     
@@ -116,7 +116,7 @@
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
      { "Property": "Kid Room", "Op": "==", "Value": 24 },
-     { "Property": "Exit Door Open", "Op": "==", "Value": 1 }
+     { "Property": "Tile BG State", "Index": 706, "Op": ">", "Value": 0, "Comment": "Exit Door" }
     ],
     
     "Dependencies": [ ],
