@@ -68,6 +68,27 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 1.0 }
     ]
    },
+   
+   {
+    "Label": 11311,
+    "Description": "Keep going to the right.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Guard Room", "Op": "==", "Value": 13 },
+     { "Property": "Guard Position Y", "Op": "==", "Value": 118 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 11011],
+
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 13, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Position", "Room": 13, "Value": 0.0 }
+    ]
+   },
 
    {
     "Label": 11013,
@@ -79,7 +100,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 11011 ],
+    "Satisfies": [ 11311 ],
 
     "Actions":
     [
