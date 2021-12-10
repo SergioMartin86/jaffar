@@ -8,7 +8,7 @@
    
    "Falling Tiles Hash Types": 
    [
-    { "Room": 13, "Column": 16, "Type": "Full", "Description": "Falling Tile" }
+     { "Room": 13, "Column": 16, "Type": "Full", "Description": "Falling Tile" }
    ],
    
    "Active Objects Hash Types":
@@ -87,6 +87,28 @@
    },
    
    {
+    "Label": 11113,
+    "Description": "Keep going back",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  11 },
+     { "Property": "Kid Room", "Op": "==", "Value": 13 },
+     { "Property": "Tile BG State", "Index": 706, "Op": ">", "Value": 0, "Comment": "Exit Door" },
+     { "Property": "Kid Position Y", "Op": "==", "Value": 55 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 11013 ],
+
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 13, "Value": 0.0 }
+    ]
+   },
+   
+   {
     "Label": 11014,
     "Description": "Go back to open door",
     "Conditions":
@@ -97,12 +119,11 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 11013 ],
+    "Satisfies": [ 11113 ],
 
     "Actions":
     [
      { "Type": "Add Reward", "Value": 5000 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 13, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 13, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 16, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 16, "Value": 40.0 }
