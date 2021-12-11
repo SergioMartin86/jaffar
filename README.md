@@ -90,6 +90,12 @@ Indicate where the SDLpop root folder is located:
 export SDLPOP_ROOT=$HOME/jaffar/extern/SDLPoP
 ```
 
+[Optional] Indicate which level file to use. Default: "LEVELS.DAT", i.e., the original game.
+
+```
+export SDLPOP_LEVELS_FILE=$HOME/jaffar/examples/istaria/LEVELS.DAT
+```
+
 Indicate number of OMP threads to use. Leave empty if unsure of how many to use.
 
 ```
