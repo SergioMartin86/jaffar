@@ -1,0 +1,76 @@
+{
+  "Description": "This script searches for the fastest any% solution for vanilla PoP level 1",  
+  
+ 
+  "State Configuration":
+  {
+   "Property Hash Types": [ ],
+   "Static Tile Hash Types": [ ],
+   "Falling Tiles Hash Types": [ ],
+   "Active Objects Hash Types":
+   [
+   ]
+  },
+  
+  "Rules":
+  [
+   {
+    "Label": 1001,
+    "Description": "Setting magnet to make kid go to the left/down on the first screen",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  1 },
+     { "Property": "Kid Room", "Op": "==", "Value":  10 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 200 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 10,  "Value": 150.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 10, "Value": 1.0 },
+     { "Type": "Set Guard Horizontal Magnet Position", "Room": 10,  "Value": 150.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 10, "Value": 155.0 },
+     { "Type": "Set Guard Vertical Magnet Intensity", "Room": 10, "Value": -1.0 }
+    ]
+   },
+
+   {
+    "Label": 1004,
+    "Description": "Win on open door",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  1 },
+     { "Property": "Tile BG State", "Index": 613, "Op": ">", "Value": 0, "Comment": "Exit Door" }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+     
+   {
+    "Label": 1999,
+    "Description": "If Kid dies, then fail.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  1 },
+     { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   }
+  ]  
+}
