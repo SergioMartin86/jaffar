@@ -257,6 +257,7 @@ extern "C" __thread byte tile_left;
 extern "C" __thread byte modifier_left;
 extern "C" __thread byte kidSeqId;
 extern "C" __thread short jumped_through_mirror;
+extern "C" __thread char levels_file[POP_MAX_PATH];
 
 typedef void restore_room_after_quick_load_t(void);
 typedef void load_global_options_t(void);

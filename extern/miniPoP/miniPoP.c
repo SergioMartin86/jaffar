@@ -321,6 +321,7 @@ __thread short draw_main_y;
 __thread short drawn_col;
 __thread byte tile_left;
 __thread byte modifier_left;
+__thread char levels_file[POP_MAX_PATH];
 
 FILE *fcache_open(const char *filename, const char *mode)
 {
@@ -1115,7 +1116,7 @@ void __pascal far load_level()
  if (is_restart_level == 0)
  {
   dat_type *dathandle;
-  dathandle = open_dat("LEVELS.DAT", 0);
+  dathandle = open_dat(levels_file, 0);
   load_from_opendats_to_area(current_level + 2000, &level, sizeof(level), "bin");
   close_dat(dathandle);
  }

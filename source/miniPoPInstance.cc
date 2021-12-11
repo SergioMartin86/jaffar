@@ -50,6 +50,11 @@ void miniPoPInstance::initialize()
     exit(-1);
   }
 
+  // Setting levels.dat path
+  sprintf(levels_file, "LEVELS.DAT");
+  const char *lvlsPath = std::getenv("SDLPOP_LEVELS_FILE");
+  if (lvlsPath != NULL) sprintf(levels_file, lvlsPath);
+
   // Setting argument config
   is_validate_mode = true;
   g_argc = 1;

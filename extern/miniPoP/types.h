@@ -38,7 +38,7 @@ The authors of this program may be contacted at https://forum.princed.org
 //#endif
 
 #define MAX_CACHED_FILES 2048
-#define POP_MAX_PATH 256
+#define POP_MAX_PATH 1024
 #define POP_MAX_OPTIONS_SIZE 256
 
 #if SDL_BYTEORDER != SDL_LIL_ENDIAN
