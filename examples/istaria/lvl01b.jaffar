@@ -32,14 +32,14 @@
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 10,  "Value": 150.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 10, "Value": 1.0 },
      { "Type": "Set Guard Horizontal Magnet Position", "Room": 10,  "Value": 150.0 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 10, "Value": 155.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 10, "Value": 1.0 },
      { "Type": "Set Guard Vertical Magnet Intensity", "Room": 10, "Value": -1.0 }
     ]
    },
 
    {
-    "Label": 1004,
-    "Description": "Win on open door",
+    "Label": 1003,
+    "Description": "Reward open door",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  1 },
@@ -51,10 +51,32 @@
     
     "Actions":
     [
-     { "Type": "Trigger Win" }
+     { "Type": "Add Reward", "Value": 2000 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 10,  "Value": 0.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 10, "Value": 0.0 },
+     { "Type": "Set Guard Vertical Magnet Intensity", "Room": 10, "Value": 0.0 }
     ]
    },
      
+   {
+    "Label": 1004,
+    "Description": "Win on open door and kid somewhere else",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  1 },
+     { "Property": "Kid Room", "Op": "==", "Value": 19 },
+     { "Property": "Tile BG State", "Index": 613, "Op": ">", "Value": 0, "Comment": "Exit Door" }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
    {
     "Label": 1999,
     "Description": "If Kid dies, then fail.",
