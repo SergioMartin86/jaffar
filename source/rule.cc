@@ -244,7 +244,8 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Kid Room") return dt_byte;
   if (property == "Kid Repeat") return dt_byte;
   if (property == "Kid Character Id") return dt_byte;
-  if (property == "Kid Has Sword") return dt_byte;
+  if (property == "Kid Hold Sword") return dt_byte;
+  if (property == "Kid Has Sword") return dt_word;
   if (property == "Kid Is Alive") return dt_sbyte;
   if (property == "Kid Current Sequence") return dt_word;
 
@@ -302,7 +303,8 @@ void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdl
   if (property == "Kid Room") return &Kid.room;
   if (property == "Kid Repeat") return &Kid.repeat;
   if (property == "Kid Character Id") return &Kid.charid;
-  if (property == "Kid Has Sword") return &Kid.sword;
+  if (property == "Kid Holds Sword") return &Kid.sword;
+  if (property == "Kid Has Sword") return &have_sword;
   if (property == "Kid Is Alive") return &Kid.alive;
   if (property == "Kid Current Sequence") return &Kid.curr_seq;
 
