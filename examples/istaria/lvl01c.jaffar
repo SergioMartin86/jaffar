@@ -14,12 +14,12 @@
   
   "Rules":
   [
-    {
-    "Label": 1013,
-    "Description": "Reward open door, continue.",
+   {
+    "Label": 1012,
+    "Description": "Reward open door, continue.", 
     "Conditions":
     [
-     { "Property": "Kid Room", "Op": "==", "Value":  20 }
+     { "Property": "Kid Room", "Op": "==", "Value":  19 }
     ],
     
     "Dependencies": [ ],
@@ -28,6 +28,29 @@
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 10,  "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 19,  "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 19,  "Value": 1.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 19,  "Value": 1.0 }
+    ]
+   },
+   
+   {
+    "Label": 1013,
+    "Description": "Reward open door, continue.",
+    "Conditions":
+    [
+     { "Property": "Kid Room", "Op": "==", "Value":  20 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ 1012 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 19,  "Value": 0.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 19,  "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 20,  "Value": 85.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20,  "Value": 1.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20,  "Value": 1.0 }
@@ -36,37 +59,15 @@
    
    {
     "Label": 1014,
-    "Description": "Reward open door, continue.",
+    "Description": "Reward getting to last guard.",
     "Conditions":
     [
-     { "Property": "Kid Room", "Op": "==", "Value":  22 }
-    ],
-    
-    "Dependencies": [ ],
-    "Satisfies": [ 1013 ],
-    
-    "Actions":
-    [
-     { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20,  "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20,  "Value": 0.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 22,  "Value": 255.0 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 22,  "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 22,  "Value": 2.0 }
-    ]
-   },
-   
-   {
-    "Label": 1015,
-    "Description": "Reward open door, continue.",
-    "Conditions":
-    [
-     { "Property": "Kid Room", "Op": "==", "Value":  22 },
+     { "Property": "Kid Room", "Op": "==", "Value":  20 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [  ],
+    "Satisfies": [ ],
     
     "Actions":
     [
