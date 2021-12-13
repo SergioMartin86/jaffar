@@ -32,8 +32,8 @@
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 17, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 17, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 17, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 17, "Value": 135.0 },
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 17, "Value": 1.0 },
      { "Type": "Set Guard Horizontal Magnet Position", "Room": 17, "Value": 150.0 },
      { "Type": "Set Guard Vertical Magnet Intensity", "Room": 17, "Value": -1.0 }
@@ -49,6 +49,7 @@
      { "Property": "Kid Room", "Op": "==", "Value":  17 },
      { "Property": "Guard Room", "Op": "==", "Value":  17 },
      { "Property": "Guard Position Y", "Op": "==", "Value": 181 },
+     { "Property": "Guard Position X", "Op": "<", "Value": 100 },
      { "Property": "Guard Current HP", "Op": ">", "Value": 0 }
     ],
     
@@ -57,26 +58,46 @@
     
     "Actions":
     [
-     { "Type": "Trigger Win" },
-     { "Type": "Add Reward", "Value": 2000 },
-     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 17, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 17, "Value": 0.0 },
+     { "Type": "Add Reward", "Value": 3000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 17, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 17, "Value": 255.0 },
      { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 17, "Value": 0.0 },
      { "Type": "Set Guard Vertical Magnet Intensity", "Room": 17, "Value": 0.0 }
     ]
    },
-   
+
    {
     "Label": 1008,
     "Description": "Setting magnet to make kid go to the left/down on the first screen",
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Tile BG State", "Index": 316, "Op": ">", "Value": 0, "Comment": "Exit Door" }
+     { "Property": "Tile BG State", "Index": 316, "Op": ">", "Value": 0, "Comment": "Exit Door" },
+     { "Property": "Kid Room", "Op": "==", "Value":  11 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ ],
+    "Satisfies": [ 1007 ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 2000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 17, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 11, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 11, "Value": 180.0 }
+    ]
+   },
+
+   {
+    "Label": 1009,
+    "Description": "If we reach next level, win.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": ">", "Value":  2 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [  ],
     
     "Actions":
     [
