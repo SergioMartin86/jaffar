@@ -95,13 +95,15 @@
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 10,  "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 10,  "Value": 0.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 10,  "Value": 0.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 10,  "Value": 0.0 },
+     { "Type": "Set Guard Vertical Magnet Intensity", "Room": 10,  "Value": 0.0 }
     ]
    },
    
    {
     "Label": 1012,
-    "Description": "Reward open door, continue.",
+    "Description": "Reward open door, continue.", 
     "Conditions":
     [
      { "Property": "Kid Room", "Op": "==", "Value":  19 },
@@ -140,9 +142,7 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 19,  "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 20,  "Value": 85.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20,  "Value": 1.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20,  "Value": 1.0 },
-     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 20,  "Value": 1.0 },
-     { "Type": "Set Guard Horizontal Magnet Position", "Room": 20,  "Value": 255.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20,  "Value": 1.0 }
     ]
    },
    
@@ -151,7 +151,8 @@
     "Description": "Reward open door, continue.",
     "Conditions":
     [
-     { "Property": "Kid Room", "Op": "==", "Value":  22 },
+     { "Property": "Kid Room", "Op": "==", "Value":  20 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  55 },
      { "Property": "Tile BG State", "Index": 613, "Op": ">", "Value": 0, "Comment": "Exit Door" }
     ],
     

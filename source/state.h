@@ -351,7 +351,7 @@ class State
     if (kidCurrentRoom == 0 || kidCurrentRoom >= 25) reward += 128.0f;
 
     // Apply bonus when kid is climbing exit stairs
-    if (curKidFrame >= 217 && curKidFrame <= 228) reward += 1000.0f;
+    if (curKidFrame >= 217 && curKidFrame <= 228) reward += 2000.0f;
 
     // Returning reward
     return reward;

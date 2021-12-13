@@ -14,7 +14,27 @@
   
   "Rules":
   [
-
+    {
+    "Label": 1013,
+    "Description": "Reward open door, continue.",
+    "Conditions":
+    [
+     { "Property": "Kid Room", "Op": "==", "Value":  20 },
+     { "Property": "Tile BG State", "Index": 613, "Op": ">", "Value": 0, "Comment": "Exit Door" }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 20,  "Value": 85.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20,  "Value": 1.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20,  "Value": 1.0 }
+    ]
+   },
+   
    {
     "Label": 1014,
     "Description": "Reward open door, continue.",
@@ -24,11 +44,13 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ ],
+    "Satisfies": [ 1013 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20,  "Value": 0.0 },
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20,  "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 22,  "Value": 255.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 22,  "Value": 1.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 22,  "Value": 2.0 }
