@@ -88,6 +88,7 @@ void Tester::run()
      #pragma omp atomic
      winCount++;
      winSeed = curSeed;
+     printf("Win Seed: %u\n", winSeed); exit(0);
     }
    }
   }
