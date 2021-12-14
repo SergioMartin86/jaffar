@@ -276,6 +276,7 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "United With Shadow") return dt_short;
   if (property == "Exit Door Timer") return dt_word;
   if (property == "Current Step") return dt_ulong;
+  if (property == "Is Feather Fall") return dt_word;
 
   // Tile Configuration
   if (property == "Tile FG State") return dt_byte;
