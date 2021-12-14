@@ -12,6 +12,7 @@
    
    "Active Objects Hash Types":
    [
+    { "Index": 316, "Type": "Index Only" }
    ]
   },
   
@@ -49,7 +50,7 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ ],
+    "Satisfies": [ 1004 ],
     
     "Actions":
     [
@@ -73,11 +74,11 @@
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ ],
+    "Satisfies": [ 1005 ],
     
     "Actions":
     [
-     { "Type": "Trigger Win" }
+     { "Type": "Trigger Win" } 
     ]
    },
    
@@ -97,7 +98,6 @@
     [
      { "Type": "Trigger Fail" }
     ]
-   }
-   
+   }   
   ]  
 }

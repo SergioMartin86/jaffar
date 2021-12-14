@@ -292,18 +292,18 @@ void Train::computeFrames()
         // if we have advanced, we need to recompute and check for hash collisions
         if (newFrameStep > _currentStep+1)
         {
-         t0 = std::chrono::steady_clock::now(); // Profiling
-         auto hash = _state[threadId]->computeHash();
-         tf = std::chrono::steady_clock::now();
-         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
-         // Checking for the existence of the hash in the hash databases (except the current one)
-         t0 = std::chrono::steady_clock::now(); // Profiling
-         collisionDetected = checkForHashCollision(hash);
-         tf = std::chrono::steady_clock::now();
-         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
-         if (collisionDetected) { _newCollisionCounter++; continue; }
+//         t0 = std::chrono::steady_clock::now(); // Profiling
+//         auto hash = _state[threadId]->computeHash();
+//         tf = std::chrono::steady_clock::now();
+//         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+//
+//         // Checking for the existence of the hash in the hash databases (except the current one)
+//         t0 = std::chrono::steady_clock::now(); // Profiling
+//         collisionDetected = checkForHashCollision(hash);
+//         tf = std::chrono::steady_clock::now();
+//         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+//
+//         if (collisionDetected) { _newCollisionCounter++; continue; }
 
          // Updating new level
          newLevel = current_level;
