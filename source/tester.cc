@@ -59,7 +59,7 @@ void Tester::run()
   dword winSeed = 0;
 
   #pragma omp for reduction(+:failCount) reduction(+:winCount)
-  for (dword curSeed = 0; curSeed < 320000; curSeed++)
+  for (dword curSeed = 0; curSeed < 3200000; curSeed++)
   {
    // Resetting state
    _state[threadId]->pushState();
