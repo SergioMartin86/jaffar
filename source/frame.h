@@ -9,7 +9,7 @@
 #endif
 
 #ifndef _MAX_MOVELIST_SIZE
- #define _MAX_MOVELIST_SIZE 2000
+ #define _MAX_MOVELIST_SIZE 500
 #endif
 
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
