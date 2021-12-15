@@ -70,7 +70,7 @@ std::vector<Item> GenerateFixedItemsMap(miniPoPInstance *_miniPop)
   AddItem(&dest, flash_time, PER_FRAME_STATE);
   AddItem(&dest, need_level1_music, HASHABLE);
   AddItem(&dest, is_screaming, HASHABLE);
-  AddItem(&dest, is_feather_fall, PER_FRAME_STATE);
+  AddItem(&dest, is_feather_fall, HASHABLE);
   AddItem(&dest, last_loose_sound, PER_FRAME_STATE);
   AddItem(&dest, random_seed, PER_FRAME_STATE);
   AddItem(&dest, rem_min, PER_FRAME_STATE);

@@ -408,8 +408,8 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
-  printf("[Jaffar] Database Size: %lu / %lu\n", _databaseSize, _maxDatabaseSize);
-  printf("           + First DB - Step %lu: %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size());
+  printf("[Jaffar] Database Size: %lu\n", _databaseSize);
+  printf("           + First DB - Step %lu: %lu  / %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size(), _maxDatabaseSize);
   printf("           + Last DB  - Step %lu: %lu Frames\n", _frameDB.rbegin()->first, _frameDB.rbegin()->second.size());
   printf("           + Win DB:  - Step %lu: %lu Frames\n", _winFrameDB.empty() ? 0 : _winFrameDB.begin()->first, _winFrameDB.empty() ? 0 : _winFrameDB.begin()->second.size());
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
