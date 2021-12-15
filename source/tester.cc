@@ -50,7 +50,7 @@ void Tester::run()
  size_t failCount = 0;
  size_t winCount = 0;
 
- #pragma omp parallel
+// #pragma omp parallel
  {
   // Getting thread id
   int threadId = omp_get_thread_num();
@@ -58,7 +58,7 @@ void Tester::run()
   // Remember win seed
   dword winSeed = 0;
 
-  #pragma omp for reduction(+:failCount) reduction(+:winCount)
+//  #pragma omp for reduction(+:failCount) reduction(+:winCount)
   for (dword curSeed = 0; curSeed < 3200000; curSeed++)
   {
    // Resetting state
@@ -81,6 +81,7 @@ void Tester::run()
     {
      #pragma omp atomic
      failCount++;
+     break;
     }
 
     if (type == f_win)
@@ -88,9 +89,11 @@ void Tester::run()
      #pragma omp atomic
      winCount++;
      winSeed = curSeed;
-     printf("Win Seed: %u\n", winSeed); exit(0);
+     printf("Win Seed: %u\n", winSeed); // exit(0);
+     break;
     }
    }
+   if (winCount > 1000) exit(0);
   }
 
   printf("Thread %d - Win Seed: %u\n", threadId, winSeed);
