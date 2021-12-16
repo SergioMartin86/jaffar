@@ -129,7 +129,22 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
    for (const auto& entry : stateConfig["Active Objects Hash Types"])
    {
     std::string hashType = entry["Type"].get<std::string>();
-    int idx = entry["Index"].get<int>();
+
+    int room = -1;
+    if (isDefined(entry, "Room") == true)
+    {
+     if (entry["Room"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Active Objects Hash Types room must be an integer.\n");
+     room = entry["Room"].get<int>();
+    }
+
+    int tile = -1;
+    if (isDefined(entry, "Tile") == true)
+    {
+     if (entry["Tile"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Active Objects Hash Types tile must be an integer.\n");
+     tile = entry["Tile"].get<int>();
+    }
+
+    int idx = (room-1)*30 + (tile-1);
     if (hashType == "Index Only") _hashTypeTrobs[idx] = INDEX_ONLY;
     if (hashType == "Full") _hashTypeTrobs[idx] = FULL;
    }
@@ -139,7 +154,26 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
 
   if (isDefined(stateConfig, "Static Tile Hash Types") == true)
   {
-   for (const auto& idx : stateConfig["Static Tile Hash Types"])  _hashTypeStatic.push_back(idx.get<int>());
+   for (const auto& entry : stateConfig["Static Tile Hash Types"])
+   {
+     int room = -1;
+     if (isDefined(entry, "Room") == true)
+     {
+      if (entry["Room"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Active Objects Hash Types room must be an integer.\n");
+      room = entry["Room"].get<int>();
+     }
+
+     int tile = -1;
+     if (isDefined(entry, "Tile") == true)
+     {
+      if (entry["Tile"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Active Objects Hash Types tile must be an integer.\n");
+      tile = entry["Tile"].get<int>();
+     }
+
+     int idx = (room-1)*30 + (tile-1);
+
+    _hashTypeStatic.push_back(idx);
+   }
   }
   else EXIT_WITH_ERROR("[Error] State Configuration 'Static Tile Hash Types' was not defined\n");
 

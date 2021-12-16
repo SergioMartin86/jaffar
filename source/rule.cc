@@ -28,12 +28,22 @@ Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
     if (conditionJs["Property"].is_string() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu condition operand 1 must be a string with the name of a property.\n", _label);
     datatype_t dtype = getPropertyType(conditionJs["Property"].get<std::string>());
 
-    int index = -1;
-    if (isDefined(conditionJs, "Index") == true)
+    int room = -1;
+    if (isDefined(conditionJs, "Room") == true)
     {
-     if (conditionJs["Index"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu tile index must be an integer.\n", _label);
-     index = conditionJs["Index"].get<int>();
+     if (conditionJs["Room"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu tile room must be an integer.\n", _label);
+     room = conditionJs["Room"].get<int>();
     }
+
+    int tile = -1;
+    if (isDefined(conditionJs, "Tile") == true)
+    {
+     if (conditionJs["Tile"].is_number() == false) EXIT_WITH_ERROR("[ERROR] Rule %lu tile index must be an integer.\n", _label);
+     tile = conditionJs["Tile"].get<int>();
+    }
+
+    int index = (room-1) * 30 + (tile-1);
+
     auto property = getPropertyPointer(conditionJs["Property"].get<std::string>(), sdlPop, index);
 
     // Parsing second operand (number)
