@@ -3271,18 +3271,16 @@ int __pascal far get_tile(int room, int col, int row)
   tile_col = col;
   tile_row = row;
   curr_room = find_room_of_tile();
+
   // bugfix: check_chomped_kid may call with room = -1
-  if (curr_room > 0)
-  {
-    get_room_address(curr_room);
-    curr_tilepos = tbl_line[tile_row] + tile_col;
-    curr_tile2 = curr_room_tiles[curr_tilepos] & 0x1F;
-  }
-  else
-  {
-    // wall in room 0
-    curr_tile2 = custom->level_edge_hit_tile; // tiles_20_wall
-  }
+  int isBadAccess = 0;
+  if (curr_room < 0 || curr_room > 24) isBadAccess = 1;
+  get_room_address(curr_room);
+  curr_tilepos = tbl_line[tile_row] + tile_col;
+  if (tile_row < 0 || tile_row > 1024) isBadAccess = 1;
+
+  if (isBadAccess == 0) curr_tile2 = curr_room_tiles[curr_tilepos] & 0x1F;
+  if (isBadAccess == 1) curr_tile2 = custom->level_edge_hit_tile; // tiles_20_wall
   return curr_tile2;
 }
 
