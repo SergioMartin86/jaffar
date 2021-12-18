@@ -357,11 +357,10 @@
      "Description": "If Kid exits the level, then win.",
      "Conditions":
      [
-      { "Property": "Current Level", "Op": ">", "Value":  8 },
-      { "Property": "Tile BG State", "Room": 23, "Tile": 11, "Op": ">", "Value": 0, "Comment": "Exit Level Door" }
+      { "Property": "Current Level", "Op": ">", "Value":  8 }
      ],
      
-     "Dependencies": [ ],
+     "Dependencies": [ 8008 ],
      "Satisfies": [  ],
      
      "Actions":
