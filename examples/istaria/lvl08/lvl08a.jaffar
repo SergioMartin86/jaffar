@@ -29,6 +29,7 @@
     { "Room": 23, "Tile": 11, "Type": "Index Only", "Comment": "Exit Door" },
     { "Room": 19, "Tile": 3, "Type": "Full", "Comment": "Chomper" },
     { "Room": 20, "Tile": 28, "Type": "Full", "Comment": "Chomper" },
+    { "Room": 20, "Tile": 19, "Type": "Full", "Comment": "Loose Floor" },
     { "Room": 23, "Tile": 15, "Type": "Full", "Comment": "Loose Floor" },
     { "Room": 23, "Tile": 17, "Type": "Full", "Comment": "Loose Floor" },
     { "Room": 23, "Tile": 25, "Type": "Full", "Comment": "Loose Floor" },
@@ -81,7 +82,30 @@
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 1, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 23, "Value": -1.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 23, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 23, "Value": 128 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 23, "Value": 128 },
+     { "Type": "Set Guard Vertical Magnet Intensity", "Room": 23, "Value": -2.0 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 23, "Value": 2.0 },
+     { "Type": "Set Guard Horizontal Magnet Position", "Room": 23, "Value": 128.0 }
+    ]
+   },
+
+   {
+    "Label": 8101,
+    "Description": "Setting magnet to make kid go to the left/down on the first screen",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  8 },
+     { "Property": "Kid Room", "Op": "==", "Value":  23 },
+     { "Property": "Guard Room", "Op": "==", "Value":  23 },
+     { "Property": "Guard Current HP", "Op": "==", "Value":  0 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [  ],
+    
+    "Actions":
+    [
+     { "Type": "Add Reward", "Value": 10000 }
     ]
    },
 
@@ -94,12 +118,14 @@
      { "Property": "Kid Room", "Op": "==", "Value":  22 }
     ],
     
-    "Dependencies": [ ],
+    "Dependencies": [ 8101 ],
     "Satisfies": [ 8001 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
+     { "Type": "Set Guard Horizontal Magnet Intensity", "Room": 23, "Value": 0.0 },
+     { "Type": "Set Guard Vertical Magnet Intensity", "Room": 23, "Value": 0.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 23, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 23, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 22, "Value": -1.0 }
@@ -115,7 +141,7 @@
      { "Property": "Kid Room", "Op": "==", "Value":  19 }
     ],
     
-    "Dependencies": [ ],
+    "Dependencies": [ 8101 ],
     "Satisfies": [ 8002 ],
     
     "Actions":
@@ -137,7 +163,7 @@
      { "Property": "Kid Room", "Op": "==", "Value":  18 }
     ],
     
-    "Dependencies": [ ],
+    "Dependencies": [ 8101 ],
     "Satisfies": [ 8003 ],
     
     "Actions":
@@ -158,14 +184,16 @@
      { "Property": "Kid Room", "Op": "==", "Value":  20 }
     ],
     
-    "Dependencies": [ ],
+    "Dependencies": [ 8101 ],
     "Satisfies": [ 8004 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 18, "Value": 0.0 },
-     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20, "Value": -1.0 }
+     { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20, "Value": -1.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 20, "Value": 255.0 }
     ]
    },
    
@@ -178,13 +206,14 @@
      { "Property": "Kid Room", "Op": "==", "Value":  24 }
     ],
     
-    "Dependencies": [ ],
+    "Dependencies": [ 8101 ],
     "Satisfies": [ 8005 ],
     
     "Actions":
     [
      { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 20, "Value": 0.0 },
+     { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 20, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 24, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 24, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 24, "Value": 0.0 }
@@ -319,7 +348,7 @@
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 22, "Value": 0.0 },
      { "Type": "Set Kid Vertical Magnet Intensity", "Room": 23, "Value": 1.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 23, "Value": 1.0 },
-     { "Type": "Set Kid Horizontal Magnet Position", "Room": 23, "Value": 70.0 }
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 23, "Value": 85.0 }
     ]
    },
    
@@ -328,7 +357,8 @@
      "Description": "If Kid exits the level, then win.",
      "Conditions":
      [
-      { "Property": "Current Level", "Op": ">", "Value":  8 }
+      { "Property": "Current Level", "Op": ">", "Value":  8 },
+      { "Property": "Tile BG State", "Room": 23, "Tile": 11, "Op": ">", "Value": 0, "Comment": "Exit Level Door" }
      ],
      
      "Dependencies": [ ],
@@ -366,6 +396,25 @@
      { "Property": "Current Level", "Op": "==", "Value":  8 },
      { "Property": "Kid Room", "Op": "==", "Value": 1 },
      { "Property": "Kid Position X", "Op": "<", "Value": 150 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
+    ]
+   },
+   
+   {
+    "Label": 8032,
+    "Description": "If Kid dies, then fail.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  8 },
+     { "Property": "Kid Room", "Op": "==", "Value": 18 },
+     { "Property": "Kid Position X", "Op": "<", "Value": 160 }
     ],
     
     "Dependencies": [ ],
