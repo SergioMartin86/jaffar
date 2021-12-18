@@ -5,7 +5,7 @@
 #endif
 
 #ifndef _MAX_RULE_COUNT
- #define _MAX_RULE_COUNT 18
+ #define _MAX_RULE_COUNT 20
 #endif
 
 #ifndef _MAX_MOVELIST_SIZE
