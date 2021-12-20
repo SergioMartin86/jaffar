@@ -132,6 +132,24 @@
     
     "Actions":
     [
+     { "Type": "Trigger Fail" } 
+    ]
+   },
+   
+   {
+    "Label": 5129,
+    "Description": "If Kid dies, then fail.",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  5 },
+     { "Property": "Kid Room", "Op": "==", "Value":  5 }
+    ],
+    
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
      { "Type": "Trigger Fail" }
     ]
    },
