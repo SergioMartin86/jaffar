@@ -1,15 +1,15 @@
 #pragma once
 
 #ifndef _MAX_FRAME_DIFF
- #define _MAX_FRAME_DIFF 45
+ #define _MAX_FRAME_DIFF 150
 #endif
 
 #ifndef _MAX_RULE_COUNT
- #define _MAX_RULE_COUNT 20
+ #define _MAX_RULE_COUNT 26
 #endif
 
 #ifndef _MAX_MOVELIST_SIZE
- #define _MAX_MOVELIST_SIZE 375
+ #define _MAX_MOVELIST_SIZE 1400
 #endif
 
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
