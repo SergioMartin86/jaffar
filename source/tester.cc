@@ -41,13 +41,13 @@ void Tester::run()
    printf("[Jaffar]  + Guard Can See Kid: %d\n", can_guard_see_kid);
    printf("[Jaffar]  + Is Guard Notice: %d\n", is_guard_notice);
    printf("[Jaffar]  + Guard Refrac: %d\n", guard_refrac);
+   printf("[Jaffar]  + Guard Notice Timer: %d\n", guard_notice_timer);
    printf("[Jaffar]  + Reached Checkpoint: %s (%d)\n", checkpoint ? "Yes" : "No", checkpoint);
    printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
    printf("[Jaffar]  + Need Lvl1 Music: %d\n", need_level1_music);
    printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
    printf("[Jaffar]  + Demo Index: %d, Time: %d\n", demo_index, demo_time);
    printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
-
   }
 
  exit(0);
@@ -145,7 +145,7 @@ Tester::Tester(int argc, char *argv[])
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from solution file: %s\n%s \n", solutionFile.c_str(), program.help().str().c_str());
 
   // Getting move list
-  moveSequence = std::string(". . . . . . . . . . . . . . . . L . . . L . . . . . . L . U . . . . . . . . . . . L . . . L . . U . . . . . . . . . . . . . . . . L . . . L . . L . . D . . . . . L . . . L . . . . . . L . . . LU . . . .");
+  moveSequence = std::string(". . . . . . . . . . . . . . . . L . . . L . . . . . . L U . . . . . . . . . . . . . . . . . L . . . . . . L . U . . . . . . . . . . . . . . L . . L . . L . . L . . L . . L .");
   _moveList = split(moveSequence, ' ');
 
   // Getting savefile path

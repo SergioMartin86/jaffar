@@ -3216,6 +3216,7 @@ Possible results in can_guard_see_kid:
     {
       right_pos -= 14;
     }
+
     if (right_pos >= left_pos)
     {
       while (left_pos <= right_pos)
@@ -3267,21 +3268,20 @@ void __pascal far do_mouse()
 // seg006:0006
 int __pascal far get_tile(int room, int col, int row)
 {
-  curr_room = room;
-  tile_col = col;
-  tile_row = row;
-  curr_room = find_room_of_tile();
-
-  // bugfix: check_chomped_kid may call with room = -1
-  int isBadAccess = 0;
-  if (curr_room < 0 || curr_room > 24) isBadAccess = 1;
+ curr_room = room;
+ tile_col = col;
+ tile_row = row;
+ curr_room = find_room_of_tile();
+ // bugfix: check_chomped_kid may call with room = -1
+ if (curr_room > 0 && curr_room <= 24 && tile_row >= 0 && tile_row < 256) {
   get_room_address(curr_room);
   curr_tilepos = tbl_line[tile_row] + tile_col;
-  if (tile_row < 0 || tile_row > 1024) isBadAccess = 1;
-
-  if (isBadAccess == 0) curr_tile2 = curr_room_tiles[curr_tilepos] & 0x1F;
-  if (isBadAccess == 1) curr_tile2 = custom->level_edge_hit_tile; // tiles_20_wall
-  return curr_tile2;
+  curr_tile2 = curr_room_tiles[curr_tilepos] & 0x1F;
+ } else {
+  // wall in room 0
+  curr_tile2 = custom->level_edge_hit_tile; // tiles_20_wall
+ }
+ return curr_tile2;
 }
 
 // seg006:005D
@@ -3503,15 +3503,12 @@ void __pascal far play_seq()
       switch (*(SEQTBL_0 + Char.curr_seq++))
       {
       case SND_SILENT: // no sound actually played, but guards still notice the kid
-        printf("Notice Silent\n");
         is_guard_notice = 1;
         break;
       case SND_FOOTSTEP:               // feet
-        printf("Notice Footstep\n");
         is_guard_notice = 1;
         break;
       case SND_BUMP:                // bump
-        printf("Notice Bump\n");
         is_guard_notice = 1;
         break;
       case SND_DRINK:               // drink
