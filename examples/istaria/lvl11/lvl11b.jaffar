@@ -241,7 +241,8 @@
     "Conditions":
     [
      { "Property": "Current Level", "Op": "==", "Value":  11 },
-     { "Property": "Kid Room", "Op": "==", "Value":  16 }
+     { "Property": "Kid Room", "Op": "==", "Value":  16 },
+     { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
     
     "Dependencies": [ ],

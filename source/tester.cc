@@ -5,47 +5,52 @@
 
 void Tester::run()
 {
- // Printing move list
- // for (size_t i = 0; i < _moveList.size(); i++)
- // {
- //  int threadId = omp_get_thread_num();
- //  printf("Move %lu: %s\n", i+1, _moveList[i+1].c_str());
- //  _state[threadId]->_miniPop->advanceFrame(_moveList[i]);
- //
- //  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
- //         int(Kid.room),
- //         int(Kid.x),
- //         int(Kid.y),
- //         int(Kid.curr_row),
- //         int(Kid.curr_col),
- //         int(Kid.fall_y),
- //         int(Kid.frame),
- //         int(hitp_curr),
- //         int(hitp_max),
- //         int(Kid.direction),
- //         Kid.curr_seq);
- //
- //  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
- //         int(Guard.room),
- //         int(Guard.x),
- //         int(Guard.y),
- //         int(Guard.curr_row),
- //         int(Guard.curr_col),
- //         int(Guard.fall_y),
- //         int(Guard.frame),
- //         int(guardhp_curr),
- //         int(guardhp_max),
- //         int(Guard.direction),
- //         Guard.curr_seq);
- //
- //  printf("[Jaffar]  + Reached Checkpoint: %s (%d)\n", checkpoint ? "Yes" : "No", checkpoint);
- //  printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
- //  printf("[Jaffar]  + Need Lvl1 Music: %d\n", need_level1_music);
- //  printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
- //  printf("[Jaffar]  + Demo Index: %d, Time: %d\n", demo_index, demo_time);
- //  printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
- //
- // }
+  //  Printing move list
+  for (size_t i = 0; i < _moveList.size(); i++)
+  {
+   int threadId = omp_get_thread_num();
+   printf("Move %lu: %s\n", i+1, _moveList[i+1].c_str());
+   _state[threadId]->_miniPop->advanceFrame(_moveList[i]);
+
+   printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
+          int(Kid.room),
+          int(Kid.x),
+          int(Kid.y),
+          int(Kid.curr_row),
+          int(Kid.curr_col),
+          int(Kid.fall_y),
+          int(Kid.frame),
+          int(hitp_curr),
+          int(hitp_max),
+          int(Kid.direction),
+          Kid.curr_seq);
+
+   printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Row: %2d, Col: %2d, Fall.y: %d, Frame: %3d, HP: %d/%d, Dir: %d, SeqId: %d\n",
+          int(Guard.room),
+          int(Guard.x),
+          int(Guard.y),
+          int(Guard.curr_row),
+          int(Guard.curr_col),
+          int(Guard.fall_y),
+          int(Guard.frame),
+          int(guardhp_curr),
+          int(guardhp_max),
+          int(Guard.direction),
+          Guard.curr_seq);
+
+   printf("[Jaffar]  + Guard Can See Kid: %d\n", can_guard_see_kid);
+   printf("[Jaffar]  + Is Guard Notice: %d\n", is_guard_notice);
+   printf("[Jaffar]  + Guard Refrac: %d\n", guard_refrac);
+   printf("[Jaffar]  + Reached Checkpoint: %s (%d)\n", checkpoint ? "Yes" : "No", checkpoint);
+   printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
+   printf("[Jaffar]  + Need Lvl1 Music: %d\n", need_level1_music);
+   printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
+   printf("[Jaffar]  + Demo Index: %d, Time: %d\n", demo_index, demo_time);
+   printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
+
+  }
+
+ exit(0);
 
  size_t failCount = 0;
  size_t winCount = 0;
@@ -140,6 +145,7 @@ Tester::Tester(int argc, char *argv[])
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not find or read from solution file: %s\n%s \n", solutionFile.c_str(), program.help().str().c_str());
 
   // Getting move list
+  moveSequence = std::string(". . . . . . . . . . . . . . . . L . . . L . . . . . . L . U . . . . . . . . . . . L . . . L . . U . . . . . . . . . . . . . . . . L . . . L . . L . . D . . . . . L . . . L . . . . . . L . . . LU . . . .");
   _moveList = split(moveSequence, ' ');
 
   // Getting savefile path

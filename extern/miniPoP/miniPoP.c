@@ -3503,12 +3503,15 @@ void __pascal far play_seq()
       switch (*(SEQTBL_0 + Char.curr_seq++))
       {
       case SND_SILENT: // no sound actually played, but guards still notice the kid
+        printf("Notice Silent\n");
         is_guard_notice = 1;
         break;
       case SND_FOOTSTEP:               // feet
+        printf("Notice Footstep\n");
         is_guard_notice = 1;
         break;
       case SND_BUMP:                // bump
+        printf("Notice Bump\n");
         is_guard_notice = 1;
         break;
       case SND_DRINK:               // drink
