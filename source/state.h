@@ -353,6 +353,9 @@ class State
     // Apply bonus when kid is climbing exit stairs
     if (curKidFrame >= 217 && curKidFrame <= 228) reward += 2000.0f;
 
+    // For some levels, keeping HP allows for later skips
+    reward += hitp_curr * 100.0f;
+
     // Returning reward
     return reward;
   }
