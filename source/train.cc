@@ -103,7 +103,7 @@ void Train::run()
 
     // Print Move History
     printf("[Jaffar]  + Move List: ");
-    for (size_t i = 0; i < _currentStep; i++)
+    for (size_t i = 0; i < _currentStep-1; i++)
       printf("%s ", _possibleMoves[_winFrame.getMove(i)].c_str());
     printf("\n");
 
@@ -697,7 +697,7 @@ void Train::showSavingLoop()
    // Storing the solution sequence
    std::string solutionString;
    solutionString += _possibleMoves[lastFrame.getMove(0)];
-   for (size_t i = 1; i <= _currentStep; i++)
+   for (size_t i = 1; i < _currentStep-1; i++)
     solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
    saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
 

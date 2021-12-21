@@ -114,13 +114,13 @@ class State
       if (_hashTypeTrobs.count(idx))
       {
        const auto hashType = _hashTypeTrobs.at(idx);
-       if (hashType == INDEX_ONLY) hash.Update(idx);
-       if (hashType == FULL) { hash.Update(idx); hash.Update(level.bg[idx]); }
+       if (hashType == INDEX_ONLY) hash.Update(idx * 255);
+       if (hashType == FULL) { hash.Update(level.bg[idx] + idx * 255 ); }
       }
     }
 
     // Computing hash for static objects. They only change on tile type, hence we only read FG
-    for (const auto idx : _hashTypeStatic)  hash.Update(level.fg[idx]);
+    for (const auto idx : _hashTypeStatic)  hash.Update(level.fg[idx] + idx * 255);
 
     uint64_t result;
     hash.Finalize(reinterpret_cast<uint8_t *>(&result));
