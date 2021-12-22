@@ -91,9 +91,6 @@ class Train
   // Each worker processes their own unique base frames to produce new frames
   void computeFrames();
 
-  // Check for hash collisions
-  bool checkForHashCollision(const uint64_t hash);
-
   // Argument parser
   void parseArgs(int argc, char *argv[]);
 

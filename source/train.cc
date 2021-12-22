@@ -117,26 +117,6 @@ void Train::run()
   pthread_join(_showThreadId, NULL);
 }
 
-bool Train::checkForHashCollision(const uint64_t hash)
-{
- bool collisionDetected = false;
-
- for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--)
-  collisionDetected |= _hashDatabases[i]->contains(hash);
-
- // If no collision detected with the normal databases, check the newest
- if (collisionDetected == false)
-  #pragma omp critical
-  {
-    collisionDetected |= _hashDatabases[_hashAgeThreshold-1]->contains(hash);
-
-    // If now there, add it now
-    if (collisionDetected == false) _hashDatabases[_hashAgeThreshold-1]->insert(hash);
-  }
-
- return collisionDetected;
-}
-
 void Train::computeFrames()
 {
   // Initializing counters
@@ -223,18 +203,24 @@ void Train::computeFrames()
         tf = std::chrono::steady_clock::now();
         threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
-        // Getting new level (if changed)
-        auto newLevel = current_level;
-
         // Compute hash value
         t0 = std::chrono::steady_clock::now(); // Profiling
+
         auto hash = _state[threadId]->computeHash();
+
         tf = std::chrono::steady_clock::now();
         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Checking for the existence of the hash in the hash databases (except the current one)
         t0 = std::chrono::steady_clock::now(); // Profiling
-        bool collisionDetected = checkForHashCollision(hash);
+
+        bool collisionDetected = false;
+        for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--) collisionDetected |= _hashDatabases[i]->contains(hash);
+
+        if (collisionDetected == false)
+         #pragma omp critical
+         collisionDetected |= !_hashDatabases[_hashAgeThreshold-1]->insert(hash).second;
+
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -289,31 +275,11 @@ void Train::computeFrames()
         // If frame type is failed, continue to the next one
         if (type == f_fail) continue;
 
-        // if we have advanced, we need to recompute and check for hash collisions
-        if (newFrameStep > _currentStep+1)
-        {
-//         t0 = std::chrono::steady_clock::now(); // Profiling
-//         auto hash = _state[threadId]->computeHash();
-//         tf = std::chrono::steady_clock::now();
-//         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-//
-//         // Checking for the existence of the hash in the hash databases (except the current one)
-//         t0 = std::chrono::steady_clock::now(); // Profiling
-//         collisionDetected = checkForHashCollision(hash);
-//         tf = std::chrono::steady_clock::now();
-//         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-//
-//         if (collisionDetected) { _newCollisionCounter++; continue; }
-
-         // Updating new level
-         newLevel = current_level;
-        }
-
         // Calculating current reward
         newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
 
         // Storing the frame data, only if if belongs to the same level
-        if (curLevel == newLevel)
+        if (curLevel == current_level)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
          _state[threadId]->popState();
