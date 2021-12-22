@@ -144,6 +144,9 @@ void Train::computeFrames()
     // Thread-local storage for hash
     absl::flat_hash_set<uint64_t> threadLocalHashDB;
 
+    // Storage for base frames
+    char baseFrameData[_FRAME_DATA_SIZE];
+
     // Profiling timers
     double threadHashCalculationTime = 0.0;
     double threadHashCheckingTime = 0.0;
@@ -162,7 +165,6 @@ void Train::computeFrames()
 
       // Loading frame state
       auto t0 = std::chrono::steady_clock::now(); // Profiling
-      char baseFrameData[_FRAME_DATA_SIZE];
       baseFrame->getFrameDataFromDifference(_sourceFrameData, baseFrameData);
       auto tf = std::chrono::steady_clock::now();
       threadFrameDecodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
@@ -231,8 +233,18 @@ void Train::computeFrames()
         // If collision detected, discard this frame
         if (collisionDetected) { _newCollisionCounter++; continue; }
 
-        // Creating new frame, mixing base frame information and the current sdlpop state
-        auto newFrame = std::make_unique<Frame>(*baseFrame);
+        // Creating new frame storage
+        auto newFrame = std::make_unique<Frame>();
+
+        // Copying rule status from the base frame
+        memcpy(newFrame->rulesStatus, baseFrame->rulesStatus, sizeof(Frame::rulesStatus));
+
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
+        // Copying move list
+        memcpy(newFrame->rulesStatus, baseFrame->rulesStatus, sizeof(Frame::moveHistory));
+
+        #endif
 
         // Storage for frame type
         frameType type = f_regular;
@@ -263,12 +275,15 @@ void Train::computeFrames()
          // If only one move is possible, run it directly and re-evaluate rules
          if (possibleNewMoveIds.size() == 1)
          {
+          // Increasing processed frames counter
           #pragma omp atomic
           _stepFramesProcessedCounter++;
 
+          // Advancing to the next step in the sequence
           newFrameStep++;
           moveId = possibleNewMoveIds[0];
 
+          // Executing move
           t0 = std::chrono::steady_clock::now(); // Profiling
           _state[threadId]->_miniPop->advanceFrame(moveId);
           tf = std::chrono::steady_clock::now();
