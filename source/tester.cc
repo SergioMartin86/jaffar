@@ -51,60 +51,60 @@ void Tester::run()
 //  }
 //
 // exit(0);
-
- size_t failCount = 0;
- size_t winCount = 0;
-
- #pragma omp parallel
- {
-  // Getting thread id
-  int threadId = omp_get_thread_num();
-
-  // Remember win seed
-  dword winSeed = 0;
-
-  #pragma omp for reduction(+:failCount) reduction(+:winCount)
-  for (dword curSeed = 0; curSeed < 3200000; curSeed++)
-  {
-   // Resetting state
-   _state[threadId]->pushState();
-
-   // Changing initial rng
-   _state[threadId]->_miniPop->setSeed(curSeed);
-
-   // Creating new current frame
-   Frame curFrame(*_baseFrame);
-
-   // Running entire sequence
-   for (const auto& move : _moveList)
-   {
-    _state[threadId]->_miniPop->advanceFrame(move);
-    _state[threadId]->evaluateRules(curFrame.rulesStatus);
-    frameType type = _state[threadId]->getFrameType(curFrame.rulesStatus);
-
-    if (type == f_fail)
-    {
-     #pragma omp atomic
-     failCount++;
-     break;
-    }
-
-    if (type == f_win)
-    {
-     #pragma omp atomic
-     winCount++;
-     winSeed = curSeed;
-     printf("Win Seed: %u\n", winSeed);  exit(0);
-     break;
-    }
-   }
-  }
-
-  printf("Thread %d - Win Seed: %u\n", threadId, winSeed);
- }
-
- printf("Fail: %lu, Win: %lu\n", failCount, winCount);
- printf("1/P = %.9f\n", ((double)failCount+(double)winCount) / (double)winCount);
+//
+// size_t failCount = 0;
+// size_t winCount = 0;
+//
+// #pragma omp parallel
+// {
+//  // Getting thread id
+//  int threadId = omp_get_thread_num();
+//
+//  // Remember win seed
+//  dword winSeed = 0;
+//
+//  #pragma omp for reduction(+:failCount) reduction(+:winCount)
+//  for (dword curSeed = 0; curSeed < 3200000; curSeed++)
+//  {
+//   // Resetting state
+//   _state[threadId]->pushState();
+//
+//   // Changing initial rng
+//   _state[threadId]->_miniPop->setSeed(curSeed);
+//
+//   // Creating new current frame
+//   Frame curFrame(*_baseFrame);
+//
+//   // Running entire sequence
+//   for (const auto& move : _moveList)
+//   {
+//    _state[threadId]->_miniPop->advanceFrame(move);
+//    _state[threadId]->evaluateRules(curFrame.rulesStatus);
+//    frameType type = _state[threadId]->getFrameType(curFrame.rulesStatus);
+//
+//    if (type == f_fail)
+//    {
+//     #pragma omp atomic
+//     failCount++;
+//     break;
+//    }
+//
+//    if (type == f_win)
+//    {
+//     #pragma omp atomic
+//     winCount++;
+//     winSeed = curSeed;
+//     printf("Win Seed: %u\n", winSeed);  exit(0);
+//     break;
+//    }
+//   }
+//  }
+//
+//  printf("Thread %d - Win Seed: %u\n", threadId, winSeed);
+// }
+//
+// printf("Fail: %lu, Win: %lu\n", failCount, winCount);
+// printf("1/P = %.9f\n", ((double)failCount+(double)winCount) / (double)winCount);
 
 }
 

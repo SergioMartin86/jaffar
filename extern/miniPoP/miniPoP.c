@@ -124,7 +124,6 @@ __thread byte curr_tile;
 __thread byte curr_modifier;
 __thread tile_and_mod leftroom_[3];
 __thread tile_and_mod row_below_left_[10];
-__thread word loaded_room;
 __thread byte *curr_room_tiles;
 __thread byte *curr_room_modif;
 __thread word draw_xh;
@@ -534,7 +533,7 @@ void close_directory_listing(directory_listing_type *data)
 }
 
 // seg009:000D
-int __pascal far read_key()
+int  read_key()
 {
   // stub
   int key = last_key_scancode;
@@ -543,7 +542,7 @@ int __pascal far read_key()
 }
 
 // seg009:019A
-void __pascal far clear_kbd_buf()
+void  clear_kbd_buf()
 {
   // stub
   last_key_scancode = 0;
@@ -551,7 +550,7 @@ void __pascal far clear_kbd_buf()
 }
 
 // seg009:040A
-word __pascal far prandom(word max)
+word  prandom(word max)
 {
   if (!seed_was_init)
   {
@@ -672,7 +671,7 @@ void far *__pascal load_from_opendats_alloc(int resource, const char *extension,
 
 
 // seg009:121A
-image_type *far __pascal far load_image(int resource_id, dat_pal_type *palette)
+image_type *far  load_image(int resource_id, dat_pal_type *palette)
 {
   // stub
   data_location result;
@@ -812,7 +811,7 @@ void load_from_opendats_metadata(int resource_id, const char *extension, FILE **
 }
 
 // seg009:9F34
-void __pascal far close_dat(dat_type far *pointer)
+void  close_dat(dat_type far *pointer)
 {
   dat_type **prev = &dat_chain_ptr;
   dat_type *curr = dat_chain_ptr;
@@ -836,7 +835,7 @@ void __pascal far close_dat(dat_type far *pointer)
 
 
 // seg009:A172
-int __pascal far load_from_opendats_to_area(int resource, void far *area, int length, const char *extension)
+int  load_from_opendats_to_area(int resource, void far *area, int length, const char *extension)
 {
   // stub
   //return 0;
@@ -860,7 +859,7 @@ int __pascal far load_from_opendats_to_area(int resource, void far *area, int le
 }
 
 // seg000:024F
-void __pascal far init_game_main()
+void  init_game_main()
 {
   doorlink1_ad = /*&*/ level.doorlinks1;
   doorlink2_ad = /*&*/ level.doorlinks2;
@@ -874,7 +873,7 @@ void __pascal far init_game_main()
   start_game();
 }
 
-void __pascal far init_copyprot()
+void  init_copyprot()
 {
   word which_entry;
   word pos;
@@ -903,7 +902,7 @@ void __pascal far init_copyprot()
   }
 }
 
-void __pascal far start_game()
+void  start_game()
 {
   // Prevent filling of stack.
   // start_game is called from many places to restart the game, for example:
@@ -955,7 +954,7 @@ Uint32 temp_shift_release_callback(Uint32 interval, void *param)
 }
 
 // seg000:04CD
-int __pascal far process_key()
+int  process_key()
 {
   int key = 0;
 
@@ -989,7 +988,7 @@ int __pascal far process_key()
 }
 
 // seg000:08EB
-void __pascal far play_frame()
+void  play_frame()
 {
   do_mobs();
   process_trobs();
@@ -1041,7 +1040,7 @@ void __pascal far play_frame()
 }
 
 // seg007:1041
-short __pascal far get_curr_tile(short tilepos)
+short  get_curr_tile(short tilepos)
 {
   curr_modifier = curr_room_modif[tilepos];
   return curr_tile = curr_room_tiles[tilepos] & 0x1F;
@@ -1049,7 +1048,7 @@ short __pascal far get_curr_tile(short tilepos)
 
 
 // seg000:0B12
-void __pascal far anim_tile_modif()
+void  anim_tile_modif()
 {
   word tilepos;
   for (tilepos = 0; tilepos < 30; ++tilepos)
@@ -1083,7 +1082,7 @@ void __pascal far anim_tile_modif()
   }
 }
 
-void __pascal far load_lev_spr(int level)
+void  load_lev_spr(int level)
 {
   dat_type *dathandle;
   short guardtype;
@@ -1111,7 +1110,7 @@ void __pascal far load_lev_spr(int level)
 }
 
 // seg000:0E6C
-void __pascal far load_level()
+void  load_level()
 {
  if (is_restart_level == 0)
  {
@@ -1159,7 +1158,7 @@ void reset_level_unused_fields(bool loading_clean_level)
 
 // seg000:0EA8
 // returns 1 if level is restarted, 0 otherwise
-int __pascal far play_kid_frame()
+int  play_kid_frame()
 {
   loadkid_and_opp();
   load_fram_det_col();
@@ -1201,7 +1200,7 @@ int __pascal far play_kid_frame()
 }
 
 // seg000:0F48
-void __pascal far play_guard_frame()
+void  play_guard_frame()
 {
   if (Guard.direction != dir_56_none)
   {
@@ -1232,7 +1231,7 @@ void __pascal far play_guard_frame()
 }
 
 // seg000:0FBD
-void __pascal far check_the_end()
+void  check_the_end()
 {
   if (next_room != 0 && next_room != drawn_room)
   {
@@ -1248,7 +1247,7 @@ void __pascal far check_the_end()
 }
 
 // seg000:1009
-void __pascal far check_fall_flo()
+void  check_fall_flo()
 {
   // Special event: falling floors
   if (current_level == /*13*/ custom->loose_tiles_level &&
@@ -1266,7 +1265,7 @@ void __pascal far check_fall_flo()
 
 
 // seg000:11EC
-void __pascal far add_life()
+void  add_life()
 {
   short hpmax = hitp_max;
   ++hpmax;
@@ -1279,14 +1278,14 @@ void __pascal far add_life()
 }
 
 // seg000:1200
-void __pascal far set_health_life()
+void  set_health_life()
 {
   hitp_delta = hitp_max - hitp_curr;
 }
 
 
 // seg000:127B
-void __pascal far do_delta_hp()
+void  do_delta_hp()
 {
   // level 12: if the shadow is hurt, Kid is also hurt
   if (Opp.charid == charid_1_shadow &&
@@ -1300,12 +1299,12 @@ void __pascal far do_delta_hp()
 }
 
 // seg000:1353
-void __pascal far check_sword_vs_sword()
+void  check_sword_vs_sword()
 {
 }
 
 // seg000:136A
-void __pascal far load_chtab_from_file(int chtab_id, int resource, const char near *filename, int palette_bits)
+void  load_chtab_from_file(int chtab_id, int resource, const char near *filename, int palette_bits)
 {
   //printf("Loading chtab %d, id %d from %s\n",chtab_id,resource,filename);
   dat_type *dathandle;
@@ -1317,7 +1316,7 @@ void __pascal far load_chtab_from_file(int chtab_id, int resource, const char ne
 }
 
 // seg009:12EF
-void __pascal far load_one_optgraf(chtab_type *chtab_ptr, dat_pal_type far *pal_ptr, int base_id, int min_index, int max_index)
+void  load_one_optgraf(chtab_type *chtab_ptr, dat_pal_type far *pal_ptr, int base_id, int min_index, int max_index)
 {
   short index;
   for (index = min_index; index <= max_index; ++index)
@@ -1329,7 +1328,7 @@ void __pascal far load_one_optgraf(chtab_type *chtab_ptr, dat_pal_type far *pal_
 }
 
 // seg000:13FC
-void __pascal far load_more_opt_graf(const char *filename)
+void  load_more_opt_graf(const char *filename)
 {
   // stub
   dat_type *dathandle;
@@ -1355,7 +1354,7 @@ void __pascal far load_more_opt_graf(const char *filename)
 }
 
 // seg000:148D
-int __pascal far do_paused()
+int  do_paused()
 {
   word key;
   key = 0;
@@ -1369,7 +1368,7 @@ int __pascal far do_paused()
 }
 
 // seg000:1500
-void __pascal far read_keyb_control()
+void  read_keyb_control()
 {
   if (key_states[SDL_SCANCODE_UP] || key_states[SDL_SCANCODE_HOME] || key_states[SDL_SCANCODE_PAGEUP] || key_states[SDL_SCANCODE_KP_8] || key_states[SDL_SCANCODE_KP_7] || key_states[SDL_SCANCODE_KP_9])
   {
@@ -1391,14 +1390,14 @@ void __pascal far read_keyb_control()
 }
 
 // seg000:15E9
-void __pascal far toggle_upside()
+void  toggle_upside()
 {
   upside_down = ~upside_down;
   need_redraw_because_flipped = 1;
 }
 
 // seg000:15F8
-void __pascal far feather_fall()
+void  feather_fall()
 {
   is_feather_fall = 1;
   flash_color = 2; // green
@@ -1406,7 +1405,7 @@ void __pascal far feather_fall()
 }
 
 // seg000:172C
-void __pascal far gen_palace_wall_colors()
+void  gen_palace_wall_colors()
 {
   dword old_randseed;
   word prev_color;
@@ -1448,13 +1447,13 @@ void __pascal far gen_palace_wall_colors()
 }
 
 // seg000:1D2C
-void __pascal far load_kid_sprite()
+void  load_kid_sprite()
 {
   load_chtab_from_file(id_chtab_2_kid, 400, "KID.DAT", 1 << 7);
 }
 
 // seg000:1F7B
-void __pascal far parse_cmdline_sound()
+void  parse_cmdline_sound()
 {
     // Use digi (wave) sounds and MIDI music.
     sound_flags |= sfDigi;
@@ -1463,7 +1462,7 @@ void __pascal far parse_cmdline_sound()
 }
 
 // seg002:0000
-void __pascal far do_init_shad(const byte *source, int seq_index)
+void  do_init_shad(const byte *source, int seq_index)
 {
   memcpy_near(&Char, source, 7);
   seqtbl_offset_char(seq_index);
@@ -1475,13 +1474,13 @@ void __pascal far do_init_shad(const byte *source, int seq_index)
 }
 
 // seg002:0044
-void __pascal far get_guard_hp()
+void  get_guard_hp()
 {
   guardhp_delta = guardhp_curr = guardhp_max = custom->extrastrength[guard_skill] + custom->tbl_guard_hp[current_level];
 }
 
 // seg002:0064
-void __pascal far check_shadow()
+void  check_shadow()
 {
   offguard = 0;
   if (current_level == 12)
@@ -1531,7 +1530,7 @@ void __pascal far check_shadow()
 }
 
 // seg002:0112
-void __pascal far enter_guard()
+void  enter_guard()
 {
   word room_minus_1;
   word guard_tile;
@@ -1613,7 +1612,7 @@ void __pascal far enter_guard()
 }
 
 // seg002:0269
-void __pascal far check_guard_fallout()
+void  check_guard_fallout()
 {
   if (Guard.direction == dir_56_none || Guard.y < 211)
   {
@@ -1649,7 +1648,7 @@ void __pascal far check_guard_fallout()
 }
 
 // seg002:02F5
-void __pascal far leave_guard()
+void  leave_guard()
 {
   word room_minus_1;
   if (Guard.direction == dir_56_none || Guard.charid == charid_1_shadow || Guard.charid == charid_24_mouse)
@@ -1681,7 +1680,7 @@ void __pascal far leave_guard()
 
 
 // seg002:0486
-int __pascal far goto_other_room(short direction)
+int  goto_other_room(short direction)
 {
   //printf("goto_other_room: direction = %d, Char.room = %d\n", direction, Char.room);
   short opposite_dir;
@@ -1717,7 +1716,7 @@ int __pascal far goto_other_room(short direction)
 }
 
 // seg002:039E
-void __pascal far follow_guard()
+void  follow_guard()
 {
   level.guards_tile[Kid.room - 1] = 0xFF;
   level.guards_tile[Guard.room - 1] = 0xFF;
@@ -1727,7 +1726,7 @@ void __pascal far follow_guard()
 }
 
 // seg002:0504
-short __pascal far leave_room()
+short  leave_room()
 {
   short frame;
   word action;
@@ -1826,7 +1825,7 @@ short __pascal far leave_room()
 }
 
 // seg002:03C7
-void __pascal far exit_room()
+void  exit_room()
 {
   word leave;
   word kid_room_m1;
@@ -1901,7 +1900,7 @@ void __pascal far exit_room()
 }
 
 // seg002:0643
-void __pascal far Jaffar_exit()
+void  Jaffar_exit()
 {
   if (leveldoor_open == 2)
   {
@@ -1911,7 +1910,7 @@ void __pascal far Jaffar_exit()
 }
 
 // seg002:0665
-void __pascal far level3_set_chkp()
+void  level3_set_chkp()
 {
   // Special event: set checkpoint
   if (current_level == /*3*/ custom->checkpoint_level && Char.room == 7 /* TODO: add a custom option */)
@@ -1922,7 +1921,7 @@ void __pascal far level3_set_chkp()
 }
 
 // seg002:0680
-void __pascal far sword_disappears()
+void  sword_disappears()
 {
   // Special event: sword disappears
   if (current_level == 12 && Char.room == 18)
@@ -1934,7 +1933,7 @@ void __pascal far sword_disappears()
 }
 
 // seg002:06AE
-void __pascal far meet_Jaffar()
+void  meet_Jaffar()
 {
   // Special event: play music
   if (current_level == 13 && leveldoor_open == 0 && Char.room == 3)
@@ -1945,7 +1944,7 @@ void __pascal far meet_Jaffar()
 }
 
 // seg002:06D3
-void __pascal far play_mirr_mus()
+void  play_mirr_mus()
 {
   // Special event: mirror music
   if (
@@ -1961,7 +1960,7 @@ void __pascal far play_mirr_mus()
 }
 
 // seg002:0706
-void __pascal far move_0_nothing()
+void  move_0_nothing()
 {
   control_shift = 0;
   control_y = 0;
@@ -1974,69 +1973,69 @@ void __pascal far move_0_nothing()
 }
 
 // seg002:0721
-void __pascal far move_1_forward()
+void  move_1_forward()
 {
   control_x = -1;
   control_forward = -1;
 }
 
 // seg002:072A
-void __pascal far move_2_backward()
+void  move_2_backward()
 {
   control_backward = -1;
   control_x = 1;
 }
 
 // seg002:0735
-void __pascal far move_3_up()
+void  move_3_up()
 {
   control_y = -1;
   control_up = -1;
 }
 
 // seg002:073E
-void __pascal far move_4_down()
+void  move_4_down()
 {
   control_down = -1;
   control_y = 1;
 }
 
 // seg002:0749
-void __pascal far move_up_back()
+void  move_up_back()
 {
   control_up = -1;
   move_2_backward();
 }
 
 // seg002:0753
-void __pascal far move_down_back()
+void  move_down_back()
 {
   control_down = -1;
   move_2_backward();
 }
 
 // seg002:075D
-void __pascal far move_down_forw()
+void  move_down_forw()
 {
   control_down = -1;
   move_1_forward();
 }
 
 // seg002:0767
-void __pascal far move_6_shift()
+void  move_6_shift()
 {
   control_shift = -1;
   control_shift2 = -1;
 }
 
 // seg002:0770
-void __pascal far move_7()
+void  move_7()
 {
   control_shift = 0;
 }
 
 // seg002:0776
-void __pascal far autocontrol_opponent()
+void  autocontrol_opponent()
 {
   word charid;
   move_0_nothing();
@@ -2077,7 +2076,7 @@ void __pascal far autocontrol_opponent()
 }
 
 // seg002:07EB
-void __pascal far autocontrol_mouse()
+void  autocontrol_mouse()
 {
   if (Char.direction == dir_56_none)
   {
@@ -2101,7 +2100,7 @@ void __pascal far autocontrol_mouse()
 }
 
 // seg002:081D
-void __pascal far autocontrol_shadow()
+void  autocontrol_shadow()
 {
   if (current_level == 4)
   {
@@ -2122,26 +2121,26 @@ void __pascal far autocontrol_shadow()
 }
 
 // seg002:0850
-void __pascal far autocontrol_skeleton()
+void  autocontrol_skeleton()
 {
   Char.sword = sword_2_drawn;
   autocontrol_guard();
 }
 
 // seg002:085A
-void __pascal far autocontrol_Jaffar()
+void  autocontrol_Jaffar()
 {
   autocontrol_guard();
 }
 
 // seg002:085F
-void __pascal far autocontrol_kid()
+void  autocontrol_kid()
 {
   autocontrol_guard();
 }
 
 // seg002:0864
-void __pascal far autocontrol_guard()
+void  autocontrol_guard()
 {
   if (Char.sword < sword_2_drawn)
   {
@@ -2154,7 +2153,7 @@ void __pascal far autocontrol_guard()
 }
 
 // seg002:0876
-void __pascal far autocontrol_guard_inactive()
+void  autocontrol_guard_inactive()
 {
   short distance;
   if (Kid.alive >= 0)
@@ -2192,7 +2191,7 @@ void __pascal far autocontrol_guard_inactive()
 }
 
 // seg002:08DC
-void __pascal far autocontrol_guard_active()
+void  autocontrol_guard_active()
 {
   short opp_frame;
   short char_frame;
@@ -2277,7 +2276,7 @@ void __pascal far autocontrol_guard_active()
 }
 
 // seg006:0FC3
-int __pascal far wall_type(byte tiletype)
+int  wall_type(byte tiletype)
 {
   switch (tiletype)
   {
@@ -2297,7 +2296,7 @@ int __pascal far wall_type(byte tiletype)
 }
 
 // seg002:09CB
-void __pascal far autocontrol_guard_kid_far()
+void  autocontrol_guard_kid_far()
 {
   if (tile_is_floor(get_tile_infrontof_char()) ||
       tile_is_floor(get_tile_infrontof2_char()))
@@ -2311,7 +2310,7 @@ void __pascal far autocontrol_guard_kid_far()
 }
 
 // seg002:09F8
-void __pascal far guard_follows_kid_down()
+void  guard_follows_kid_down()
 {
   // This is called from autocontrol_guard_active, so char=Guard, Opp=Kid
   word opp_action;
@@ -2344,7 +2343,7 @@ void __pascal far guard_follows_kid_down()
 }
 
 // seg002:0A93
-void __pascal far autocontrol_guard_kid_in_sight(short distance)
+void  autocontrol_guard_kid_in_sight(short distance)
 {
   if (Opp.sword == sword_2_drawn)
   {
@@ -2364,7 +2363,7 @@ void __pascal far autocontrol_guard_kid_in_sight(short distance)
 }
 
 // seg002:0AC1
-void __pascal far autocontrol_guard_kid_armed(short distance)
+void  autocontrol_guard_kid_armed(short distance)
 {
   if (distance < 10 || distance >= 29)
   {
@@ -2388,7 +2387,7 @@ void __pascal far autocontrol_guard_kid_armed(short distance)
 }
 
 // seg002:0AF5
-void __pascal far guard_advance()
+void  guard_advance()
 {
   if (guard_skill == 0 || kid_sword_strike == 0)
   {
@@ -2400,7 +2399,7 @@ void __pascal far guard_advance()
 }
 
 // seg002:0B1D
-void __pascal far guard_block()
+void  guard_block()
 {
   word opp_frame;
   opp_frame = Opp.frame;
@@ -2424,7 +2423,7 @@ void __pascal far guard_block()
 }
 
 // seg002:0B73
-void __pascal far guard_strike()
+void  guard_strike()
 {
   word opp_frame;
   word char_frame;
@@ -2449,7 +2448,7 @@ void __pascal far guard_strike()
 }
 
 // seg002:0BCD
-void __pascal far hurt_by_sword()
+void  hurt_by_sword()
 {
   short distance;
   if (Char.alive >= 0)
@@ -2499,7 +2498,7 @@ void __pascal far hurt_by_sword()
 }
 
 // seg002:0CD4
-void __pascal far check_sword_hurt()
+void  check_sword_hurt()
 {
   if (Guard.action == actions_99_hurt)
   {
@@ -2524,7 +2523,7 @@ void __pascal far check_sword_hurt()
 }
 
 // seg002:0D1A
-void __pascal far check_sword_hurting()
+void  check_sword_hurting()
 {
   short kid_frame;
   kid_frame = Kid.frame;
@@ -2541,7 +2540,7 @@ void __pascal far check_sword_hurting()
 }
 
 // seg002:0D56
-void __pascal far check_hurting()
+void  check_hurting()
 {
   short opp_frame, char_frame, distance, min_hurt_range;
   if (Char.sword != sword_2_drawn)
@@ -2598,7 +2597,7 @@ void __pascal far check_hurting()
 }
 
 // seg002:0E1F
-void __pascal far check_skel()
+void  check_skel()
 {
   // Special event: skeleton wakes
   if (current_level == /*3*/ custom->skeleton_level &&
@@ -2636,7 +2635,7 @@ void __pascal far check_skel()
 }
 
 // seg002:0F3F
-void __pascal far do_auto_moves(const auto_move_type *moves_ptr)
+void  do_auto_moves(const auto_move_type *moves_ptr)
 {
   short demoindex;
   short curr_move;
@@ -2686,7 +2685,7 @@ void __pascal far do_auto_moves(const auto_move_type *moves_ptr)
 }
 
 // seg002:1000
-void __pascal far autocontrol_shadow_level4()
+void  autocontrol_shadow_level4()
 {
   if (Char.room == 4)
   {
@@ -2702,7 +2701,7 @@ void __pascal far autocontrol_shadow_level4()
 }
 
 // seg002:101A
-void __pascal far autocontrol_shadow_level5()
+void  autocontrol_shadow_level5()
 {
   if (Char.room == 24)
   {
@@ -2723,7 +2722,7 @@ void __pascal far autocontrol_shadow_level5()
 }
 
 // seg002:1064
-void __pascal far autocontrol_shadow_level6()
+void  autocontrol_shadow_level6()
 {
   if (Char.room == 1 &&
       Kid.frame == frame_43_running_jump_4 && // a frame in run-jump
@@ -2735,7 +2734,7 @@ void __pascal far autocontrol_shadow_level6()
 }
 
 // seg002:1082
-void __pascal far autocontrol_shadow_level12()
+void  autocontrol_shadow_level12()
 {
   short opp_frame;
   short xdiff;
@@ -2812,7 +2811,7 @@ void __pascal far autocontrol_shadow_level12()
 }
 
 // seg003:0000
-void __pascal far init_game(int level)
+void  init_game(int level)
 {
   load_kid_sprite();
   text_time_remaining = 0;
@@ -2832,7 +2831,7 @@ void __pascal far init_game(int level)
 }
 
 // seg003:005C
-void __pascal far play_level(int level_number)
+void  play_level(int level_number)
 {
   if (level_number == custom->copyprot_level)
   {
@@ -2896,7 +2895,7 @@ void __pascal far play_level(int level_number)
 }
 
 // seg003:01A3
-void __pascal far do_startpos()
+void  do_startpos()
 {
   word x;
   // Special event: start at checkpoint
@@ -2951,7 +2950,7 @@ void __pascal far do_startpos()
 }
 
 // seg003:028A
-void __pascal far set_start_pos()
+void  set_start_pos()
 {
   Char.y = y_land[Char.curr_row + 1];
   Char.alive = -1;
@@ -2976,7 +2975,7 @@ void __pascal far set_start_pos()
 }
 
 // seg003:02E6
-void __pascal far find_start_level_door()
+void  find_start_level_door()
 {
   short tilepos;
   get_room_address(Kid.room);
@@ -2990,7 +2989,7 @@ void __pascal far find_start_level_door()
 }
 
 // seg003:0326
-void __pascal far draw_level_first()
+void  draw_level_first()
 {
   next_room = Kid.room;
   check_the_end();
@@ -3002,7 +3001,7 @@ void __pascal far draw_level_first()
 }
 
 // seg003:037B
-void __pascal far redraw_screen(int drawing_different_room)
+void  redraw_screen(int drawing_different_room)
 {
 
   clear_kbd_buf();
@@ -3011,7 +3010,7 @@ void __pascal far redraw_screen(int drawing_different_room)
 
 
 // seg003:04F8
-int __pascal far play_level_2()
+int  play_level_2()
 {
   while (1)
   { // main loop
@@ -3042,7 +3041,7 @@ int __pascal far play_level_2()
 }
 
 // seg003:0706
-void __pascal far check_knock()
+void  check_knock()
 {
   if (knock)
   {
@@ -3052,7 +3051,7 @@ void __pascal far check_knock()
 }
 
 // seg003:0735
-void __pascal far timers()
+void  timers()
 {
   if (united_with_shadow > 0)
   {
@@ -3091,7 +3090,7 @@ void __pascal far timers()
 }
 
 // seg003:0798
-void __pascal far check_mirror()
+void  check_mirror()
 {
   if (jumped_through_mirror == -1)
   {
@@ -3100,7 +3099,7 @@ void __pascal far check_mirror()
 }
 
 // seg003:080A
-void __pascal far jump_through_mirror()
+void  jump_through_mirror()
 {
   jumped_through_mirror = 0;
   Char.charid = charid_1_shadow;
@@ -3109,7 +3108,7 @@ void __pascal far jump_through_mirror()
 }
 
 // seg003:085B
-void __pascal far check_mirror_image()
+void  check_mirror_image()
 {
   short distance;
   short xpos;
@@ -3125,7 +3124,7 @@ void __pascal far check_mirror_image()
 }
 
 // seg003:08AA
-void __pascal far bump_into_opponent()
+void  bump_into_opponent()
 {
   // This is called from play_kid_frame, so char=Kid, Opp=Guard
   short distance;
@@ -3148,7 +3147,7 @@ void __pascal far bump_into_opponent()
 }
 
 // seg003:0913
-void __pascal far pos_guards()
+void  pos_guards()
 {
   short guard_tile;
   short room1;
@@ -3164,14 +3163,14 @@ void __pascal far pos_guards()
 }
 
 // seg003:0A99
-byte __pascal far get_tile_at_kid(int xpos)
+byte  get_tile_at_kid(int xpos)
 {
   return get_tile(Kid.room, get_tile_div_mod_m7(xpos), Kid.curr_row);
 }
 
 
 // seg003:0959
-void __pascal far check_can_guard_see_kid()
+void  check_can_guard_see_kid()
 {
   /*
 Possible results in can_guard_see_kid:
@@ -3249,7 +3248,7 @@ Possible results in can_guard_see_kid:
 
 
 // seg003:0ABA
-void __pascal far do_mouse()
+void  do_mouse()
 {
   loadkid();
   Char.charid = /*charid_24_mouse*/ custom->mouse_object;
@@ -3266,74 +3265,34 @@ void __pascal far do_mouse()
 
 
 // seg006:0006
-int __pascal far get_tile(int room, int col, int row)
+inline int get_tile(const int room, const int col, const int row)
 {
  curr_room = room;
  tile_col = col;
  tile_row = row;
- curr_room = find_room_of_tile();
+
+ while(tile_col < 0) { tile_col += 10; if (curr_room) curr_room = level.roomlinks[curr_room - 1].left; }
+ while(tile_col >= 10) { tile_col -= 10; if (curr_room) curr_room = level.roomlinks[curr_room - 1].right; }
+ while(tile_row < 0) { tile_row += 3; if (curr_room) curr_room = level.roomlinks[curr_room - 1].up; }
+ while(tile_row >= 3) { tile_row -= 3; if (curr_room) curr_room = level.roomlinks[curr_room - 1].down; }
+
  // bugfix: check_chomped_kid may call with room = -1
- if (curr_room > 0 && curr_room <= 24 && tile_row >= 0 && tile_row < 256) {
+ if (curr_room > 0 && curr_room <= 24)
+ {
   get_room_address(curr_room);
   curr_tilepos = tbl_line[tile_row] + tile_col;
   curr_tile2 = curr_room_tiles[curr_tilepos] & 0x1F;
- } else {
+ }
+ else {
   // wall in room 0
   curr_tile2 = custom->level_edge_hit_tile; // tiles_20_wall
  }
+
  return curr_tile2;
 }
 
-// seg006:005D
-int __pascal far find_room_of_tile()
-{
-again:
-  if (tile_col < 0)
-  {
-    tile_col += 10;
-    if (curr_room)
-    {
-      curr_room = level.roomlinks[curr_room - 1].left;
-    }
-    //find_room_of_tile();
-    goto again;
-  }
-  if (tile_col >= 10)
-  {
-    tile_col -= 10;
-    if (curr_room)
-    {
-      curr_room = level.roomlinks[curr_room - 1].right;
-    }
-    //find_room_of_tile();
-    goto again;
-  }
-  // if (tile_row < 0) was here originally
-  if (tile_row < 0)
-  {
-    tile_row += 3;
-    if (curr_room)
-    {
-      curr_room = level.roomlinks[curr_room - 1].up;
-    }
-    //find_room_of_tile();
-    goto again;
-  }
-  if (tile_row >= 3)
-  {
-    tile_row -= 3;
-    if (curr_room)
-    {
-      curr_room = level.roomlinks[curr_room - 1].down;
-    }
-    //find_room_of_tile();
-    goto again;
-  }
-  return curr_room;
-}
-
 // seg006:00EC
-int __pascal far get_tilepos(int tile_col, int tile_row)
+int  get_tilepos(int tile_col, int tile_row)
 {
   if (tile_row < 0)
   {
@@ -3350,7 +3309,7 @@ int __pascal far get_tilepos(int tile_col, int tile_row)
 }
 
 // seg006:01F5
-short __pascal far dx_weight()
+short  dx_weight()
 {
   sbyte var_2;
   var_2 = cur_frame.dx - (cur_frame.flags & FRAME_WEIGHT_X);
@@ -3358,7 +3317,7 @@ short __pascal far dx_weight()
 }
 
 // seg006:0124
-int __pascal far get_tilepos_nominus(int tile_col, int tile_row)
+int  get_tilepos_nominus(int tile_col, int tile_row)
 {
   short var_2;
   var_2 = get_tilepos(tile_col, tile_row);
@@ -3369,14 +3328,14 @@ int __pascal far get_tilepos_nominus(int tile_col, int tile_row)
 }
 
 // seg006:0144
-void __pascal far load_fram_det_col()
+void  load_fram_det_col()
 {
   load_frame();
   determine_col();
 }
 
 // seg006:014D
-void __pascal far determine_col()
+void  determine_col()
 {
   Char.curr_col = get_tile_div_mod_m7(dx_weight());
 }
@@ -3397,7 +3356,7 @@ void get_frame_internal(const frame_type frame_table[], int frame, const char *f
 }
 
 // seg006:015A
-void __pascal far load_frame()
+void  load_frame()
 {
   short frame;
   short add_frame;
@@ -3430,7 +3389,7 @@ void __pascal far load_frame()
 }
 
 // seg006:0213
-int __pascal far char_dx_forward(int delta_x)
+int  char_dx_forward(int delta_x)
 {
   if (Char.direction < dir_0_right)
   {
@@ -3440,7 +3399,7 @@ int __pascal far char_dx_forward(int delta_x)
 }
 
 // seg006:0234
-int __pascal far obj_dx_forward(int delta_x)
+int  obj_dx_forward(int delta_x)
 {
   if (obj_direction < dir_0_right)
   {
@@ -3451,7 +3410,7 @@ int __pascal far obj_dx_forward(int delta_x)
 }
 
 // seg006:0254
-void __pascal far play_seq()
+void  play_seq()
 {
   for (;;)
   {
@@ -3546,13 +3505,13 @@ void __pascal far play_seq()
 }
 
 // seg006:03DE
-int __pascal far get_tile_div_mod_m7(int xpos)
+int  get_tile_div_mod_m7(int xpos)
 {
   return get_tile_div_mod(xpos - 7);
 }
 
 // seg006:03F0
-int __pascal far get_tile_div_mod(int xpos)
+inline int get_tile_div_mod(const int xpos)
 {
   // Determine tile column (xh) and the position within the tile (xl) from xpos.
 
@@ -3616,65 +3575,65 @@ int __pascal far get_tile_div_mod(int xpos)
 }
 
 // seg006:0433
-int __pascal far y_to_row_mod4(int ypos)
+int  y_to_row_mod4(int ypos)
 {
   return (ypos + 60) / 63 % 4 - 1;
 }
 
 // seg006:044F
-void __pascal far loadkid()
+void  loadkid()
 {
   Char = Kid;
 }
 
 // seg006:0464
-void __pascal far savekid()
+void  savekid()
 {
   Kid = Char;
 }
 
 // seg006:0479
-void __pascal far loadshad()
+void  loadshad()
 {
   Char = Guard;
 }
 
 // seg006:048E
-void __pascal far saveshad()
+void  saveshad()
 {
   Guard = Char;
 }
 
 // seg006:04A3
-void __pascal far loadkid_and_opp()
+void  loadkid_and_opp()
 {
   loadkid();
   Opp = Guard;
 }
 
 // seg006:04BC
-void __pascal far savekid_and_opp()
+void  savekid_and_opp()
 {
   savekid();
   Guard = Opp;
 }
 
 // seg006:04D5
-void __pascal far loadshad_and_opp()
+void  loadshad_and_opp()
 {
   loadshad();
   Opp = Kid;
 }
 
 // seg006:04EE
-void __pascal far saveshad_and_opp()
+void  saveshad_and_opp()
 {
   saveshad();
   Kid = Opp;
 }
 
 // seg006:0507
-void __pascal far reset_obj_clip()
+void  reset_obj_clip()
 {
   obj_clip_left = 0;
   obj_clip_top = 0;
@@ -3683,7 +3642,7 @@ void __pascal far reset_obj_clip()
 }
 
 // seg006:051C
-void __pascal far x_to_xh_and_xl(int xpos, sbyte *xh_addr, sbyte *xl_addr)
+void  x_to_xh_and_xl(int xpos, sbyte *xh_addr, sbyte *xl_addr)
 {
   if (xpos < 0)
   {
@@ -3698,7 +3657,7 @@ void __pascal far x_to_xh_and_xl(int xpos, sbyte *xh_addr, sbyte *xl_addr)
 }
 
 // seg006:057C
-void __pascal far fall_accel()
+void  fall_accel()
 {
   if (Char.action == actions_4_in_freefall)
   {
@@ -3718,7 +3677,7 @@ void __pascal far fall_accel()
 }
 
 // seg006:05AE
-void __pascal far fall_speed()
+void  fall_speed()
 {
   Char.y += Char.fall_y;
   if (Char.action == actions_4_in_freefall)
@@ -3729,7 +3688,7 @@ void __pascal far fall_speed()
 }
 
 // seg006:05CD
-void __pascal far check_action()
+void  check_action()
 {
   short frame;
   short action;
@@ -3764,7 +3723,7 @@ void __pascal far check_action()
 }
 
 // seg006:0628
-int __pascal far tile_is_floor(int tiletype)
+int  tile_is_floor(int tiletype)
 {
   switch (tiletype)
   {
@@ -3783,7 +3742,7 @@ int __pascal far tile_is_floor(int tiletype)
 }
 
 // seg006:0658
-void __pascal far check_spiked()
+void  check_spiked()
 {
   short harmful;
   short frame;
@@ -3805,7 +3764,7 @@ void __pascal far check_spiked()
 }
 
 // seg006:06BD
-int __pascal far take_hp(int count)
+int  take_hp(int count)
 {
   word dead;
   dead = 0;
@@ -3837,7 +3796,7 @@ int __pascal far take_hp(int count)
 }
 
 // seg006:070D
-int __pascal far get_tile_at_char()
+int  get_tile_at_char()
 {
   return get_tile(Char.room, Char.curr_col, Char.curr_row);
 }
@@ -3866,7 +3825,7 @@ image_type *get_image(short chtab_id, int id)
 
 
 // seg006:0723
-void __pascal far set_char_collision()
+inline void set_char_collision()
 {
   image_type *image = get_image(obj_chtab, obj_id);
   if (image == NULL)
@@ -3908,7 +3867,7 @@ void __pascal far set_char_collision()
 }
 
 // seg006:0815
-void __pascal far check_on_floor()
+void  check_on_floor()
 {
   if (cur_frame.flags & FRAME_NEEDS_FLOOR)
   {
@@ -3936,7 +3895,7 @@ void __pascal far check_on_floor()
 }
 
 // seg006:08B9
-void __pascal far start_fall()
+void  start_fall()
 {
   short frame;
   word seq_id;
@@ -4036,7 +3995,7 @@ void __pascal far start_fall()
 }
 
 // seg006:0A19
-void __pascal far check_grab()
+void  check_grab()
 {
   word old_x;
 
@@ -4069,7 +4028,7 @@ void __pascal far check_grab()
 }
 
 // seg006:0ABD
-int __pascal far can_grab_front_above()
+int  can_grab_front_above()
 {
   through_tile = get_tile_above_char();
   get_tile_front_above_char();
@@ -4077,7 +4036,7 @@ int __pascal far can_grab_front_above()
 }
 
 // seg006:0ACD
-void __pascal far in_wall()
+void  in_wall()
 {
   short delta_x;
   delta_x = distance_to_edge_weight();
@@ -4095,13 +4054,13 @@ void __pascal far in_wall()
 }
 
 // seg006:0B0C
-int __pascal far get_tile_infrontof_char()
+int  get_tile_infrontof_char()
 {
   return get_tile(Char.room, infrontx = dir_front[Char.direction + 1] + Char.curr_col, Char.curr_row);
 }
 
 // seg006:0B30
-int __pascal far get_tile_infrontof2_char()
+int  get_tile_infrontof2_char()
 {
   short var_2;
   var_2 = dir_front[Char.direction + 1];
@@ -4109,19 +4068,19 @@ int __pascal far get_tile_infrontof2_char()
 }
 
 // seg006:0B66
-int __pascal far get_tile_behind_char()
+int  get_tile_behind_char()
 {
   return get_tile(Char.room, dir_behind[Char.direction + 1] + Char.curr_col, Char.curr_row);
 }
 
 // seg006:0B8A
-int __pascal far distance_to_edge_weight()
+int  distance_to_edge_weight()
 {
   return distance_to_edge(dx_weight());
 }
 
 // seg006:0B94
-int __pascal far distance_to_edge(int xpos)
+int  distance_to_edge(int xpos)
 {
   short distance;
   get_tile_div_mod_m7(xpos);
@@ -4134,7 +4093,7 @@ int __pascal far distance_to_edge(int xpos)
 }
 
 // seg006:0BC4
-void __pascal far fell_out()
+void  fell_out()
 {
   if (Char.alive < 0 && Char.room == 0)
   {
@@ -4145,7 +4104,7 @@ void __pascal far fell_out()
 }
 
 // seg006:0BEE
-void __pascal far play_kid()
+void  play_kid()
 {
   fell_out();
   control_kid();
@@ -4167,7 +4126,7 @@ void __pascal far play_kid()
 }
 
 // seg006:0CD1
-void __pascal far control_kid()
+void  control_kid()
 {
   if (Char.alive < 0 && hitp_curr == 0)
   {
@@ -4185,7 +4144,7 @@ void __pascal far control_kid()
 }
 
 // seg006:0D49
-void __pascal far do_demo()
+void  do_demo()
 {
   if (checkpoint)
   {
@@ -4205,7 +4164,7 @@ void __pascal far do_demo()
 }
 
 // seg006:0D85
-void __pascal far play_guard()
+void  play_guard()
 {
   if (Char.charid == charid_24_mouse)
   {
@@ -4236,7 +4195,7 @@ void __pascal far play_guard()
 }
 
 // seg006:0DC0
-void __pascal far user_control()
+void  user_control()
 {
   if (Char.direction >= dir_0_right)
   {
@@ -4251,7 +4210,7 @@ void __pascal far user_control()
 }
 
 // seg006:0DDC
-void __pascal far flip_control_x()
+void  flip_control_x()
 {
   byte temp;
   control_x = -control_x;
@@ -4261,14 +4220,14 @@ void __pascal far flip_control_x()
 }
 
 // seg006:0E00
-int __pascal far release_arrows()
+int  release_arrows()
 {
   control_backward = control_forward = control_up = control_down = 0;
   return 1;
 }
 
 // seg006:0E12
-void __pascal far save_ctrl_1()
+void  save_ctrl_1()
 {
   ctrl1_forward = control_forward;
   ctrl1_backward = control_backward;
@@ -4278,7 +4237,7 @@ void __pascal far save_ctrl_1()
 }
 
 // seg006:0E31
-void __pascal far rest_ctrl_1()
+void  rest_ctrl_1()
 {
   control_forward = ctrl1_forward;
   control_backward = ctrl1_backward;
@@ -4288,13 +4247,13 @@ void __pascal far rest_ctrl_1()
 }
 
 // seg006:0E8E
-void __pascal far clear_saved_ctrl()
+void  clear_saved_ctrl()
 {
   ctrl1_forward = ctrl1_backward = ctrl1_up = ctrl1_down = ctrl1_shift2 = 0;
 }
 
 // seg006:0EAF
-void __pascal far read_user_control()
+void  read_user_control()
 {
   if (control_forward >= 0)
   {
@@ -4369,7 +4328,7 @@ void __pascal far read_user_control()
 }
 
 // seg006:0F55
-int __pascal far can_grab()
+int  can_grab()
 {
   // Can char grab curr_tile2 through through_tile?
   byte modifier;
@@ -4397,25 +4356,25 @@ int __pascal far can_grab()
 }
 
 // seg006:1005
-int __pascal far get_tile_above_char()
+int  get_tile_above_char()
 {
   return get_tile(Char.room, Char.curr_col, Char.curr_row - 1);
 }
 
 // seg006:1020
-int __pascal far get_tile_behind_above_char()
+int  get_tile_behind_above_char()
 {
   return get_tile(Char.room, dir_behind[Char.direction + 1] + Char.curr_col, Char.curr_row - 1);
 }
 
 // seg006:1049
-int __pascal far get_tile_front_above_char()
+int  get_tile_front_above_char()
 {
   return get_tile(Char.room, infrontx = dir_front[Char.direction + 1] + Char.curr_col, Char.curr_row - 1);
 }
 
 // seg006:1072
-int __pascal far back_delta_x(int delta_x)
+int  back_delta_x(int delta_x)
 {
   if (Char.direction < dir_0_right)
   {
@@ -4430,7 +4389,7 @@ int __pascal far back_delta_x(int delta_x)
 }
 
 // seg006:108A
-void __pascal far do_pickup(int obj_type)
+void  do_pickup(int obj_type)
 {
   pickup_obj_type = obj_type;
   control_shift2 = 1;
@@ -4441,7 +4400,7 @@ void __pascal far do_pickup(int obj_type)
 }
 
 // seg006:10E6
-void __pascal far check_press()
+void  check_press()
 {
   short frame;
   short action;
@@ -4493,7 +4452,7 @@ void __pascal far check_press()
 }
 
 // seg006:1199
-void __pascal far check_spike_below()
+void  check_spike_below()
 {
   short not_finished;
   short room;
@@ -4529,7 +4488,7 @@ void __pascal far check_spike_below()
 }
 
 // seg006:1231
-void __pascal far clip_char()
+void  clip_char()
 {
   short frame;
   short room;
@@ -4605,7 +4564,7 @@ void __pascal far clip_char()
 }
 
 // seg006:13E6
-void __pascal far stuck_lower()
+void  stuck_lower()
 {
   if (get_tile_at_char() == tiles_5_stuck)
   {
@@ -4614,7 +4573,7 @@ void __pascal far stuck_lower()
 }
 
 // seg006:13F3
-void __pascal far set_objtile_at_char()
+void  set_objtile_at_char()
 {
   short char_frame;
   short char_action;
@@ -4644,7 +4603,7 @@ void __pascal far set_objtile_at_char()
 }
 
 // seg006:1463
-void __pascal far proc_get_object()
+void  proc_get_object()
 {
   if (Char.charid != charid_0_kid || pickup_obj_type == 0)
     return;
@@ -4697,7 +4656,7 @@ void __pascal far proc_get_object()
 }
 
 // seg006:1599
-int __pascal far is_dead()
+int  is_dead()
 {
   // 177: spiked, 178: chomped, 185: dead
   // or maybe this was a switch-case?
@@ -4706,7 +4665,7 @@ int __pascal far is_dead()
 
 
 // seg006:15E8
-void __pascal far on_guard_killed()
+void  on_guard_killed()
 {
   if (current_level == 0)
   {
@@ -4728,7 +4687,7 @@ void __pascal far on_guard_killed()
 }
 
 // seg006:1634
-void __pascal far clear_char()
+void  clear_char()
 {
   Char.direction = dir_56_none;
   Char.alive = 0;
@@ -4758,7 +4717,7 @@ short obj2_clip_left;
 short obj2_clip_right;
 
 // seg006:1654
-void __pascal far save_obj()
+void  save_obj()
 {
   obj2_tilepos = obj_tilepos;
   obj2_x = obj_x;
@@ -4773,7 +4732,7 @@ void __pascal far save_obj()
 }
 
 // seg006:1691
-void __pascal far load_obj()
+void  load_obj()
 {
   obj_tilepos = obj2_tilepos;
   obj_x = obj2_x;
@@ -4788,7 +4747,7 @@ void __pascal far load_obj()
 }
 
 // seg006:16CE
-void __pascal far draw_hurt_splash()
+void  draw_hurt_splash()
 {
   short frame;
   frame = Char.frame;
@@ -4828,7 +4787,7 @@ void __pascal far draw_hurt_splash()
 }
 
 // seg006:175D
-void __pascal far check_killed_shadow()
+void  check_killed_shadow()
 {
   // Special event: killed the shadow
   if (current_level == 12)
@@ -4844,7 +4803,7 @@ void __pascal far check_killed_shadow()
 }
 
 // seg006:1827
-void __pascal far control_guard_inactive()
+void  control_guard_inactive()
 {
   if (Char.frame == frame_166_stand_inactive && control_down < 0)
   {
@@ -4861,7 +4820,7 @@ void __pascal far control_guard_inactive()
 }
 
 // seg006:1852
-int __pascal far char_opp_dist()
+int  char_opp_dist()
 {
   // >0 if Opp is in front of char
   // <0 if Opp is behind char
@@ -4883,13 +4842,13 @@ int __pascal far char_opp_dist()
 }
 
 // seg006:189B
-void __pascal far inc_curr_row()
+void  inc_curr_row()
 {
   ++Char.curr_row;
 }
 
 // seg004:0004
-void __pascal far check_collisions()
+void  check_collisions()
 {
   short column;
   bump_col_left_of_wall = bump_col_right_of_wall = -1;
@@ -4927,7 +4886,7 @@ void __pascal far check_collisions()
 }
 
 // seg004:00DF
-void __pascal far move_coll_to_prev()
+void  move_coll_to_prev()
 {
   sbyte *row_coll_room_ptr;
   byte *row_coll_flags_ptr;
@@ -4962,7 +4921,7 @@ void __pascal far move_coll_to_prev()
 }
 
 // seg004:0185
-void __pascal far get_row_collision_data(short row, sbyte *row_coll_room_ptr, byte *row_coll_flags_ptr)
+inline void  get_row_collision_data(short row, sbyte *row_coll_room_ptr, byte *row_coll_flags_ptr)
 {
   short right_wall_xpos;
   byte curr_flags;
@@ -4986,7 +4945,7 @@ void __pascal far get_row_collision_data(short row, sbyte *row_coll_room_ptr, by
 }
 
 // seg004:0226
-int __pascal far get_left_wall_xpos(int room, int column, int row)
+int  get_left_wall_xpos(int room, int column, int row)
 {
   short type;
   type = wall_type(get_tile(room, column, row));
@@ -5001,7 +4960,7 @@ int __pascal far get_left_wall_xpos(int room, int column, int row)
 }
 
 // seg004:025F
-int __pascal far get_right_wall_xpos(int room, int column, int row)
+int  get_right_wall_xpos(int room, int column, int row)
 {
   short type;
   type = wall_type(get_tile(room, column, row));
@@ -5016,7 +4975,7 @@ int __pascal far get_right_wall_xpos(int room, int column, int row)
 }
 
 // seg004:029D
-void __pascal far check_bumped()
+void  check_bumped()
 {
   if (
     Char.action != actions_2_hang_climb &&
@@ -5036,7 +4995,7 @@ void __pascal far check_bumped()
 }
 
 // seg004:02D2
-void __pascal far check_bumped_look_left()
+void  check_bumped_look_left()
 {
   if ((Char.sword == sword_2_drawn || Char.direction < dir_0_right) && // looking left
       is_obstacle_at_col(bump_col_right_of_wall))
@@ -5046,7 +5005,7 @@ void __pascal far check_bumped_look_left()
 }
 
 // seg004:030A
-void __pascal far check_bumped_look_right()
+void  check_bumped_look_right()
 {
   if ((Char.sword == sword_2_drawn || Char.direction == dir_0_right) && // looking right
       is_obstacle_at_col(bump_col_left_of_wall))
@@ -5056,7 +5015,7 @@ void __pascal far check_bumped_look_right()
 }
 
 // seg004:0343
-int __pascal far is_obstacle_at_col(int tile_col)
+int  is_obstacle_at_col(int tile_col)
 {
   short tile_row;
   tile_row = Char.curr_row;
@@ -5073,7 +5032,7 @@ int __pascal far is_obstacle_at_col(int tile_col)
 }
 
 // seg004:037E
-int __pascal far is_obstacle()
+int  is_obstacle()
 {
   if (curr_tile2 == tiles_10_potion)
   {
@@ -5106,7 +5065,7 @@ int __pascal far is_obstacle()
 }
 
 // seg004:0405
-int __pascal far xpos_in_drawn_room(int xpos)
+int  xpos_in_drawn_room(int xpos)
 {
   if (curr_room != drawn_room)
   {
@@ -5123,7 +5082,7 @@ int __pascal far xpos_in_drawn_room(int xpos)
 }
 
 // seg004:0448
-void __pascal far bumped(sbyte delta_x, sbyte push_direction)
+void  bumped(sbyte delta_x, sbyte push_direction)
 {
   // frame 177: spiked
   if (Char.alive < 0 && Char.frame != frame_177_spiked)
@@ -5165,7 +5124,7 @@ void __pascal far bumped(sbyte delta_x, sbyte push_direction)
 }
 
 // seg004:0A10
-int __pascal far dist_from_wall_forward(byte tiletype)
+int  dist_from_wall_forward(byte tiletype)
 {
   short type;
   if (tiletype == tiles_4_gate && !can_bump_into_gate())
@@ -5194,7 +5153,7 @@ int __pascal far dist_from_wall_forward(byte tiletype)
 
 
 // seg004:04E4
-void __pascal far bumped_fall()
+void  bumped_fall()
 {
   short action;
   action = Char.action;
@@ -5212,7 +5171,7 @@ void __pascal far bumped_fall()
 }
 
 // seg004:0520
-void __pascal far bumped_floor(sbyte push_direction)
+void  bumped_floor(sbyte push_direction)
 {
   short frame;
   short seq_index;
@@ -5269,13 +5228,13 @@ void __pascal far bumped_floor(sbyte push_direction)
 }
 
 // seg004:05F1
-void __pascal far bumped_sound()
+void  bumped_sound()
 {
   is_guard_notice = 1;
 }
 
 // seg004:0601
-void __pascal far clear_coll_rooms()
+void  clear_coll_rooms()
 {
   memset_near(prev_coll_room, -1, sizeof(prev_coll_room));
   memset_near(curr_row_coll_room, -1, sizeof(curr_row_coll_room));
@@ -5285,13 +5244,13 @@ void __pascal far clear_coll_rooms()
 }
 
 // seg004:0657
-int __pascal far can_bump_into_gate()
+int  can_bump_into_gate()
 {
   return (curr_room_modif[curr_tilepos] >> 2) + 6 < char_height;
 }
 
 // seg004:067C
-int __pascal far get_edge_distance()
+int  get_edge_distance()
 {
   /*
 Possible results in edge_type:
@@ -5383,7 +5342,7 @@ Possible results in edge_type:
 }
 
 // seg004:076B
-void __pascal far check_chomped_kid()
+void  check_chomped_kid()
 {
   short tile_col;
   short tile_row;
@@ -5401,7 +5360,7 @@ void __pascal far check_chomped_kid()
 }
 
 // seg004:07BF
-void __pascal far chomped()
+void  chomped()
 {
     curr_room_modif[curr_tilepos] |= 0x80; // put blood
   if (Char.frame != frame_178_chomped && Char.room == curr_room)
@@ -5416,7 +5375,7 @@ void __pascal far chomped()
 }
 
 // seg004:0A7B
-int __pascal far dist_from_wall_behind(byte tiletype)
+int  dist_from_wall_behind(byte tiletype)
 {
   short type;
   type = wall_type(tiletype);
@@ -5442,7 +5401,7 @@ int __pascal far dist_from_wall_behind(byte tiletype)
 
 
 // seg004:0833
-void __pascal far check_gate_push()
+void  check_gate_push()
 {
   // Closing gate pushes Kid
   short frame;
@@ -5470,7 +5429,7 @@ void __pascal far check_gate_push()
 }
 
 // seg004:08C3
-void __pascal far check_guard_bumped()
+void  check_guard_bumped()
 {
   if (
     Char.action == actions_1_run_jump &&
@@ -5504,7 +5463,7 @@ void __pascal far check_guard_bumped()
 }
 
 // seg004:0989
-void __pascal far check_chomped_guard()
+void  check_chomped_guard()
 {
   get_tile_at_char();
   if (!check_chomped_here())
@@ -5515,7 +5474,7 @@ void __pascal far check_chomped_guard()
 }
 
 // seg004:09B0
-int __pascal far check_chomped_here()
+int  check_chomped_here()
 {
   if (curr_tile2 == tiles_18_chomper &&
       (curr_room_modif[curr_tilepos] & 0x7F) == 2)
@@ -5539,7 +5498,7 @@ int __pascal far check_chomped_here()
 }
 
 // seg007:0000
-void __pascal far process_trobs()
+void  process_trobs()
 {
   word need_delete;
   word index;
@@ -5572,7 +5531,7 @@ void __pascal far process_trobs()
 
 
 // seg007:00AF
-void __pascal far animate_tile()
+void  animate_tile()
 {
   get_room_address(trob.room);
   switch (get_curr_tile(trob.tilepos))
@@ -5617,7 +5576,7 @@ void __pascal far animate_tile()
 }
 
 // seg007:0166
-short __pascal far is_trob_in_drawn_room()
+short  is_trob_in_drawn_room()
 {
   if (trob.room != drawn_room)
   {
@@ -5631,7 +5590,7 @@ short __pascal far is_trob_in_drawn_room()
 }
 
 // seg007:0258
-short __pascal far get_trob_pos_in_drawn_room()
+short  get_trob_pos_in_drawn_room()
 {
   short tilepos;
   tilepos = trob.tilepos;
@@ -5658,7 +5617,7 @@ short __pascal far get_trob_pos_in_drawn_room()
 }
 
 // seg007:029D
-short __pascal far get_trob_right_pos_in_drawn_room()
+short  get_trob_right_pos_in_drawn_room()
 {
   word tilepos;
   tilepos = trob.tilepos;
@@ -5708,7 +5667,7 @@ short __pascal far get_trob_right_pos_in_drawn_room()
 }
 
 // seg007:032C
-short __pascal far get_trob_right_above_pos_in_drawn_room()
+short  get_trob_right_above_pos_in_drawn_room()
 {
   word tilepos;
   tilepos = trob.tilepos;
@@ -5772,7 +5731,7 @@ short __pascal far get_trob_right_above_pos_in_drawn_room()
 }
 
 // seg007:06CD
-short __pascal far get_torch_frame(short curr)
+short  get_torch_frame(short curr)
 {
   short next;
   next = prandom(255);
@@ -5795,7 +5754,7 @@ short __pascal far get_torch_frame(short curr)
 
 
 // seg007:03CF
-void __pascal far animate_torch()
+void  animate_torch()
 {
   //if (is_trob_in_drawn_room()) {
   // Keep animating torches in the rightmost column of the left-side room as well, because they are visible in the current room.
@@ -5810,7 +5769,7 @@ void __pascal far animate_torch()
 }
 
 // seg007:06AD
-short __pascal far bubble_next_frame(short curr)
+short  bubble_next_frame(short curr)
 {
   short next;
   next = curr + 1;
@@ -5820,7 +5779,7 @@ short __pascal far bubble_next_frame(short curr)
 }
 
 // seg007:03E9
-void __pascal far animate_potion()
+void  animate_potion()
 {
   word type;
   if (trob.type >= 0 && is_trob_in_drawn_room())
@@ -5831,7 +5790,7 @@ void __pascal far animate_potion()
 }
 
 // seg007:0425
-void __pascal far animate_sword()
+void  animate_sword()
 {
   if (is_trob_in_drawn_room())
   {
@@ -5844,7 +5803,7 @@ void __pascal far animate_sword()
 }
 
 // seg007:0448
-void __pascal far animate_chomper()
+void  animate_chomper()
 {
   word blood;
   word frame;
@@ -5876,7 +5835,7 @@ void __pascal far animate_chomper()
 }
 
 // seg007:04D3
-void __pascal far animate_spike()
+void  animate_spike()
 {
   if (trob.type >= 0)
   {
@@ -5907,7 +5866,7 @@ void __pascal far animate_spike()
 }
 
 // seg007:0522
-void __pascal far animate_door()
+void  animate_door()
 {
   /*
 Possible values of anim_type:
@@ -5997,13 +5956,13 @@ Possible values of anim_type:
 }
 
 // seg007:05E3
-void __pascal far gate_stop()
+void  gate_stop()
 {
   trob.type = -1;
 }
 
 // seg007:05F1
-void __pascal far animate_leveldoor()
+void  animate_leveldoor()
 {
   /*
 Possible values of trob_type:
@@ -6064,14 +6023,14 @@ Possible values of trob_type:
 
 
 // seg007:081E
-void __pascal far start_anim_torch(short room, short tilepos)
+void  start_anim_torch(short room, short tilepos)
 {
   curr_room_modif[tilepos] = prandom(8);
   add_trob(room, tilepos, 1);
 }
 
 // seg007:0847
-void __pascal far start_anim_potion(short room, short tilepos)
+void  start_anim_potion(short room, short tilepos)
 {
   curr_room_modif[tilepos] &= 0xF8;
   curr_room_modif[tilepos] |= prandom(6) + 1;
@@ -6079,14 +6038,14 @@ void __pascal far start_anim_potion(short room, short tilepos)
 }
 
 // seg007:087C
-void __pascal far start_anim_sword(short room, short tilepos)
+void  start_anim_sword(short room, short tilepos)
 {
   curr_room_modif[tilepos] = prandom(0xFF) & 0x1F;
   add_trob(room, tilepos, 1);
 }
 
 // seg007:08A7
-void __pascal far start_anim_chomper(short room, short tilepos, byte modifier)
+void  start_anim_chomper(short room, short tilepos, byte modifier)
 {
   short old_modifier;
   old_modifier = curr_room_modif[tilepos];
@@ -6098,7 +6057,7 @@ void __pascal far start_anim_chomper(short room, short tilepos, byte modifier)
 }
 
 // seg007:08E3
-void __pascal far start_anim_spike(short room, short tilepos)
+void  start_anim_spike(short room, short tilepos)
 {
   sbyte old_modifier;
   old_modifier = curr_room_modif[tilepos];
@@ -6120,7 +6079,7 @@ void __pascal far start_anim_spike(short room, short tilepos)
 }
 
 // seg007:092C
-short __pascal far trigger_gate(short room, short tilepos, short button_type)
+short  trigger_gate(short room, short tilepos, short button_type)
 {
   byte modifier;
   modifier = curr_room_modif[tilepos];
@@ -6160,7 +6119,7 @@ short __pascal far trigger_gate(short room, short tilepos, short button_type)
 }
 
 // seg007:0999
-short __pascal far trigger_1(short target_type, short room, short tilepos, short button_type)
+short  trigger_1(short target_type, short room, short tilepos, short button_type)
 {
   short result;
   result = -1;
@@ -6187,26 +6146,26 @@ short __pascal far trigger_1(short target_type, short room, short tilepos, short
 }
 
 // seg007:0BF2
-short __pascal far get_doorlink_tile(short index)
+short  get_doorlink_tile(short index)
 {
   return doorlink1_ad[index] & 0x1F;
 }
 
 // seg007:0C09
-short __pascal far get_doorlink_next(short index)
+short  get_doorlink_next(short index)
 {
   return !(doorlink1_ad[index] & 0x80);
 }
 
 // seg007:0C26
-short __pascal far get_doorlink_room(short index)
+short  get_doorlink_room(short index)
 {
   return ((doorlink1_ad[index] & 0x60) >> 5) +
          ((doorlink2_ad[index] & 0xE0) >> 3);
 }
 
 // seg007:09E5
-void __pascal far do_trigger_list(short index, short button_type)
+void  do_trigger_list(short index, short button_type)
 {
   word room;
   word tilepos;
@@ -6230,7 +6189,7 @@ void __pascal far do_trigger_list(short index, short button_type)
 }
 
 // seg007:0ACA
-short __pascal far find_trob()
+short  find_trob()
 {
   short index;
   for (index = 0; index < trobs_count; ++index)
@@ -6243,7 +6202,7 @@ short __pascal far find_trob()
 }
 
 // seg007:0A5A
-void __pascal far add_trob(byte room, byte tilepos, sbyte type)
+void  add_trob(byte room, byte tilepos, sbyte type)
 {
   short found;
   trob.room = room;
@@ -6267,13 +6226,13 @@ void __pascal far add_trob(byte room, byte tilepos, sbyte type)
 
 
 // seg007:0BB6
-short __pascal far get_doorlink_timer(short index)
+short  get_doorlink_timer(short index)
 {
   return doorlink2_ad[index] & 0x1F;
 }
 
 // seg007:0BCD
-short __pascal far set_doorlink_timer(short index, byte value)
+short  set_doorlink_timer(short index, byte value)
 {
   doorlink2_ad[index] &= 0xE0;
   doorlink2_ad[index] |= value & 0x1F;
@@ -6283,7 +6242,7 @@ short __pascal far set_doorlink_timer(short index, byte value)
 
 
 // seg007:0C53
-void __pascal far trigger_button(int playsound, int button_type, int modifier)
+void  trigger_button(int playsound, int button_type, int modifier)
 {
   sbyte link_timer;
   get_curr_tile(curr_tilepos);
@@ -6312,7 +6271,7 @@ void __pascal far trigger_button(int playsound, int button_type, int modifier)
 }
 
 // seg007:0CD9
-void __pascal far died_on_button()
+void  died_on_button()
 {
   word button_type;
   word modifier;
@@ -6332,7 +6291,7 @@ void __pascal far died_on_button()
 }
 
 // seg007:0D3A
-void __pascal far animate_button()
+void  animate_button()
 {
   word var_2;
   if (trob.type >= 0)
@@ -6346,20 +6305,20 @@ void __pascal far animate_button()
 }
 
 // seg007:0D72
-void __pascal far start_level_door(short room, short tilepos)
+void  start_level_door(short room, short tilepos)
 {
   curr_room_modif[tilepos] = 43; // start fully open
   add_trob(room, tilepos, 3);
 }
 
 // seg007:0D93
-void __pascal far animate_empty()
+void  animate_empty()
 {
   trob.type = -1;
 }
 
 // seg007:0D9D
-void __pascal far animate_loose()
+void  animate_loose()
 {
   word room;
   word row;
@@ -6409,7 +6368,7 @@ void __pascal far animate_loose()
 
 
 // seg007:0E55
-void __pascal far loose_shake(int arg_0)
+void  loose_shake(int arg_0)
 {
   word sound_id;
   if (arg_0 || loose_sound[curr_modifier & 0x7F])
@@ -6427,7 +6386,7 @@ void __pascal far loose_shake(int arg_0)
 }
 
 // seg007:0EB8
-int __pascal far remove_loose(int room, int tilepos)
+int  remove_loose(int room, int tilepos)
 {
   curr_room_tiles[tilepos] = tiles_0_empty;
   // note: the level type is used to determine the modifier of the empty space left behind
@@ -6435,7 +6394,7 @@ int __pascal far remove_loose(int room, int tilepos)
 }
 
 // seg007:0ED5
-void __pascal far make_loose_fall(byte modifier)
+void  make_loose_fall(byte modifier)
 {
   // is it a "solid" loose floor?
   if ((curr_room_tiles[curr_tilepos] & 0x20) == 0)
@@ -6450,7 +6409,7 @@ void __pascal far make_loose_fall(byte modifier)
 
 
 // seg007:0F9A
-int __pascal far next_chomper_timing(byte timing)
+int  next_chomper_timing(byte timing)
 {
   // 15,12,9,6,13,10,7,14,11,8,repeat
   timing -= 3;
@@ -6463,7 +6422,7 @@ int __pascal far next_chomper_timing(byte timing)
 
 
 // seg007:0F13
-void __pascal far start_chompers()
+void  start_chompers()
 {
   short timing;
   short modifier;
@@ -6491,7 +6450,7 @@ void __pascal far start_chompers()
 }
 
 // seg007:0FB4
-void __pascal far loose_make_shake()
+void  loose_make_shake()
 {
   // don't shake on level 13
   if (curr_room_modif[curr_tilepos] == 0 && current_level != 13)
@@ -6502,7 +6461,7 @@ void __pascal far loose_make_shake()
 }
 
 // seg007:0FE0
-void __pascal far do_knock(int room, int tile_row)
+void  do_knock(int room, int tile_row)
 {
   short tile_col;
   for (tile_col = 0; tile_col < 10; ++tile_col)
@@ -6515,7 +6474,7 @@ void __pascal far do_knock(int room, int tile_row)
 }
 
 // seg007:1010
-void __pascal far add_mob()
+void  add_mob()
 {
   mobs[mobs_count++] = curmob;
 }
@@ -6524,7 +6483,7 @@ void __pascal far add_mob()
 
 
 // seg007:1063
-void __pascal far do_mobs()
+void  do_mobs()
 {
   short n_mobs;
   short index;
@@ -6549,7 +6508,7 @@ void __pascal far do_mobs()
 }
 
 // seg007:110F
-void __pascal far move_mob()
+void  move_mob()
 {
   if (curmob.type == 0)
   {
@@ -6562,7 +6521,7 @@ void __pascal far move_mob()
 }
 
 // seg007:1126
-void __pascal far move_loose()
+void  move_loose()
 {
   if (curmob.speed < 0)
     return;
@@ -6603,7 +6562,7 @@ void __pascal far move_loose()
 }
 
 // seg007:11E8
-void __pascal far loose_land()
+void  loose_land()
 {
   short button_type;
   short tiletype;
@@ -6637,7 +6596,7 @@ void __pascal far loose_land()
 }
 
 // seg007:12CB
-void __pascal far loose_fall()
+void  loose_fall()
 {
   curr_room_modif[curr_tilepos] = remove_loose(curr_room, curr_tilepos);
   curmob.speed >>= 1;
@@ -6649,7 +6608,7 @@ void __pascal far loose_fall()
 }
 
 // seg007:1387
-void __pascal far mob_down_a_row()
+void  mob_down_a_row()
 {
   ++curmob.row;
   if (curmob.row >= 3)
@@ -6662,7 +6621,7 @@ void __pascal far mob_down_a_row()
 
 
 // seg007:14DE
-void __pascal far add_mob_to_objtable(int ypos)
+void  add_mob_to_objtable(int ypos)
 {
   word index;
   objtable_type *curr_obj;
@@ -6680,7 +6639,7 @@ void __pascal far add_mob_to_objtable(int ypos)
 }
 
 // seg007:1556
-int __pascal far is_spike_harmful()
+int  is_spike_harmful()
 {
   sbyte modifier;
   modifier = curr_room_modif[curr_tilepos];
@@ -6703,7 +6662,7 @@ int __pascal far is_spike_harmful()
 }
 
 // seg007:1591
-void __pascal far check_loose_fall_on_kid()
+void  check_loose_fall_on_kid()
 {
   loadkid();
   if (Char.room == curmob.room &&
@@ -6717,7 +6676,7 @@ void __pascal far check_loose_fall_on_kid()
 }
 
 // seg007:15D3
-void __pascal far fell_on_your_head()
+void  fell_on_your_head()
 {
   short frame;
   short action;
@@ -6753,19 +6712,19 @@ void __pascal far fell_on_your_head()
 
 
 // seg005:000A
-void __pascal far seqtbl_offset_char(short seq_index)
+void  seqtbl_offset_char(short seq_index)
 {
   Char.curr_seq = seqtbl_offsets[seq_index];
 }
 
 // seg005:001D
-void __pascal far seqtbl_offset_opp(int seq_index)
+void  seqtbl_offset_opp(int seq_index)
 {
   Opp.curr_seq = seqtbl_offsets[seq_index];
 }
 
 // seg005:0030
-void __pascal far do_fall()
+void  do_fall()
 {
   if (is_screaming == 0 && Char.fall_y >= 31)
   {
@@ -6794,7 +6753,7 @@ void __pascal far do_fall()
 }
 
 // seg005:0090
-void __pascal far land()
+void  land()
 {
   word seq_id;
   is_screaming = 0;
@@ -6885,7 +6844,7 @@ void __pascal far land()
 }
 
 // seg005:01B7
-void __pascal far spiked()
+void  spiked()
 {
   // If someone falls into spikes, those spikes become harmless (to others).
   curr_room_modif[curr_tilepos] = 0xFF;
@@ -6899,7 +6858,7 @@ void __pascal far spiked()
 }
 
 // seg005:0213
-void __pascal far control()
+void  control()
 {
   short char_frame;
   short char_action;
@@ -6965,7 +6924,7 @@ void __pascal far control()
 }
 
 // seg005:02EB
-void __pascal far control_crouched()
+void  control_crouched()
 {
  if (need_level1_music != 0 && current_level == /*1*/ custom->intro_music_level) {
   need_level1_music--;
@@ -6985,7 +6944,7 @@ void __pascal far control_crouched()
 }
 
 // seg005:0358
-void __pascal far control_standing()
+void  control_standing()
 {
   short var_2;
   if (control_shift2 < 0 && control_shift < 0 && check_get_item())
@@ -7090,7 +7049,7 @@ void __pascal far control_standing()
 }
 
 // seg005:0482
-void __pascal far up_pressed()
+void  up_pressed()
 {
   int leveldoor_tilepos = -1;
   if (get_tile_at_char() == tiles_16_level_door_left)
@@ -7117,7 +7076,7 @@ void __pascal far up_pressed()
 }
 
 // seg005:04C7
-void __pascal far down_pressed()
+void  down_pressed()
 {
   control_down = 1; // disable automatic repeat
   if (!tile_is_floor(get_tile_infrontof_char()) &&
@@ -7154,7 +7113,7 @@ void __pascal far down_pressed()
 }
 
 // seg005:0574
-void __pascal far go_up_leveldoor()
+void  go_up_leveldoor()
 {
   Char.x = x_bump[tile_col + 5] + 10;
   Char.direction = dir_FF_left;                   // right
@@ -7162,7 +7121,7 @@ void __pascal far go_up_leveldoor()
 }
 
 // seg005:058F
-void __pascal far control_turning()
+void  control_turning()
 {
   if (control_shift >= 0 && control_x < 0 && control_y >= 0)
   {
@@ -7171,14 +7130,14 @@ void __pascal far control_turning()
 }
 
 // seg005:05AD
-void __pascal far crouch()
+void  crouch()
 {
   seqtbl_offset_char(seq_50_crouch); // crouch
   control_down = release_arrows();
 }
 
 // seg005:05BE
-void __pascal far back_pressed()
+void  back_pressed()
 {
   word seq_id;
   control_backward = release_arrows();
@@ -7200,7 +7159,7 @@ void __pascal far back_pressed()
 }
 
 // seg005:060F
-void __pascal far forward_pressed()
+void  forward_pressed()
 {
   short distance;
   distance = get_edge_distance();
@@ -7220,7 +7179,7 @@ void __pascal far forward_pressed()
 }
 
 // seg005:0649
-void __pascal far control_running()
+void  control_running()
 {
   if (control_x == 0 && (Char.frame == frame_7_run || Char.frame == frame_11_run))
   {
@@ -7244,7 +7203,7 @@ void __pascal far control_running()
 }
 
 // seg005:06A8
-void __pascal far safe_step()
+void  safe_step()
 {
   short distance;
   control_shift2 = 1;  // disable automatic repeat
@@ -7267,7 +7226,7 @@ void __pascal far safe_step()
 }
 
 // seg005:06F0
-int __pascal far check_get_item()
+int  check_get_item()
 {
   if (get_tile_at_char() == tiles_10_potion ||
       curr_tile2 == tiles_22_sword)
@@ -7289,7 +7248,7 @@ int __pascal far check_get_item()
 }
 
 // seg005:073E
-void __pascal far get_item()
+void  get_item()
 {
   short distance;
   if (Char.frame != frame_109_crouch)
@@ -7332,7 +7291,7 @@ void __pascal far get_item()
 }
 
 // seg005:07FF
-void __pascal far control_startrun()
+void  control_startrun()
 {
   if (control_y < 0 && control_x < 0)
   {
@@ -7341,7 +7300,7 @@ void __pascal far control_startrun()
 }
 
 // seg005:0812
-void __pascal far control_jumpup()
+void  control_jumpup()
 {
   if (control_x < 0 || control_forward < 0)
   {
@@ -7350,14 +7309,14 @@ void __pascal far control_jumpup()
 }
 
 // seg005:0825
-void __pascal far standing_jump()
+void  standing_jump()
 {
   control_up = control_forward = 1;        // disable automatic repeat
   seqtbl_offset_char(seq_3_standing_jump); // standing jump
 }
 
 // seg005:0836
-void __pascal far check_jump_up()
+void  check_jump_up()
 {
   control_up = release_arrows();
   through_tile = get_tile_above_char();
@@ -7382,7 +7341,7 @@ void __pascal far check_jump_up()
 }
 
 // seg005:087B
-void __pascal far jump_up_or_grab()
+void  jump_up_or_grab()
 {
   short distance;
   distance = distance_to_edge_weight();
@@ -7405,7 +7364,7 @@ void __pascal far jump_up_or_grab()
 }
 
 // seg005:08C7
-void __pascal far grab_up_no_floor_behind()
+void  grab_up_no_floor_behind()
 {
   get_tile_above_char();
   Char.x = char_dx_forward(distance_to_edge_weight() - 10);
@@ -7413,7 +7372,7 @@ void __pascal far grab_up_no_floor_behind()
 }
 
 // seg005:08E6
-void __pascal far jump_up()
+void  jump_up()
 {
   short distance;
   control_up = release_arrows();
@@ -7434,7 +7393,7 @@ void __pascal far jump_up()
 }
 
 // seg005:0968
-void __pascal far control_hanging()
+void  control_hanging()
 {
   if (Char.alive < 0)
   {
@@ -7476,7 +7435,7 @@ void __pascal far control_hanging()
 }
 
 // seg005:09DF
-void __pascal far can_climb_up()
+void  can_climb_up()
 {
   short seq_id;
   seq_id = seq_10_climb_up; // climb up
@@ -7493,7 +7452,7 @@ void __pascal far can_climb_up()
 }
 
 // seg005:0A46
-void __pascal far hang_fall()
+void  hang_fall()
 {
   control_down = release_arrows();
   if (!tile_is_floor(get_tile_behind_char()) &&
@@ -7515,7 +7474,7 @@ void __pascal far hang_fall()
 }
 
 // seg005:0AA8
-void __pascal far grab_up_with_floor_behind()
+void  grab_up_with_floor_behind()
 {
   short distance;
   distance = distance_to_edge_weight();
@@ -7539,7 +7498,7 @@ void __pascal far grab_up_with_floor_behind()
 }
 
 // seg005:0AF7
-void __pascal far run_jump()
+void  run_jump()
 {
   short var_2;
   short xpos;
@@ -7573,7 +7532,7 @@ void __pascal far run_jump()
 }
 
 // sseg005:0BB5
-void __pascal far back_with_sword()
+void  back_with_sword()
 {
   short frame;
   frame = Char.frame;
@@ -7585,7 +7544,7 @@ void __pascal far back_with_sword()
 }
 
 // seg005:0BE3
-void __pascal far forward_with_sword()
+void  forward_with_sword()
 {
   short frame;
   frame = Char.frame;
@@ -7604,7 +7563,7 @@ void __pascal far forward_with_sword()
 }
 
 // seg005:0C1D
-void __pascal far draw_sword()
+void  draw_sword()
 {
   word seq_id;
   seq_id = seq_55_draw_sword; // draw sword
@@ -7622,7 +7581,7 @@ void __pascal far draw_sword()
 }
 
 // seg005:0C67
-void __pascal far control_with_sword()
+void  control_with_sword()
 {
   short distance;
   if (Char.action < actions_2_hang_climb)
@@ -7672,7 +7631,7 @@ void __pascal far control_with_sword()
 }
 
 // seg005:0CDB
-void __pascal far swordfight()
+void  swordfight()
 {
   short frame;
   short seq_id;
@@ -7734,7 +7693,7 @@ void __pascal far swordfight()
 }
 
 // seg005:0DB0
-void __pascal far sword_strike()
+void  sword_strike()
 {
   short frame;
   short seq_id;
@@ -7768,7 +7727,7 @@ void __pascal far sword_strike()
 }
 
 // seg005:0E0F
-void __pascal far parry()
+void  parry()
 {
   short opp_frame;
   short char_frame;
@@ -7833,7 +7792,7 @@ void __pascal far parry()
 }
 
 // seg008:0006
-void __pascal far redraw_room()
+void  redraw_room()
 {
   memset_near(table_counts, 0, sizeof(table_counts));
   reset_obj_clip();
@@ -7841,7 +7800,7 @@ void __pascal far redraw_room()
 }
 
 // seg008:0035
-void __pascal far load_room_links()
+void  load_room_links()
 {
   room_BR = 0;
   room_BL = 0;
@@ -7897,7 +7856,7 @@ void __pascal far load_room_links()
 }
 
 // seg008:0125
-void __pascal far draw_room()
+void  draw_room()
 {
   word saved_room;
   saved_room = drawn_room;
@@ -7915,10 +7874,8 @@ void __pascal far draw_room()
 
 
 // seg008:1E0C
-void __pascal far get_room_address(int room)
+void  get_room_address(int room)
 {
-  //if (room < 0 || room > 24) printf("Tried to access room %d, not in 0..24.\n", room);
-  loaded_room = (word)room;
   if (room)
   {
     curr_room_tiles = &level.fg[(room - 1) * 30];
@@ -7927,7 +7884,7 @@ void __pascal far get_room_address(int room)
 }
 
 // seg008:2448
-void __pascal far load_frame_to_obj()
+inline void load_frame_to_obj()
 {
   word chtab_base;
   chtab_base = id_chtab_2_kid;

@@ -141,6 +141,9 @@ void Train::computeFrames()
     // Getting thread id
     int threadId = omp_get_thread_num();
 
+    // Thread-local storage for hash
+    absl::flat_hash_set<uint64_t> threadLocalHashDB;
+
     // Profiling timers
     double threadHashCalculationTime = 0.0;
     double threadHashCheckingTime = 0.0;
@@ -182,9 +185,6 @@ void Train::computeFrames()
         // Getting possible move id
         auto moveId = possibleMoveIds[idx];
 
-        // Getting possible move string
-        std::string move = _possibleMoves[moveId].c_str();
-
         // If this comes after the first move, we need to reload the base state
         if (idx > 0)
         {
@@ -199,7 +199,7 @@ void Train::computeFrames()
 
         // Perform the selected move
         t0 = std::chrono::steady_clock::now(); // Profiling
-        _state[threadId]->_miniPop->advanceFrame(move);
+        _state[threadId]->_miniPop->advanceFrame(moveId);
         tf = std::chrono::steady_clock::now();
         threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -214,9 +214,13 @@ void Train::computeFrames()
         // Checking for the existence of the hash in the hash databases (except the current one)
         t0 = std::chrono::steady_clock::now(); // Profiling
 
-        bool collisionDetected = false;
+        // First check locally for collisions
+        bool collisionDetected = !threadLocalHashDB.insert(hash).second;
+
+        // Then check the shared, read-only databases
         for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--) collisionDetected |= _hashDatabases[i]->contains(hash);
 
+        // Finally, check the common read-write databases
         if (collisionDetected == false)
          #pragma omp critical
          collisionDetected |= !_hashDatabases[_hashAgeThreshold-1]->insert(hash).second;
@@ -264,8 +268,11 @@ void Train::computeFrames()
 
           newFrameStep++;
           moveId = possibleNewMoveIds[0];
-          move = _possibleMoves[moveId].c_str();
-          _state[threadId]->_miniPop->advanceFrame(move);
+
+          t0 = std::chrono::steady_clock::now(); // Profiling
+          _state[threadId]->_miniPop->advanceFrame(moveId);
+          tf = std::chrono::steady_clock::now();
+          threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
          }
         } while(possibleNewMoveIds.size() == 1 && type == f_regular && newFrameStep < _MAX_MOVELIST_SIZE);
 
@@ -300,6 +307,9 @@ void Train::computeFrames()
         }
       }
     }
+    // Adding thread-local hash databases into the common DB
+    #pragma omp critical
+    for (const auto& hash : threadLocalHashDB) _hashDatabases[_hashAgeThreshold-1]->insert(hash).second;
 
     // Updating timers
     #pragma omp critical

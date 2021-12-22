@@ -25,7 +25,7 @@ class miniPoPInstance
   void draw(ssize_t mins = -1, ssize_t secs = -1, ssize_t ms = -1);
 
   // Advance a frame
-  void advanceFrame(const std::string &move);
+  void advanceFrame(const uint8_t &move);
 
   // Print information about the current frame
   void printFrameInfo();

@@ -256,50 +256,33 @@ dword miniPoPInstance::reverseRNGState(const dword randomSeed)
 }
 
 
-void miniPoPInstance::advanceFrame(const std::string &move)
+void miniPoPInstance::advanceFrame(const uint8_t &move)
 {
+ // Move Ids =        0    1    2    3    4    5     6     7     8    9     10    11    12    13    14
+ //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
+
  key_states[SDL_SCANCODE_UP] = 0;
  key_states[SDL_SCANCODE_DOWN] = 0;
  key_states[SDL_SCANCODE_LEFT] = 0;
  key_states[SDL_SCANCODE_RIGHT] = 0;
  key_states[SDL_SCANCODE_RSHIFT] = 0;
 
- bool recognizedMove = false;
+ if (move == 0) ;
+ if (move == 1) key_states[SDL_SCANCODE_RSHIFT] = 1;
+ if (move == 2) key_states[SDL_SCANCODE_UP] = 1;
+ if (move == 3) key_states[SDL_SCANCODE_LEFT] = 1;
+ if (move == 4) key_states[SDL_SCANCODE_RIGHT] = 1;
+ if (move == 5) key_states[SDL_SCANCODE_DOWN] = 1;
+ if (move == 6) { key_states[SDL_SCANCODE_LEFT] = 1; key_states[SDL_SCANCODE_UP] = 1; }
+ if (move == 7) { key_states[SDL_SCANCODE_LEFT] = 1; key_states[SDL_SCANCODE_DOWN] = 1; }
+ if (move == 8) { key_states[SDL_SCANCODE_RIGHT] = 1; key_states[SDL_SCANCODE_UP] = 1; }
+ if (move == 9) { key_states[SDL_SCANCODE_RIGHT] = 1; key_states[SDL_SCANCODE_DOWN] = 1; }
+ if (move == 10) { key_states[SDL_SCANCODE_RSHIFT] = 1; key_states[SDL_SCANCODE_RIGHT] = 1; }
+ if (move == 11) { key_states[SDL_SCANCODE_RSHIFT] = 1; key_states[SDL_SCANCODE_LEFT] = 1; }
+ if (move == 12) { key_states[SDL_SCANCODE_RSHIFT] = 1; key_states[SDL_SCANCODE_UP] = 1; }
+ if (move == 13) { key_states[SDL_SCANCODE_RSHIFT] = 1; key_states[SDL_SCANCODE_DOWN] = 1; }
+ if (move == 14) { is_restart_level = 1; }
 
- if (move.find(".") != std::string::npos) { recognizedMove = true; }
- if (move.find("R") != std::string::npos)
- {
-   key_states[SDL_SCANCODE_RIGHT] = 1;
-   recognizedMove = true;
- }
- if (move.find("L") != std::string::npos)
- {
-   key_states[SDL_SCANCODE_LEFT] = 1;
-   recognizedMove = true;
- }
- if (move.find("U") != std::string::npos)
- {
-   key_states[SDL_SCANCODE_UP] = 1;
-   recognizedMove = true;
- }
- if (move.find("D") != std::string::npos)
- {
-   key_states[SDL_SCANCODE_DOWN] = 1;
-   recognizedMove = true;
- }
- if (move.find("S") != std::string::npos)
- {
-   key_states[SDL_SCANCODE_RSHIFT] = 1;
-   recognizedMove = true;
- }
- if (move == "CA") // Ctrl+A
- {
-   is_restart_level = 1;
-   recognizedMove = true;
- }
-
- if (recognizedMove == false)
-   EXIT_WITH_ERROR("[Error] Unrecognized move: %s\n", move.c_str());
 
  guardhp_delta = 0;
  hitp_delta = 0;
