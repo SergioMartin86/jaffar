@@ -15,9 +15,13 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <mpi.h>
 
-// Number of frames to cache for showing purposes
-#define SHOW_FRAME_COUNT 1000
+// Minimum difference between global frame counter and the prescribed maximum
+#define DATABASE_LIMITER_THRESHOLD 1024
+
+// Minimum reward difference between current lower/upper bounds for clipping database
+#define DATABASE_REWARD_THRESHOLD 10.0
 
 class Train
 {
@@ -36,7 +40,9 @@ class Train
   std::string _outputSolutionBestPath;
   bool _showSDLPopPreview;
 
-  // Store the number of openMP threads in use
+  // Store the number of MPI workers and openMP threads in use
+  size_t _workerId;
+  size_t _workerCount;
   int _threadCount;
 
   // Communication schedule for frame exchange
@@ -51,11 +57,19 @@ class Train
   char _sourceFrameData[_FRAME_DATA_SIZE];
 
   // Frame counter
+  size_t _globalNextStepFrameCount;
   size_t _stepFramesProcessedCounter;
   size_t _totalFramesProcessedCounter;
 
+  // Frame counters per worker
+  std::vector<ssize_t> _localNextStepFrameCounts;
+  ssize_t _maxFrameCount;
+  ssize_t _maxFrameWorkerId;
+  ssize_t _minFrameCount;
+  ssize_t _minFrameWorkerId;
+
   // Frame databases
-  size_t _databaseSize;
+  size_t _localStoredFrameCount;
   size_t _maxDatabaseSize;
   std::map<size_t, std::vector<std::unique_ptr<Frame>>> _frameDB;
   std::map<size_t, std::vector<std::unique_ptr<Frame>>> _winFrameDB;
@@ -84,6 +98,9 @@ class Train
 
   // Flag to indicate finalization
   bool _hasFinalized;
+
+  // MPI data type for frame serialization
+  MPI_Datatype _mpiFrameType;
 
   // Printing stats
   void printTrainStatus();
@@ -114,4 +131,5 @@ class Train
   double _stepFrameEncodingTime;
   double _stepFrameDecodingTime;
   double _DBSortingTime;
+  double _DBExchangeTime;
 };

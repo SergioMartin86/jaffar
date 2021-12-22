@@ -9,21 +9,27 @@
 
 void Train::run()
 {
-  printf("[Jaffar] ----------------------------------------------------------------\n");
-  printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
-  printf("[Jaffar] Using configuration file: "); printf("%s ", _scriptFile.c_str()); printf("\n");
-  printf("[Jaffar] Frame size: %lu\n", sizeof(Frame));
-  printf("[Jaffar] Max Frame DB entries: %lu\n", _maxDatabaseSize);
-
-  if (_outputSaveBestSeconds > 0)
+  if (_workerId == 0)
   {
-    printf("[Jaffar] Saving best frame every: %.3f seconds.\n", _outputSaveBestSeconds);
-    printf("[Jaffar]  + Savefile Path: %s\n", _outputSaveBestPath.c_str());
-    printf("[Jaffar]  + Solution Path: %s\n", _outputSolutionBestPath.c_str());
+   printf("[Jaffar] ----------------------------------------------------------------\n");
+   printf("[Jaffar] Launching Jaffar Version %s...\n", JAFFAR_VERSION);
+   printf("[Jaffar] Using configuration file: "); printf("%s ", _scriptFile.c_str()); printf("\n");
+   printf("[Jaffar] Frame size: %lu\n", sizeof(Frame));
+   printf("[Jaffar] Max Frame DB entries: %lu\n", _maxDatabaseSize);
+
+   if (_outputSaveBestSeconds > 0)
+   {
+     printf("[Jaffar] Saving best frame every: %.3f seconds.\n", _outputSaveBestSeconds);
+     printf("[Jaffar]  + Savefile Path: %s\n", _outputSaveBestPath.c_str());
+     printf("[Jaffar]  + Solution Path: %s\n", _outputSolutionBestPath.c_str());
+   }
+
+   // Sleep for a second to show this message
+   sleep(2);
   }
 
-  // Sleep for a second to show this message
-  sleep(2);
+  // Wait for all workers to be ready
+  MPI_Barrier(MPI_COMM_WORLD);
 
   auto searchTimeBegin = std::chrono::steady_clock::now();      // Profiling
   auto currentStepTimeBegin = std::chrono::steady_clock::now(); // Profiling
@@ -33,6 +39,9 @@ void Train::run()
 
   while (terminate == false)
   {
+   // If this is the root rank, plot the best frame and print information
+   if (_workerId == 0)
+   {
     // Profiling information
     auto searchTimeEnd = std::chrono::steady_clock::now();                                                            // Profiling
     _searchTotalTime = std::chrono::duration_cast<std::chrono::nanoseconds>(searchTimeEnd - searchTimeBegin).count(); // Profiling
@@ -43,6 +52,7 @@ void Train::run()
 
     // Printing search status
     printTrainStatus();
+   }
 
     /////////////////////////////////////////////////////////////////
     /// Main frame processing cycle begin
@@ -58,18 +68,20 @@ void Train::run()
     _currentStep++;
 
     // Terminate if all DBs are depleted and no winning rule was found
-    _databaseSize = 0;
-    for (const auto& db : _frameDB) _databaseSize += db.second.size();
-    if (_databaseSize == 0)
+    _localStoredFrameCount = 0;
+    for (const auto& db : _frameDB) _localStoredFrameCount += db.second.size();
+    MPI_Allreduce(&_localStoredFrameCount, &_globalNextStepFrameCount, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+    if (_globalNextStepFrameCount == 0)
     {
-      printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
+      if (_workerId == 0) printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
       terminate = true;
     }
 
     // Terminate if a winning rule was found
     if (_winFrameDB.find(_currentStep) != _winFrameDB.end())
     {
-      printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep-1);
+      if (_workerId == 0) printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep-1);
       _winFrameFound = true;
       terminate = true;
     }
@@ -77,14 +89,14 @@ void Train::run()
     // Terminate if maximum number of frames was reached
     if (_currentStep > _MAX_MOVELIST_SIZE-1)
     {
-      printf("[Jaffar] Maximum frame number reached, finishing...\n");
-      printf("[Jaffar] To run Jaffar for more steps, modify this limit in frame.h and rebuild.\n");
+      if (_workerId == 0) printf("[Jaffar] Maximum frame number reached, finishing...\n");
+      if (_workerId == 0) printf("[Jaffar] To run Jaffar for more steps, modify this limit in frame.h and rebuild.\n");
       terminate = true;
     }
   }
 
   // Print winning frame if found
-  if (_winFrameFound == true)
+  if (_winFrameFound == true) if (_workerId == 0)
   {
     printf("[Jaffar] Win Frame Information:\n");
     size_t timeStep = _currentStep-1;
@@ -115,6 +127,9 @@ void Train::run()
 
   // Stopping show thread
   pthread_join(_showThreadId, NULL);
+
+  // Waiting for all processes to come back
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 
 bool Train::checkForHashCollision(const uint64_t hash)
@@ -154,6 +169,9 @@ void Train::computeFrames()
   _stepFrameSerializationTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
 
+  // Creating next step frame database
+  if(_frameDB.find(_currentStep+1) == _frameDB.end()) _frameDB[_currentStep+1] = std::vector<std::unique_ptr<Frame>>();
+
   // Processing frame database in parallel
   auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
@@ -192,6 +210,9 @@ void Train::computeFrames()
       tf = std::chrono::steady_clock::now();
       threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
+      // Getting current level
+      auto curLevel = current_level;
+
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
       {
@@ -214,17 +235,11 @@ void Train::computeFrames()
          threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
 
-        // Getting current level
-        auto curLevel = current_level;
-
         // Perform the selected move
         t0 = std::chrono::steady_clock::now(); // Profiling
         _state[threadId]->_miniPop->advanceFrame(move);
         tf = std::chrono::steady_clock::now();
         threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
-        // Getting new level (if changed)
-        auto newLevel = current_level;
 
         // Compute hash value
         t0 = std::chrono::steady_clock::now(); // Profiling
@@ -289,30 +304,11 @@ void Train::computeFrames()
         // If frame type is failed, continue to the next one
         if (type == f_fail) continue;
 
-        // if we have advanced, we need to recompute and check for hash collisions
-        if (newFrameStep > _currentStep+1)
-        {
-//         t0 = std::chrono::steady_clock::now(); // Profiling
-//         auto hash = _state[threadId]->computeHash();
-//         tf = std::chrono::steady_clock::now();
-//         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-//
-//         // Checking for the existence of the hash in the hash databases (except the current one)
-//         t0 = std::chrono::steady_clock::now(); // Profiling
-//         collisionDetected = checkForHashCollision(hash);
-//         tf = std::chrono::steady_clock::now();
-//         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-//
-//         if (collisionDetected) { _newCollisionCounter++; continue; }
-
-         // Updating new level
-         newLevel = current_level;
-        }
-
         // Calculating current reward
         newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
 
         // Storing the frame data, only if if belongs to the same level
+        auto newLevel = current_level;
         if (curLevel == newLevel)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
@@ -366,18 +362,249 @@ void Train::computeFrames()
   // Clearing all old frames
   _frameDB.erase(_currentStep);
 
+  // Reference to the next frame database
+  auto& nextDB = _frameDB[_currentStep+1];
+
   // Sorting local DB frames by reward
   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  boost::sort::block_indirect_sort(_frameDB[_currentStep+1].begin(), _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+  boost::sort::block_indirect_sort(nextDB.begin(), nextDB.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
-  // If global frames exceed the maximum allowed, sort and truncate all excessive frames
-  if (_frameDB[_currentStep+1].size() > _maxDatabaseSize) _frameDB[_currentStep+1].resize(_maxDatabaseSize);
+  ///////////////////////////////////////////////////////////////
+  // Database Clipping Start
+  ///////////////////////////////////////////////////////////////
+
+
+  // Calculating number of frames across all workers
+  ssize_t localFrameCounter = nextDB.size();
+  ssize_t globalFrameCounter = 0;
+  MPI_Allreduce(&localFrameCounter, &globalFrameCounter, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  // We need to clip the workers if the following condition is met
+  if (globalFrameCounter > (ssize_t)_maxDatabaseSize + DATABASE_LIMITER_THRESHOLD)
+  {
+    printf("Calculating new threshold...\n");
+
+    // Getting Maximum reward among all workers
+    float localMaxReward = nextDB[0]->reward;
+    float globalMaxReward = 0;
+    MPI_Allreduce(&localMaxReward, &globalMaxReward, 1, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+
+    // Calculating reward threshold that limits the database size
+    float lowerBound = 0.0;
+    float upperBound = globalMaxReward;
+
+    // Iterate until the difference between the lower and upper bound are within the given threshold
+    while (upperBound > lowerBound + DATABASE_REWARD_THRESHOLD)
+    {
+     float midPoint = (upperBound + lowerBound) / 2.0f;
+
+     // Getting frame index that satisfies the current midpoint reward threshold
+     ssize_t curFrameIdx = nextDB.size() - 1;
+     while(curFrameIdx > 0 && nextDB[curFrameIdx]->reward < midPoint) curFrameIdx--;
+
+     // Recalculating frame counter based on the current threshold
+     localFrameCounter = curFrameIdx + 1;
+     globalFrameCounter = 0;
+     MPI_Allreduce(&localFrameCounter, &globalFrameCounter, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+
+     // Adapting lower/upper bounds depending on whether they satisfied the limit
+     if (globalFrameCounter > (ssize_t)_maxDatabaseSize) lowerBound = midPoint;
+     else upperBound = midPoint;
+
+     // If midpoint satisfies criteria already, then finish at this point
+     if (globalFrameCounter >= (ssize_t)_maxDatabaseSize - DATABASE_LIMITER_THRESHOLD && globalFrameCounter <= (ssize_t)_maxDatabaseSize + DATABASE_LIMITER_THRESHOLD)
+     {
+      upperBound = midPoint;
+      break;
+     }
+    }
+
+    // Limiting database to the obtained upper bound
+    ssize_t curFrameIdx = nextDB.size() - 1;
+    while(curFrameIdx > 0 && nextDB[curFrameIdx]->reward < upperBound) curFrameIdx--;
+    nextDB.resize(curFrameIdx);
+  }
+
+  ///////////////////////////////////////////////////////////////
+  // Database Clipping End
+  ///////////////////////////////////////////////////////////////
+
+  ///////////////////////////////////////////////////////////////
+  // Database Redistribution Start
+  ///////////////////////////////////////////////////////////////
+
+  auto DBExchangeTimeBegin = std::chrono::steady_clock::now(); // Profiling
+
+  // Getting worker's own base frame count
+  ssize_t localNextStepFrameCount = nextDB.size();
+
+  // Calculating global frame count
+  MPI_Allreduce(&localNextStepFrameCount, &_globalNextStepFrameCount, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  // Gathering all of te worker's base frame counts
+  MPI_Allgather(&localNextStepFrameCount, 1, MPI_LONG_LONG_INT, _localNextStepFrameCounts.data(), 1, MPI_LONG_LONG_INT, MPI_COMM_WORLD);
+
+  // Getting maximum frame count of all
+  _maxFrameCount = 0;
+  _maxFrameWorkerId = 0;
+  for (size_t i = 0; i < _workerCount; i++)
+   if (_localNextStepFrameCounts[i] > _maxFrameCount)
+    { _maxFrameCount = _localNextStepFrameCounts[i]; _maxFrameWorkerId = i; }
+
+  // Getting minimum frame count of all
+  _minFrameCount = _maxFrameCount;
+  _minFrameWorkerId = 0;
+  for (size_t i = 0; i < _workerCount; i++)
+   if (_localNextStepFrameCounts[i] < _minFrameCount)
+    { _minFrameCount = _localNextStepFrameCounts[i]; _minFrameWorkerId = i; }
+
+  // Figuring out work distribution
+  std::vector<size_t> targetLocalNextFrameCounts = splitVector(_globalNextStepFrameCount, _workerCount);
+  std::vector<size_t> remainLocalNextFrameCounts = targetLocalNextFrameCounts;
+
+  // Determining all-to-all send/recv counts
+  std::vector<std::vector<int>> allToAllSendCounts(_workerCount);
+  std::vector<std::vector<int>> allToAllRecvCounts(_workerCount);
+  for (size_t i = 0; i < _workerCount; i++) allToAllSendCounts[i].resize(_workerCount, 0);
+  for (size_t i = 0; i < _workerCount; i++) allToAllRecvCounts[i].resize(_workerCount, 0);
+
+  // Iterating over sending ranks
+  for (size_t sendWorkerId = 0; sendWorkerId < _workerCount; sendWorkerId++)
+  {
+    auto sendFramesCount = _localNextStepFrameCounts[sendWorkerId];
+    size_t recvWorkerId = 0;
+
+    while (sendFramesCount > 0)
+    {
+     size_t maxRecv = std::min(remainLocalNextFrameCounts[recvWorkerId], 1024ul);
+     size_t maxSend = std::min((size_t)sendFramesCount, 1024ul);
+     size_t exchangeCount = std::min(maxRecv, maxSend);
+
+     sendFramesCount -= exchangeCount;
+     remainLocalNextFrameCounts[recvWorkerId] -= exchangeCount;
+     allToAllSendCounts[sendWorkerId][recvWorkerId] += exchangeCount;
+     allToAllRecvCounts[recvWorkerId][sendWorkerId] += exchangeCount;
+
+     recvWorkerId++;
+     if (recvWorkerId == _workerCount) recvWorkerId = 0;
+    }
+  }
+
+  // Calculate displacements
+  std::vector<int> allToAllSendDisplacements(_workerCount);
+  std::vector<int> allToAllRecvDisplacements(_workerCount);
+  allToAllSendDisplacements[0] = 0;
+  allToAllRecvDisplacements[0] = 0;
+  for (size_t i = 1; i < _workerCount; i++) allToAllSendDisplacements[i] = allToAllSendCounts[_workerId][i-1] + allToAllSendDisplacements[i-1];
+  for (size_t i = 1; i < _workerCount; i++) allToAllRecvDisplacements[i] = allToAllRecvCounts[_workerId][i-1] + allToAllRecvDisplacements[i-1];
+
+  if (_workerId == 0)
+  {
+   printf("Next Frame DB count: %lu\n", _globalNextStepFrameCount);
+   for (size_t i = 0; i < _workerCount; i++)
+   {
+    for (size_t j = 0; j < _workerCount; j++)
+     printf("%d ", allToAllSendCounts[i][j]);
+    printf("\n");
+   }
+
+   for (size_t i = 0; i < _workerCount; i++)
+   {
+    for (size_t j = 0; j < _workerCount; j++)
+     printf("%d ", allToAllRecvCounts[i][j]);
+    printf("\n");
+   }
+  }
+
+  // Calculating total frames to send and receive
+  size_t totalSendFrames = 0;
+  size_t totalRecvFrames = 0;
+  for (size_t i = 0; i < _workerCount; i++) totalSendFrames += allToAllSendCounts[_workerId][i];
+  for (size_t i = 0; i < _workerCount; i++) totalRecvFrames += allToAllRecvCounts[_workerId][i];
+
+  printf("Worker %lu, sendFrames: %lu, recvFrames: %lu\n", _workerId, totalSendFrames, totalRecvFrames);
+
+  // Preparing send buffers
+  size_t curIdx = 0;
+  std::vector<Frame> sendBuffer(totalSendFrames);
+  for (size_t i = 0; i < totalSendFrames; i++)
+  {
+    sendBuffer[curIdx] = *nextDB[curIdx];
+    nextDB[curIdx].reset();
+    curIdx++;
+  }
+
+  // Clearing database
+  nextDB.clear();
+
+  // Preparing recv buffer
+  std::vector<Frame> recvBuffer(totalRecvFrames);
+
+  // Exchanging buffers
+  MPI_Alltoallv(sendBuffer.data(), allToAllSendCounts[_workerId].data(), allToAllSendDisplacements.data(), _mpiFrameType, recvBuffer.data(), allToAllRecvCounts[_workerId].data(), allToAllRecvDisplacements.data(), _mpiFrameType, MPI_COMM_WORLD);
+
+  // Freeing send buffer
+  sendBuffer.clear();
+
+  // Re-adding received frames into the database
+  for (size_t i = 0; i < totalRecvFrames; i++) nextDB.push_back(std::make_unique<Frame>(recvBuffer[i]));
+
+  // Clearing receive buffer
+  recvBuffer.clear();
+
+  auto DBExchangeTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _DBExchangeTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBExchangeTimeEnd - DBExchangeTimeBegin).count(); // Profiling
+
+  ///////////////////////////////////////////////////////////////
+  // Database Redistribution End
+  ///////////////////////////////////////////////////////////////
+
+  ///////////////////////////////////////////////////////////////
+  // Hash Redistribution Start
+  ///////////////////////////////////////////////////////////////
+
+  // Getting worker's own new hash count
+  int localNewHashes = _hashDatabases[_hashAgeThreshold-1]->size();
+  std::vector<int> globalNewHashCounts(_workerCount);
+
+  // Gathering all of te worker's base frame counts
+  MPI_Allgather(&localNewHashes, 1, MPI_INT, globalNewHashCounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+  // Calculate displacements
+  std::vector<int> allGatherDisplacements(_workerCount, 0);
+  for (size_t i = 1; i < _workerCount; i++) allGatherDisplacements[i] = globalNewHashCounts[i-1] + allGatherDisplacements[i-1];
+
+  // Calculating buffer size
+  size_t globalNewHashes = 0;
+  for (size_t i = 0; i < _workerCount; i++) globalNewHashes += globalNewHashCounts[i];
+
+  // Creating hash exchange buffers
+  std::vector<uint64_t> recvHashBuffer(globalNewHashes);
+  std::vector<uint64_t> sendHashBuffer(localNewHashes);
+  size_t curHashIdx = 0;
+  for (const auto hash : *_hashDatabases[_hashAgeThreshold-1]) sendHashBuffer[curHashIdx++] = hash;
+
+  // Exchanging hashes
+  MPI_Allgatherv(sendHashBuffer.data(), localNewHashes, MPI_UINT64_T, recvHashBuffer.data(), globalNewHashCounts.data(), allGatherDisplacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+
+  // Clearing send buffer
+  sendHashBuffer.clear();
+
+  // Adding new hashes
+  for (auto& hash : recvHashBuffer) _hashDatabases[_hashAgeThreshold-1]->insert(hash);
+
+  // Clearing receive buffer
+  recvHashBuffer.clear();
+
+  ///////////////////////////////////////////////////////////////
+  // Hash Redistribution End
+  ///////////////////////////////////////////////////////////////
 
   // Storing best frame
   _bestFrameReward = -1.0;
-  if (_frameDB[_currentStep+1].empty() == false) { _bestFrame = *_frameDB[_currentStep+1][0]; _bestFrameReward = _bestFrame.reward; }
+  if (nextDB.empty() == false) { _bestFrame = *nextDB[0]; _bestFrameReward = _bestFrame.reward; }
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
@@ -408,7 +635,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
-  printf("[Jaffar] Database Size: %lu\n", _databaseSize);
+  printf("[Jaffar] Database Size: %lu\n", _localStoredFrameCount);
   printf("           + First DB - Step %lu: %lu  / %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size(), _maxDatabaseSize);
   printf("           + Last DB  - Step %lu: %lu Frames\n", _frameDB.rbegin()->first, _frameDB.rbegin()->second.size());
   printf("           + Win DB:  - Step %lu: %lu Frames\n", _winFrameDB.empty() ? 0 : _winFrameDB.begin()->first, _winFrameDB.empty() ? 0 : _winFrameDB.begin()->second.size());
@@ -424,6 +651,8 @@ void Train::printTrainStatus()
   printf("[Jaffar]     + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Postprocessing:    %3.3fs\n", _framePostprocessingTime / 1.0e+9);
   printf("[Jaffar]     + DB Sorting               %3.3fs\n", _DBSortingTime / 1.0e+9);
+  printf("[Jaffar]     + DB Exchange              %3.3fs\n", _DBExchangeTime / 1.0e+9);
+
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu / %d\n", _maxFrameDiff, _MAX_FRAME_DIFF);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
@@ -471,6 +700,23 @@ void Train::printTrainStatus()
 
 Train::Train(int argc, char *argv[])
 {
+  // Get the number of processes
+  int mpiSize;
+  MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
+  _workerCount = (size_t)mpiSize;
+
+  // Get the rank of the process
+  int mpiRank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+  _workerId = (size_t)mpiRank;
+
+  // Creating MPI datatype for frames
+  MPI_Type_contiguous(sizeof(Frame), MPI_BYTE, &_mpiFrameType);
+  MPI_Type_commit(&_mpiFrameType);
+
+  // Allocating worker-wide vectors
+  _localNextStepFrameCounts.resize(_workerCount);
+
   // Getting number of openMP threads
   _threadCount = omp_get_max_threads();
 
@@ -586,6 +832,7 @@ Train::Train(int argc, char *argv[])
     _state[threadId] = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
   printf("[Jaffar] miniPop initialized.\n");
 
   // Setting initial values
@@ -593,7 +840,7 @@ Train::Train(int argc, char *argv[])
   _hashCollisions = 0;
   _bestFrameReward = 0;
 
-  // Check rule count does not exceed maximum
+  // Store rule count
   _ruleCount = _state[0]->_rules.size();
 
   // Maximum difference between explored frames and the pivot frame
@@ -626,13 +873,20 @@ Train::Train(int argc, char *argv[])
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
 
-  // Adding frame to the initial database
-  _databaseSize = 1;
-  _frameDB[0].push_back(std::move(initialFrame));
+  // Adding frame to the initial database, only for root worker
+  if (_workerId == 0)
+  {
+   _localStoredFrameCount = 1;
+   _globalNextStepFrameCount = 1;
+   _frameDB[0].push_back(std::move(initialFrame));
+  }
 
-  // Initializing show thread
-  if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)
-    EXIT_WITH_ERROR("[ERROR] Could not create show thread.\n");
+  // Initializing show thread, only for root worker
+  if (_workerId == 0)
+  {
+   if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)
+     EXIT_WITH_ERROR("[ERROR] Could not create show thread.\n");
+  }
 }
 
 // Functions for the show thread
@@ -707,8 +961,16 @@ void Train::showSavingLoop()
 
 int main(int argc, char *argv[])
 {
+  // Initialize the MPI environment
+  const int required = MPI_THREAD_SERIALIZED;
+  int provided;
+  MPI_Init_thread(&argc, &argv, required, &provided);
+  if (required != provided) EXIT_WITH_ERROR("[ERROR] Error initializing threaded MPI");
+
   Train train(argc, argv);
 
   // Running Search
   train.run();
+
+  return MPI_Finalize();
 }

@@ -48,7 +48,13 @@ sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('SDL2_image')
 boost_dep = dependency('boost')
 
+mpi_dep = dependency('mpi', language: 'cpp', required: false)  
+if mpi_dep.found() == false
+ mpi_dep = dependency('mpich', required: false)
+endif
+
 deps = [
+  mpi_dep,
   sdl2_dep,
   sdl2_image_dep,
   dependency('openmp', required: true),
