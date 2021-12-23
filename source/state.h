@@ -32,10 +32,6 @@ struct Item
   ItemType type;
 };
 
-// Current train step is a global variable so every part of the code can see it
-extern size_t _currentStep;
-
-
 // Struct to hold all of the frame's magnet information
 struct magnetInfo_t
 {
@@ -43,6 +39,9 @@ struct magnetInfo_t
  float intensityX;
  float intensityY;
 };
+
+// Current solution step
+extern size_t _currentStep;
 
 class State
 {

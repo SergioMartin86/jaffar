@@ -123,9 +123,8 @@ void Train::computeFrames()
   _stepFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
 
-  // Creating new fresh hash database, discarding an old one
-  delete _hashDatabases[0];
-  _hashDatabases.add(new absl::flat_hash_set<uint64_t>());
+  // Creating shared database for new hashes
+  absl::flat_hash_set<uint64_t> newHashes;
 
   // Initializing step timers
   _stepHashCalculationTime = 0.0;
@@ -219,13 +218,13 @@ void Train::computeFrames()
         // First check locally for collisions
         bool collisionDetected = !threadLocalHashDB.insert(hash).second;
 
-        // Then check the shared, read-only databases
-        for (ssize_t i = _hashAgeThreshold-2; i >= 0 && collisionDetected == false; i--) collisionDetected |= _hashDatabases[i]->contains(hash);
+        // Then check the shared, read-only database
+        collisionDetected |= _pastHashDB.contains(hash);
 
         // Finally, check the common read-write databases
         if (collisionDetected == false)
          #pragma omp critical
-         collisionDetected |= !_hashDatabases[_hashAgeThreshold-1]->insert(hash).second;
+         collisionDetected |= !newHashes.insert(hash).second;
 
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
@@ -322,10 +321,6 @@ void Train::computeFrames()
         }
       }
     }
-    // Adding thread-local hash databases into the common DB
-    #pragma omp critical
-    for (const auto& hash : threadLocalHashDB) _hashDatabases[_hashAgeThreshold-1]->insert(hash).second;
-
     // Updating timers
     #pragma omp critical
     {
@@ -379,6 +374,12 @@ void Train::computeFrames()
   // Re-calculating global collision counter
   _hashCollisions += _newCollisionCounter;
 
+  // Consolidating past hash databases into one, read-only
+  auto pastHashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
+  _pastHashDB.merge(newHashes);
+  auto pastHashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _stepPastHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(pastHashConsolidationTimeEnd - pastHashConsolidationTimeBegin).count(); // Profiling
+
   auto framePostprocessingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
 }
@@ -418,15 +419,14 @@ void Train::printTrainStatus()
   printf("[Jaffar]     + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Postprocessing:    %3.3fs\n", _framePostprocessingTime / 1.0e+9);
   printf("[Jaffar]     + DB Sorting               %3.3fs\n", _DBSortingTime / 1.0e+9);
+  printf("[Jaffar]     + Hash Consolidation:      %3.3fs\n", _stepPastHashConsolidationTime / 1.0e+9);
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu / %d\n", _maxFrameDiff, _MAX_FRAME_DIFF);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
 
-  size_t hashDatabasesEntries = 0;
-  for (size_t i = 0; i < _hashDatabases.size(); i++) hashDatabasesEntries += _hashDatabases[i]->size();
-  printf("[Jaffar] Hash DB Entries: %lu\n", hashDatabasesEntries);
-  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_frameDB.size() * sizeof(Frame)) / (1024.0 * 1024.0));
-  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(hashDatabasesEntries * sizeof(uint64_t)) / (1024.0 * 1024.0));
+  printf("[Jaffar] Hash DB Entries: %lu\n", _pastHashDB.size());
+  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_databaseSize * sizeof(Frame)) / (1024.0 * 1024.0));
+  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_pastHashDB.size() * (sizeof(uint64_t) + sizeof(void*))) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
   _bestFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
@@ -596,10 +596,6 @@ Train::Train(int argc, char *argv[])
   // Setting win status
   _winFrameFound = false;
 
-  // Adding hash databases (one per move up to the given threshold).
-  _hashDatabases.resize(_hashAgeThreshold);
-  for (size_t i = 0; i < _hashAgeThreshold; i++) _hashDatabases.add(new absl::flat_hash_set<uint64_t>());
-
   // Computing initial hash
   const auto hash = _state[0]->computeHash();
 
@@ -615,7 +611,7 @@ Train::Train(int argc, char *argv[])
   initialFrame->reward = _state[0]->getFrameReward(initialFrame->rulesStatus);
 
   // Registering hash for initial frame
-  _hashDatabases[_hashAgeThreshold-1]->insert({ hash, 0 });
+  _pastHashDB.insert(hash);
 
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;

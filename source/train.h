@@ -65,7 +65,7 @@ class Train
   float _bestFrameReward;
 
   // Hash information
-  cBuffer<absl::flat_hash_set<uint64_t>*> _hashDatabases;
+  absl::flat_hash_set<uint64_t> _pastHashDB;
   size_t _hashAgeThreshold;
   size_t _hashCollisions;
 
@@ -108,4 +108,5 @@ class Train
   double _stepFrameEncodingTime;
   double _stepFrameDecodingTime;
   double _DBSortingTime;
+  double _stepPastHashConsolidationTime;
 };
