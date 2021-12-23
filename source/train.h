@@ -16,9 +16,6 @@
 #include <string>
 #include <vector>
 
-// Number of frames to cache for showing purposes
-#define SHOW_FRAME_COUNT 1000
-
 class Train
 {
   public:

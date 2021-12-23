@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef _MAX_FRAME_DIFF
- #define _MAX_FRAME_DIFF 45
+ #define _MAX_FRAME_DIFF 80
 #endif
 
 #ifndef _MAX_RULE_COUNT
@@ -9,7 +9,7 @@
 #endif
 
 #ifndef _MAX_MOVELIST_SIZE
- #define _MAX_MOVELIST_SIZE 350
+ #define _MAX_MOVELIST_SIZE 700
 #endif
 
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
@@ -63,6 +63,8 @@ class Frame
   inline void computeFrameDifference(const char* __restrict__ baseFrameData, const char* __restrict__ newFrameData)
   {
    frameDiffCount = 0;
+   #pragma GCC unroll 64
+   #pragma GCC ivdep
    for (uint16_t i = 0; i < _FRAME_DIFFERENTIAL_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++] = (frameDiff_t) { .pos = i, .val = (uint8_t)newFrameData[i] };
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
    if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d. Increase this maximum in the frame.h source file and rebuild.\n", frameDiffCount, _MAX_FRAME_DIFF);
@@ -72,6 +74,8 @@ class Frame
   inline void getFrameDataFromDifference(const char* __restrict__ baseFrameData, char* __restrict__ stateData) const
   {
     memcpy(stateData, baseFrameData, _FRAME_DIFFERENTIAL_SIZE);
+    #pragma GCC unroll 8
+    #pragma GCC ivdep
     for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffs[i].pos] = frameDiffs[i].val;
     memcpy(&stateData[_FRAME_DIFFERENTIAL_SIZE], fixedStateData, _FRAME_FIXED_SIZE);
   }

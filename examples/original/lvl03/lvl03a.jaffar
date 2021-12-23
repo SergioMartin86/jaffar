@@ -3,18 +3,34 @@
 
   "State Configuration":
   {
-   "Property Hash Types": [ ],
-   "Static Tile Hash Types": [  ],
+   "Property Hash Types": [ "Kid Current HP" ],
+   
+   "Static Tile Hash Types":
+    [ 
+      { "Room": 15, "Column": 26, "Type": "Full" },
+      { "Room": 18, "Column": 6, "Type": "Full" },
+      { "Room": 22, "Column": 25, "Type": "Full" },
+      { "Room": 8, "Column": 23, "Type": "Full" }
+    ],
    
    "Falling Tiles Hash Types": 
    [
-    { "Room": 3, "Column": 8, "Type": "Full" }
+    { "Room": 3, "Column": 8, "Type": "Full" },
+    { "Room": 20, "Column": 8, "Type": "Full" },
+    { "Room": 8, "Column": 8, "Type": "Full" },
+    { "Room": 7, "Column": 16, "Type": "Full" },
+    { "Room": 22, "Column": 16, "Type": "Full" }
    ],
    
    "Active Objects Hash Types":
    [
-     { "Index": 72, "Type": "Full" },
-     { "Index": 39, "Type": "Index Only" }
+     { "Room": 3, "Tile": 13, "Type": "Full", "Comment": "Loose Tile" },
+     { "Room": 7, "Tile": 5, "Type": "Full", "Comment": "Loose Tile" },
+     { "Room": 15, "Tile": 26, "Type": "Full", "Comment": "Loose Tile" },
+     { "Room": 16, "Tile": 24, "Type": "Full", "Comment": "Chomper" },
+     { "Room": 16, "Tile": 25, "Type": "Full", "Comment": "Chomper" },
+     { "Room": 16, "Tile": 26, "Type": "Full", "Comment": "Chomper" },
+     { "Room": 2, "Tile": 10, "Type": "Full", "Comment": "Gate" }
    ]
   },
   

@@ -242,7 +242,7 @@ void Train::computeFrames()
         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
         // Copying move list
-        memcpy(newFrame->rulesStatus, baseFrame->rulesStatus, sizeof(Frame::moveHistory));
+        memcpy(newFrame->moveHistory, baseFrame->moveHistory, sizeof(Frame::moveHistory));
 
         #endif
 
@@ -358,17 +358,20 @@ void Train::computeFrames()
   _frameDB.erase(_currentStep);
 
   // Sorting local DB frames by reward
-  auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  boost::sort::block_indirect_sort(_frameDB[_currentStep+1].begin(), _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
-  auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
+  if (_frameDB[_currentStep+1].size() > _maxDatabaseSize)
+  {
+   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
+   boost::sort::block_indirect_sort(_frameDB[_currentStep+1].begin(), _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
-  // If global frames exceed the maximum allowed, sort and truncate all excessive frames
-  if (_frameDB[_currentStep+1].size() > _maxDatabaseSize) _frameDB[_currentStep+1].resize(_maxDatabaseSize);
+   // If global frames exceed the maximum allowed, sort and truncate all excessive frames
+   if (_frameDB[_currentStep+1].size() > _maxDatabaseSize) _frameDB[_currentStep+1].resize(_maxDatabaseSize);
+  }
 
-  // Storing best frame
-  _bestFrameReward = -1.0;
-  if (_frameDB[_currentStep+1].empty() == false) { _bestFrame = *_frameDB[_currentStep+1][0]; _bestFrameReward = _bestFrame.reward; }
+  // Looking for and storing best frame
+  _bestFrameReward = -std::numeric_limits<float>::infinity();
+  for (const auto& frame : _frameDB[_currentStep+1]) if (frame->reward > _bestFrameReward) { _bestFrame = *frame; _bestFrameReward = _bestFrame.reward; }
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
@@ -688,7 +691,7 @@ void Train::showSavingLoop()
    // Storing the solution sequence
    std::string solutionString;
    solutionString += _possibleMoves[lastFrame.getMove(0)];
-   for (size_t i = 1; i < _currentStep-1; i++)
+   for (size_t i = 1; i < _currentStep; i++)
     solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
    saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
 
