@@ -52,9 +52,6 @@ class State
   // Print Rule information
   void printRuleStatus(const bool* rulesStatus);
 
-  char _inputStateData[_FRAME_DATA_SIZE];
-  char _outputStateData[_FRAME_DATA_SIZE];
-
   // Hash states
   bool _hashKidCurrentHp;
   bool _hashGuardCurrentHp;
@@ -403,27 +400,16 @@ class State
   }
 
   // Serialization/Deserialization Routines
-  inline void pushState()
+  inline void pushState(const char* inputStateData)
   {
-    size_t pos = 0;
-    for (const auto &item : _differentialItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
-    if (pos != _FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with differential state size (%u)\n", pos, _FRAME_DIFFERENTIAL_SIZE);
-    for (const auto &item : _fixedItems) { memcpy(item.ptr, &_inputStateData[pos],item.size); pos += item.size; }
-    if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
-
-    // Show the room where the prince is, even if the player moved the view away
-    // from it (with the H,J,U,N keys).
+    memcpy(&gameState, inputStateData, _FRAME_DATA_SIZE);
     next_room = gameState.drawn_room = gameState.Kid.room;
     load_room_links();
   }
 
-  inline void popState()
+  inline void popState(char* outputStateData)
   {
-    size_t pos = 0;
-    for (const auto &item : _differentialItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
-    if (pos != _FRAME_DIFFERENTIAL_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with differential state size (%u)\n", pos, _FRAME_DIFFERENTIAL_SIZE);
-    for (const auto &item : _fixedItems) { memcpy(&_outputStateData[pos], item.ptr, item.size); pos += item.size; }
-    if (pos != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("State size (%lu) does not coincide with configured state size (%u)\n", pos, _FRAME_DATA_SIZE);
+   memcpy(outputStateData, &gameState, _FRAME_DATA_SIZE);
   }
 
   // Get frame type

@@ -1425,6 +1425,7 @@ typedef struct directory_listing_type directory_listing_type;
 
 #endif
 
+#pragma pack(push,1)
 struct gameState_t {
  char quick_control[9];
  level_type level;
@@ -1497,3 +1498,4 @@ struct gameState_t {
  word is_guard_notice;
  short can_guard_see_kid;
 };
+#pragma pack(pop)

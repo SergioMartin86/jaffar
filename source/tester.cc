@@ -196,8 +196,9 @@ Tester::Tester(int argc, char *argv[])
 
   // Creating base frame
   _baseFrame = std::make_unique<Frame>();
-  _state[0]->popState();
-  _baseFrame->computeFrameDifference(_sourceFrameData, _state[0]->_outputStateData);
+  char baseFrameData[_FRAME_DATA_SIZE];
+  _state[0]->popState(baseFrameData);
+  _baseFrame->computeFrameDifference(_sourceFrameData, baseFrameData);
   for (size_t i = 0; i < _ruleCount; i++) _baseFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame

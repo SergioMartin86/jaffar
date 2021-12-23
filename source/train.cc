@@ -94,8 +94,9 @@ void Train::run()
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
 
     _winFrame = *_winFrameDB[_currentStep][0];
-    _winFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
-    _state[0]->pushState();
+    char winFrameData[_FRAME_DATA_SIZE];
+    _winFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData);
+    _state[0]->pushState(winFrameData);
     _state[0]->_miniPop->printFrameInfo();
     _state[0]->printRuleStatus(_winFrame.rulesStatus);
 
@@ -170,8 +171,7 @@ void Train::computeFrames()
 
       // Getting possible moves for the current frame
       t0 = std::chrono::steady_clock::now(); // Profiling
-      memcpy(_state[threadId]->_inputStateData, baseFrameData, _FRAME_DATA_SIZE);
-      _state[threadId]->pushState();
+      _state[threadId]->pushState(baseFrameData);
       std::vector<uint8_t> possibleMoveIds = _state[threadId]->getPossibleMoveIds();
       tf = std::chrono::steady_clock::now();
       threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
@@ -190,7 +190,7 @@ void Train::computeFrames()
         if (idx > 0)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
-         _state[threadId]->pushState();
+         _state[threadId]->pushState(baseFrameData);
          tf = std::chrono::steady_clock::now();
          threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
@@ -303,12 +303,13 @@ void Train::computeFrames()
         if (curLevel == gameState.current_level)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
-         _state[threadId]->popState();
+         char newFrameData[_FRAME_DATA_SIZE];
+         _state[threadId]->popState(newFrameData);
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
          t0 = std::chrono::steady_clock::now(); // Profiling
-         newFrame->computeFrameDifference(_sourceFrameData, _state[threadId]->_outputStateData);
+         newFrame->computeFrameDifference(_sourceFrameData, newFrameData);
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
@@ -429,8 +430,9 @@ void Train::printTrainStatus()
   printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_pastHashDB.size() * (sizeof(uint64_t) + sizeof(void*))) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
-  _bestFrame.getFrameDataFromDifference(_sourceFrameData, _state[0]->_inputStateData);
-  _state[0]->pushState();
+  char bestFrameData[_FRAME_DATA_SIZE];
+  _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData);
+  _state[0]->pushState(bestFrameData);
   _state[0]->_miniPop->printFrameInfo();
   _state[0]->printRuleStatus(_bestFrame.rulesStatus);
 
@@ -600,8 +602,9 @@ Train::Train(int argc, char *argv[])
   const auto hash = _state[0]->computeHash();
 
   auto initialFrame = std::make_unique<Frame>();
-  _state[0]->popState();
-  initialFrame->computeFrameDifference(_sourceFrameData, _state[0]->_outputStateData);
+  char initialFrameData[_FRAME_DATA_SIZE];
+  _state[0]->popState(initialFrameData);
+  initialFrame->computeFrameDifference(_sourceFrameData, initialFrameData);
   for (size_t i = 0; i < _ruleCount; i++) initialFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame

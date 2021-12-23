@@ -237,8 +237,7 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   _fixedItems = GenerateFixedItemsMap(_miniPop);
 
   // Update the SDLPop instance with the savefile contents
-  memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
-  pushState();
+  pushState(saveString.data());
 
   // Starting level
   _miniPop->startLevel(gameState.next_level);
@@ -251,8 +250,7 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   play_frame();
 
   // Update the SDLPop instance with the savefile contents again
-  memcpy(_inputStateData, saveString.data(), _FRAME_DATA_SIZE);
-  pushState();
+  pushState(saveString.data());
 
   // If we require seed to be overwitten, do it now:
   if (seed >= 0)
