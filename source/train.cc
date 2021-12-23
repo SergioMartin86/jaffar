@@ -196,7 +196,7 @@ void Train::computeFrames()
         }
 
         // Getting current level
-        auto curLevel = current_level;
+        auto curLevel = gameState.current_level;
 
         // Perform the selected move
         t0 = std::chrono::steady_clock::now(); // Profiling
@@ -300,7 +300,7 @@ void Train::computeFrames()
         newFrame->reward = _state[threadId]->getFrameReward(newFrame->rulesStatus);
 
         // Storing the frame data, only if if belongs to the same level
-        if (curLevel == current_level)
+        if (curLevel == gameState.current_level)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
          _state[threadId]->popState();
@@ -435,7 +435,7 @@ void Train::printTrainStatus()
   _state[0]->printRuleStatus(_bestFrame.rulesStatus);
 
   // Getting kid room
-  int kidCurrentRoom = Kid.room;
+  int kidCurrentRoom = gameState.Kid.room;
 
   // Getting magnet values for the kid
   auto kidMagnet = _state[0]->getKidMagnetValues(_bestFrame.rulesStatus, kidCurrentRoom);
@@ -444,7 +444,7 @@ void Train::printTrainStatus()
   printf("[Jaffar]  + Kid Vertical Magnet Intensity: %.1f\n", kidMagnet.intensityY);
 
   // Getting guard room
-  int guardCurrentRoom = Guard.room;
+  int guardCurrentRoom = gameState.Guard.room;
 
   // Getting magnet values for the guard
   auto guardMagnet = _state[0]->getGuardMagnetValues(_bestFrame.rulesStatus, guardCurrentRoom);

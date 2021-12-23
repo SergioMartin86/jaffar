@@ -83,18 +83,18 @@ class State
 
     // Manual hashing
 
-    hash.Update(level.guards_x);
-    hash.Update(level.guards_dir);
-    if (Guard.alive) hash.Update(Guard);
-    if (_hashKidCurrentHp == true) hash.Update(hitp_curr);
-    if (_hashGuardCurrentHp == true) hash.Update(guardhp_curr);
-    if (_hashTrobCount == true) hash.Update(trobs_count);
+    hash.Update(gameState.level.guards_x);
+    hash.Update(gameState.level.guards_dir);
+    if (gameState.Guard.alive) hash.Update(gameState.Guard);
+    if (_hashKidCurrentHp == true) hash.Update(gameState.hitp_curr);
+    if (_hashGuardCurrentHp == true) hash.Update(gameState.guardhp_curr);
+    if (_hashTrobCount == true) hash.Update(gameState.trobs_count);
 
 
     // Mobs are moving objects (falling tiles only afaik).
-    for (int i = 0; i < mobs_count; i++)
+    for (int i = 0; i < gameState.mobs_count; i++)
     {
-     const auto &mob = mobs[i];
+     const auto &mob = gameState.mobs[i];
      const auto idx = std::make_pair(mob.room, mob.xh);
      if (_hashTypeMobs.count(idx))
      {
@@ -105,21 +105,21 @@ class State
     }
 
     // Trobs are stationary animated objects. They only change in state, hence we only read BG
-    for (int i = 0; i < trobs_count; ++i)
+    for (int i = 0; i < gameState.trobs_count; ++i)
     {
-      const auto &trob = trobs[i];
+      const auto &trob = gameState.trobs[i];
       const auto idx = (trob.room - 1) * 30 + trob.tilepos;
 
       if (_hashTypeTrobs.count(idx))
       {
        const auto hashType = _hashTypeTrobs.at(idx);
        if (hashType == INDEX_ONLY) hash.Update(idx * 255);
-       if (hashType == FULL) { hash.Update(level.bg[idx] + idx * 255 ); }
+       if (hashType == FULL) { hash.Update(gameState.level.bg[idx] + idx * 255 ); }
       }
     }
 
     // Computing hash for static objects. They only change on tile type, hence we only read FG
-    for (const auto idx : _hashTypeStatic)  hash.Update(level.fg[idx] + idx * 255);
+    for (const auto idx : _hashTypeStatic)  hash.Update(gameState.level.fg[idx] + idx * 255);
 
     uint64_t result;
     hash.Finalize(reinterpret_cast<uint8_t *>(&result));
@@ -133,51 +133,51 @@ class State
     //_possibleMoves = {".", "S", "U", "L", "R", "D", "LU", "LD", "RU", "RD", "SR", "SL", "SU", "SD", "CA" };
 
     // If dead, do nothing
-    if (Kid.alive >= 0)
+    if (gameState.Kid.alive >= 0)
       return {0};
 
     // For level 1, if kid touches ground and music plays, try restarting level
-    if (Kid.frame == 109 && need_level1_music == 33)
+    if (gameState.Kid.frame == 109 && gameState.need_level1_music == 33)
       return {0, 14};
 
     // If bumped, nothing to do
-    if (Kid.action == actions_5_bumped)
+    if (gameState.Kid.action == actions_5_bumped)
       return {0};
 
     // If in mid air or free fall, hope to grab on to something
-    if (Kid.action == actions_3_in_midair || Kid.action == actions_4_in_freefall)
+    if (gameState.Kid.action == actions_3_in_midair || gameState.Kid.action == actions_4_in_freefall)
       return {0, 1};
 
     // Move, sheath, attack, parry
-    if (Kid.sword == sword_2_drawn)
+    if (gameState.Kid.sword == sword_2_drawn)
       return {0, 1, 2, 3, 4, 5};
 
     // Kid is standing or finishing a turn, try all possibilities
-    if (Kid.frame == frame_15_stand || (Kid.frame >= frame_50_turn && Kid.frame < 53))
+    if (gameState.Kid.frame == frame_15_stand || (gameState.Kid.frame >= frame_50_turn && gameState.Kid.frame < 53))
       return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
     // Turning frame, try all possibilities
-    if (Kid.frame == frame_48_turn)
+    if (gameState.Kid.frame == frame_48_turn)
       return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
     // Start running animation, all movement without shift
-    if (Kid.frame < 4)
+    if (gameState.Kid.frame < 4)
       return {0, 2, 3, 4, 5, 6, 7, 8, 9};
 
     // Starting jump up, check directions, jump and shift
-    if (Kid.frame >= frame_67_start_jump_up_1 && Kid.frame < frame_70_jumphang)
+    if (gameState.Kid.frame >= frame_67_start_jump_up_1 && gameState.Kid.frame < frame_70_jumphang)
       return {0, 1, 2, 3, 4, 5, 6, 8, 12};
 
     // Running, all movement without shift
-    if (Kid.frame < 15)
+    if (gameState.Kid.frame < 15)
       return {0, 2, 3, 4, 5, 6, 7, 8, 9};
 
     // Hanging, up and shift are only options
-    if (Kid.frame >= frame_87_hanging_1 && Kid.frame < 100)
+    if (gameState.Kid.frame >= frame_87_hanging_1 && gameState.Kid.frame < 100)
       return {0, 1, 2, 12};
 
     // Crouched, can only stand, drink, or hop
-    if (Kid.frame == frame_109_crouch)
+    if (gameState.Kid.frame == frame_109_crouch)
       return {0, 1, 3, 4, 5, 7, 9, 13};
 
     // Default, no nothing
@@ -259,16 +259,16 @@ class State
       reward += _rules[ruleId]->_reward;
 
     // Getting kid room
-    int kidCurrentRoom = Kid.room;
+    int kidCurrentRoom = gameState.Kid.room;
 
     // Getting magnet values for the kid
     auto kidMagnet = getKidMagnetValues(rulesStatus, kidCurrentRoom);
 
     // Getting kid's current frame
-    const auto curKidFrame = Kid.frame;
+    const auto curKidFrame = gameState.Kid.frame;
 
     // Evaluating kidMagnet's reward on the X axis
-    const float kidDiffX = std::abs(Kid.x - kidMagnet.positionX);
+    const float kidDiffX = std::abs(gameState.Kid.x - kidMagnet.positionX);
     reward += (float) kidMagnet.intensityX * (256.0f - kidDiffX);
 
     // For positive Y axis kidMagnet, rewarding climbing frames
@@ -285,7 +285,7 @@ class State
       if (curKidFrame >= 135 && curKidFrame <= 149) reward += (float) kidMagnet.intensityY * (22.0f + (curKidFrame - 134));
 
       // Adding absolute reward for Y position
-      reward += (float) kidMagnet.intensityY * (256.0f - Kid.y);
+      reward += (float) kidMagnet.intensityY * (256.0f - gameState.Kid.y);
     }
 
     // For negative Y axis kidMagnet, rewarding falling/climbing down frames
@@ -310,27 +310,27 @@ class State
       if (curKidFrame == 148) reward += -2.0f + (float) kidMagnet.intensityY;
 
       // Adding absolute reward for Y position
-      reward += (float) -1.0f * kidMagnet.intensityY * (Kid.y);
+      reward += (float) -1.0f * kidMagnet.intensityY * (gameState.Kid.y);
     }
 
     // Getting guard room
-    int guardCurrentRoom = Guard.room;
+    int guardCurrentRoom = gameState.Guard.room;
 
     // Getting magnet values for the guard
     auto guardMagnet = getGuardMagnetValues(rulesStatus, guardCurrentRoom);
 
     // Getting guard's current frame
-    const auto curGuardFrame = Guard.frame;
+    const auto curGuardFrame = gameState.Guard.frame;
 
     // Evaluating guardMagnet's reward on the X axis
-    const float guardDiffX = std::abs(Guard.x - guardMagnet.positionX);
+    const float guardDiffX = std::abs(gameState.Guard.x - guardMagnet.positionX);
     reward += (float) guardMagnet.intensityX * (256.0f - guardDiffX);
 
     // For positive Y axis guardMagnet
     if ((float) guardMagnet.intensityY > 0.0f)
     {
      // Adding absolute reward for Y position
-     reward += (float) guardMagnet.intensityY * (256.0f - Guard.y);
+     reward += (float) guardMagnet.intensityY * (256.0f - gameState.Guard.y);
     }
 
     // For negative Y axis guardMagnet, rewarding falling/climbing down frames
@@ -343,7 +343,7 @@ class State
       if (curGuardFrame == 106) reward += -2.0f + (float) guardMagnet.intensityY;
 
       // Adding absolute reward for Y position
-      reward += (float) -1.0f * guardMagnet.intensityY * (Guard.y);
+      reward += (float) -1.0f * guardMagnet.intensityY * (gameState.Guard.y);
     }
 
     // Apply bonus when kid is inside a non-visible room
@@ -353,7 +353,7 @@ class State
     if (curKidFrame >= 217 && curKidFrame <= 228) reward += 2000.0f;
 
     // For some levels, keeping HP allows for later skips
-    reward += hitp_curr * 100.0f;
+    reward += gameState.hitp_curr * 100.0f;
 
     // Returning reward
     return reward;
@@ -413,7 +413,7 @@ class State
 
     // Show the room where the prince is, even if the player moved the view away
     // from it (with the H,J,U,N keys).
-    next_room = drawn_room = Kid.room;
+    next_room = gameState.drawn_room = gameState.Kid.room;
     load_room_links();
   }
 

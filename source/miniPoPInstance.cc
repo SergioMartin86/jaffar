@@ -73,8 +73,8 @@ void miniPoPInstance::initialize()
   //////////////////////////////////////////////
   // init_game_main
 
-  doorlink1_ad = /*&*/ level.doorlinks1;
-  doorlink2_ad = /*&*/ level.doorlinks2;
+  doorlink1_ad = /*&*/ gameState.level.doorlinks1;
+  doorlink2_ad = /*&*/ gameState.level.doorlinks2;
   guard_palettes = (byte *)load_from_opendats_alloc(10, "bin", NULL, NULL);
 
   // Level color variations (1.3)
@@ -98,22 +98,22 @@ void miniPoPInstance::initialize()
   text_time_remaining = 0;
   text_time_total = 0;
   is_show_time = 1;
-  checkpoint = 0;
-  upside_down = 0; // N.B. upside_down is also reset in set_start_pos()
+  gameState.checkpoint = 0;
+  gameState.upside_down = 0; // N.B. gameState.upside_down is also reset in set_start_pos()
   resurrect_time = 0;
-  rem_min = custom->start_minutes_left; // 60
-  rem_tick = custom->start_ticks_left;  // 719
-  hitp_beg_lev = custom->start_hitp;    // 3
-  current_level = 0;
+  gameState.rem_min = custom->start_minutes_left; // 60
+  gameState.rem_tick = custom->start_ticks_left;  // 719
+  gameState.hitp_beg_lev = custom->start_hitp;    // 3
+  gameState.current_level = 0;
   startLevel(1);
-  need_level1_music = custom->intro_music_time_initial;
+  gameState.need_level1_music = custom->intro_music_time_initial;
 }
 
 void miniPoPInstance::startLevel(const word level)
 {
  ///////////////////////////////////////////////////////////////
   // play_level
-  if (level != current_level) load_lev_spr(level);
+  if (level != gameState.current_level) load_lev_spr(level);
 
   load_kid_sprite();
   load_level();
@@ -121,51 +121,51 @@ void miniPoPInstance::startLevel(const word level)
   clear_coll_rooms();
   clear_saved_ctrl();
 
-  drawn_room = 0;
-  mobs_count = 0;
-  trobs_count = 0;
+  gameState.drawn_room = 0;
+  gameState.mobs_count = 0;
+  gameState.trobs_count = 0;
   next_sound = -1;
-  holding_sword = 0;
-  grab_timer = 0;
-  can_guard_see_kid = 0;
-  united_with_shadow = 0;
-  flash_time = 0;
-  leveldoor_open = 0;
-  demo_index = 0;
-  demo_time = 0;
-  guardhp_curr = 0;
+  gameState.holding_sword = 0;
+  gameState.grab_timer = 0;
+  gameState.can_guard_see_kid = 0;
+  gameState.united_with_shadow = 0;
+  gameState.flash_time = 0;
+  gameState.leveldoor_open = 0;
+  gameState.demo_index = 0;
+  gameState.demo_time = 0;
+  gameState.guardhp_curr = 0;
   hitp_delta = 0;
-  Guard.charid = charid_2_guard;
-  Guard.direction = dir_56_none;
+  gameState.Guard.charid = charid_2_guard;
+  gameState.Guard.direction = dir_56_none;
   do_startpos();
 
   // (level_number != 1)
-  have_sword = (level == 0 || level >= custom->have_sword_from_level);
+  gameState.have_sword = (level == 0 || level >= custom->have_sword_from_level);
 
   find_start_level_door();
 
- if (need_level1_music != 0 && current_level == custom->intro_music_level)
-   need_level1_music = custom->intro_music_time_restart;
+ if (gameState.need_level1_music != 0 && gameState.current_level == custom->intro_music_level)
+   gameState.need_level1_music = custom->intro_music_time_restart;
 }
 
 void miniPoPInstance::setSeed(const dword randomSeed)
 {
-  random_seed = randomSeed;
+  gameState.random_seed = randomSeed;
 }
 
 size_t miniPoPInstance::getElapsedMins()
 {
- return 60 - rem_min;
+ return 60 - gameState.rem_min;
 }
 
 size_t miniPoPInstance::getElapsedSecs()
 {
- return (720 - rem_tick) / 12;
+ return (720 - gameState.rem_tick) / 12;
 }
 
 size_t miniPoPInstance::getElapsedMilisecs()
 {
- return ceil( ((double)((720 - rem_tick) % 12) * (60.0 / 720.0)) * 1000.0 );
+ return ceil( ((double)((720 - gameState.rem_tick) % 12) * (60.0 / 720.0)) * 1000.0 );
 }
 
 void miniPoPInstance::draw(ssize_t mins, ssize_t secs, ssize_t ms)
@@ -291,30 +291,30 @@ void miniPoPInstance::advanceFrame(const uint8_t &move)
 
  if (is_restart_level == 1)
  {
-  startLevel(current_level);
+  startLevel(gameState.current_level);
   draw_level_first();
  }
 
  // if we're on lvl 4, check mirror
- if (current_level == 4)
+ if (gameState.current_level == 4)
  {
-  if (jumped_through_mirror == -1) Guard.x = 245;
+  if (jumped_through_mirror == -1) gameState.Guard.x = 245;
   check_mirror();
  }
 
  // If level has changed, then load it
- if (current_level != next_level)
+ if (gameState.current_level != gameState.next_level)
  {
-  if (current_level == custom->copyprot_level-1 && next_level == custom->copyprot_level)
-   next_level = 15;
+  if (gameState.current_level == custom->copyprot_level-1 && gameState.next_level == custom->copyprot_level)
+   gameState.next_level = 15;
 
-  if (current_level == 15)
-   next_level = custom->copyprot_level;
+  if (gameState.current_level == 15)
+   gameState.next_level = custom->copyprot_level;
 
-  startLevel(next_level);
+  startLevel(gameState.next_level);
 
   // Handle cutscenes
-  //if (next_level == 2) for (size_t i = 0; i < 3; i++) random_seed = advanceRNGState(random_seed);
+  //if (gameState.next_level == 2) for (size_t i = 0; i < 3; i++) gameState.random_seed = advanceRNGState(gameState.random_seed);
  }
 
  is_restart_level = 0;
@@ -322,7 +322,7 @@ void miniPoPInstance::advanceFrame(const uint8_t &move)
 
 int miniPoPInstance::getKidSequenceId()
 {
- int seqIdx = Kid.curr_seq;
+ int seqIdx = gameState.Kid.curr_seq;
  for (int i = 0; i < 113; i++)
   if (seqIdx >= seqOffsets[i] && seqIdx < seqOffsets[i+1]) return i;
  return 153; // Unrecognized
@@ -330,7 +330,7 @@ int miniPoPInstance::getKidSequenceId()
 
 int miniPoPInstance::getGuardSequenceId()
 {
- int seqIdx = Guard.curr_seq;
+ int seqIdx = gameState.Guard.curr_seq;
  for (int i = 0; i < 113; i++)
   if (seqIdx >= seqOffsets[i] && seqIdx < seqOffsets[i+1])
    return i;
@@ -340,14 +340,14 @@ int miniPoPInstance::getGuardSequenceId()
 
 void miniPoPInstance::printFrameInfo()
 {
-  printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", current_level, next_level);
+  printf("[Jaffar]  + Current/Next Level: %2d / %2d\n", gameState.current_level, gameState.next_level);
   printf("[Jaffar]  + Cumulative IGT: %2lu:%02lu.%03lu\n", getElapsedMins(), getElapsedSecs(), getElapsedMilisecs());
-  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d\n", int(Kid.room), int(Kid.x), int(Kid.y), int(Kid.frame), int(hitp_curr), int(hitp_max));
-  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d\n", int(Guard.room), int(Guard.x), int(Guard.y), int(Guard.frame), int(guardhp_curr), int(guardhp_max));
-  printf("[Jaffar]  + Exit Room Timer: %d\n", exit_room_timer);
-  printf("[Jaffar]  + Reached Checkpoint: %s\n", checkpoint ? "Yes" : "No");
-  printf("[Jaffar]  + Feather Fall: %d\n", is_feather_fall);
-  printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", random_seed, last_loose_sound);
+  printf("[Jaffar]  + [Kid]   Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d\n", int(gameState.Kid.room), int(gameState.Kid.x), int(gameState.Kid.y), int(gameState.Kid.frame), int(gameState.hitp_curr), int(gameState.hitp_max));
+  printf("[Jaffar]  + [Guard] Room: %d, Pos.x: %3d, Pos.y: %3d, Frame: %3d, HP: %d/%d\n", int(gameState.Guard.room), int(gameState.Guard.x), int(gameState.Guard.y), int(gameState.Guard.frame), int(gameState.guardhp_curr), int(gameState.guardhp_max));
+  printf("[Jaffar]  + Exit Room Timer: %d\n", gameState.exit_room_timer);
+  printf("[Jaffar]  + Reached Checkpoint: %s\n", gameState.checkpoint ? "Yes" : "No");
+  printf("[Jaffar]  + Feather Fall: %d\n", gameState.is_feather_fall);
+  printf("[Jaffar]  + RNG State: 0x%08X (Last Loose Tile Sound Id: %d)\n", gameState.random_seed, gameState.last_loose_sound);
 }
 
 miniPoPInstance::miniPoPInstance()

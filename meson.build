@@ -63,7 +63,7 @@ executable('jaffar-train',
   dependencies: deps,
   include_directories: inc,
   link_args: [ ],
-  c_args: [ '-Wno-implicit', '-w' ],
+  c_args: [ '-Wno-implicit', '-w', '-Wfatal-errors'],
   cpp_args: [ '-Wfatal-errors', '-funroll-loops'] + jaffar_flags
   )
   
@@ -73,7 +73,7 @@ executable('jaffar-tester',
   dependencies: deps,
   include_directories: inc,
   link_args: [ ],
-  c_args: [ '-Wno-implicit', '-w' ],
+  c_args: [ '-Wno-implicit', '-w', '-Wfatal-errors' ],
   cpp_args: [ '-Wfatal-errors' ] + jaffar_flags
   )
 

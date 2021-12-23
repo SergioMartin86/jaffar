@@ -300,56 +300,56 @@ datatype_t Rule::getPropertyType(const std::string &property)
 
 void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop, const int index)
 {
-  if (property == "Kid Frame") return &Kid.frame;
-  if (property == "Kid Current HP") return &hitp_curr;
-  if (property == "Kid Max HP") return &hitp_max;
-  if (property == "Kid Position X") return &Kid.x;
-  if (property == "Kid Position Y") return &Kid.y;
-  if (property == "Kid Direction") return &Kid.direction;
-  if (property == "Kid Current Column") return &Kid.curr_col;
-  if (property == "Kid Current Row") return &Kid.curr_row;
-  if (property == "Kid Action") return &Kid.action;
-  if (property == "Kid Fall Velocity X") return &Kid.fall_x;
-  if (property == "Kid Fall Velocity Y") return &Kid.fall_y;
-  if (property == "Kid Room") return &Kid.room;
-  if (property == "Kid Repeat") return &Kid.repeat;
-  if (property == "Kid Character Id") return &Kid.charid;
-  if (property == "Kid Holds Sword") return &Kid.sword;
-  if (property == "Kid Has Sword") return &have_sword;
-  if (property == "Kid Is Alive") return &Kid.alive;
-  if (property == "Kid Current Sequence") return &Kid.curr_seq;
+  if (property == "Kid Frame") return &gameState.Kid.frame;
+  if (property == "Kid Current HP") return &gameState.hitp_curr;
+  if (property == "Kid Max HP") return &gameState.hitp_max;
+  if (property == "Kid Position X") return &gameState.Kid.x;
+  if (property == "Kid Position Y") return &gameState.Kid.y;
+  if (property == "Kid Direction") return &gameState.Kid.direction;
+  if (property == "Kid Current Column") return &gameState.Kid.curr_col;
+  if (property == "Kid Current Row") return &gameState.Kid.curr_row;
+  if (property == "Kid Action") return &gameState.Kid.action;
+  if (property == "Kid Fall Velocity X") return &gameState.Kid.fall_x;
+  if (property == "Kid Fall Velocity Y") return &gameState.Kid.fall_y;
+  if (property == "Kid Room") return &gameState.Kid.room;
+  if (property == "Kid Repeat") return &gameState.Kid.repeat;
+  if (property == "Kid Character Id") return &gameState.Kid.charid;
+  if (property == "Kid Holds Sword") return &gameState.Kid.sword;
+  if (property == "Kid Has Sword") return &gameState.have_sword;
+  if (property == "Kid Is Alive") return &gameState.Kid.alive;
+  if (property == "Kid Current Sequence") return &gameState.Kid.curr_seq;
 
-  if (property == "Guard Frame") return &Guard.frame;
-  if (property == "Guard Current HP") return &guardhp_curr;
-  if (property == "Guard Max HP") return &guardhp_max;
-  if (property == "Guard Position X") return &Guard.x;
-  if (property == "Guard Position Y") return &Guard.y;
-  if (property == "Guard Direction") return &Guard.direction;
-  if (property == "Guard Current Column") return &Guard.curr_col;
-  if (property == "Guard Current Row") return &Guard.curr_row;
-  if (property == "Guard Action") return &Guard.action;
-  if (property == "Guard Fall Velocity X") return &Guard.fall_x;
-  if (property == "Guard Fall Velocity Y") return &Guard.fall_y;
-  if (property == "Guard Room") return &Guard.room;
-  if (property == "Guard Repeat") return &Guard.repeat;
-  if (property == "Guard Character Id") return &Guard.charid;
-  if (property == "Guard Has Sword") return &Guard.sword;
-  if (property == "Guard Is Alive") return &Guard.alive;
-  if (property == "Guard Current Sequence") return &Guard.curr_seq;
+  if (property == "Guard Frame") return &gameState.Guard.frame;
+  if (property == "Guard Current HP") return &gameState.guardhp_curr;
+  if (property == "Guard Max HP") return &gameState.guardhp_max;
+  if (property == "Guard Position X") return &gameState.Guard.x;
+  if (property == "Guard Position Y") return &gameState.Guard.y;
+  if (property == "Guard Direction") return &gameState.Guard.direction;
+  if (property == "Guard Current Column") return &gameState.Guard.curr_col;
+  if (property == "Guard Current Row") return &gameState.Guard.curr_row;
+  if (property == "Guard Action") return &gameState.Guard.action;
+  if (property == "Guard Fall Velocity X") return &gameState.Guard.fall_x;
+  if (property == "Guard Fall Velocity Y") return &gameState.Guard.fall_y;
+  if (property == "Guard Room") return &gameState.Guard.room;
+  if (property == "Guard Repeat") return &gameState.Guard.repeat;
+  if (property == "Guard Character Id") return &gameState.Guard.charid;
+  if (property == "Guard Has Sword") return &gameState.Guard.sword;
+  if (property == "Guard Is Alive") return &gameState.Guard.alive;
+  if (property == "Guard Current Sequence") return &gameState.Guard.curr_seq;
 
-  if (property == "Current Level") return &current_level;
-  if (property == "Next Level") return &next_level;
-  if (property == "Drawn Room") return &drawn_room;
-  if (property == "Checkpoint Reached") return &checkpoint;
-  if (property == "Is Upside Down") return &upside_down;
-  if (property == "Is Feather Fall") return &is_feather_fall;
-  if (property == "Needs Level 1 Music") return &need_level1_music;
-  if (property == "United With Shadow") return &united_with_shadow;
-  if (property == "Exit Door Timer") return &leveldoor_open;
+  if (property == "Current Level") return &gameState.current_level;
+  if (property == "Next Level") return &gameState.next_level;
+  if (property == "Drawn Room") return &gameState.drawn_room;
+  if (property == "Checkpoint Reached") return &gameState.checkpoint;
+  if (property == "Is Upside Down") return &gameState.upside_down;
+  if (property == "Is Feather Fall") return &gameState.is_feather_fall;
+  if (property == "Needs Level 1 Music") return &gameState.need_level1_music;
+  if (property == "United With Shadow") return &gameState.united_with_shadow;
+  if (property == "Exit Door Timer") return &gameState.leveldoor_open;
   if (property == "Current Step") return &_currentStep;
 
-  if (property == "Tile FG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile FG State.\n"); return &level.fg[index]; }
-  if (property == "Tile BG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile BG State.\n"); return &level.bg[index]; }
+  if (property == "Tile FG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile FG State.\n"); return &gameState.level.fg[index]; }
+  if (property == "Tile BG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile BG State.\n"); return &gameState.level.bg[index]; }
 
   EXIT_WITH_ERROR("[Error] Rule %lu, unrecognized property: %s\n", _label, property.c_str());
 
