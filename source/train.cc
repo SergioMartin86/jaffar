@@ -487,10 +487,6 @@ Train::Train(int argc, char *argv[])
   // Setting starting step
   _currentStep = 0;
 
-  // Parsing max hash DB entries
-  if (const char *hashAgeThresholdString = std::getenv("JAFFAR_HASH_AGE_THRESHOLD")) _hashAgeThreshold = std::stol(hashAgeThresholdString);
-  else EXIT_WITH_ERROR("[Jaffar] JAFFAR_HASH_AGE_THRESHOLD environment variable not defined.\n");
-
   // Parsing max frame DB entries
   size_t maxDBSizeMb = 0;
   if (const char *MaxDBMBytesEnvString = std::getenv("JAFFAR_MAX_FRAME_DATABASE_SIZE_MB")) maxDBSizeMb = std::stol(MaxDBMBytesEnvString);

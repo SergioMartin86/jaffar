@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef _MAX_FRAME_DIFF
- #define _MAX_FRAME_DIFF 80
+ #define _MAX_FRAME_DIFF 50
 #endif
 
 #ifndef _MAX_RULE_COUNT
@@ -63,7 +63,7 @@ class Frame
   inline void computeFrameDifference(const char* __restrict__ baseFrameData, const char* __restrict__ newFrameData)
   {
    frameDiffCount = 0;
-   #pragma GCC unroll 64
+   #pragma GCC unroll 32
    #pragma GCC ivdep
    for (uint16_t i = 0; i < _FRAME_DIFFERENTIAL_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++] = (frameDiff_t) { .pos = i, .val = (uint8_t)newFrameData[i] };
    if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
@@ -74,7 +74,7 @@ class Frame
   inline void getFrameDataFromDifference(const char* __restrict__ baseFrameData, char* __restrict__ stateData) const
   {
     memcpy(stateData, baseFrameData, _FRAME_DIFFERENTIAL_SIZE);
-    #pragma GCC unroll 8
+    #pragma GCC unroll 32
     #pragma GCC ivdep
     for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffs[i].pos] = frameDiffs[i].val;
     memcpy(&stateData[_FRAME_DIFFERENTIAL_SIZE], fixedStateData, _FRAME_FIXED_SIZE);

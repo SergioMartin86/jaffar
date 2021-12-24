@@ -3284,7 +3284,7 @@ void  determine_col()
 }
 
 
-void get_frame_internal(const frame_type frame_table[], int frame, const char *frame_table_name, int count)
+inline void get_frame_internal(const frame_type frame_table[], int frame, const char *frame_table_name, int count)
 {
   if (frame >= 0 && frame < count)
   {
@@ -3292,14 +3292,14 @@ void get_frame_internal(const frame_type frame_table[], int frame, const char *f
   }
   else
   {
-    printf("Tried to use %s[%d], not in 0..%d\n", frame_table_name, frame, count - 1);
+    // printf("Tried to use %s[%d], not in 0..%d\n", frame_table_name, frame, count - 1);
     static const frame_type blank_frame = {255, 0, 0, 0, 0};
     cur_frame = blank_frame;
   }
 }
 
 // seg006:015A
-void  load_frame()
+inline void load_frame()
 {
   short frame;
   short add_frame;

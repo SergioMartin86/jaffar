@@ -66,7 +66,6 @@ class Train
 
   // Hash information
   absl::flat_hash_set<uint64_t> _pastHashDB;
-  size_t _hashAgeThreshold;
   size_t _hashCollisions;
 
   // Per-step local hash collision counter
