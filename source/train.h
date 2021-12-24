@@ -8,6 +8,7 @@
 #include "state.h"
 #include "cbuffer.hpp"
 #include <absl/container/flat_hash_set.h>
+#include <absl/container/flat_hash_map.h>
 #include <algorithm>
 #include <chrono>
 #include <memory>
@@ -15,6 +16,9 @@
 #include <random>
 #include <string>
 #include <vector>
+
+// The frequency with which we clean the hash database of old entries
+#define HASH_DATABASE_CLEAN_FREQUENCY 10
 
 class Train
 {
@@ -65,7 +69,8 @@ class Train
   float _bestFrameReward;
 
   // Hash information
-  absl::flat_hash_set<uint64_t> _pastHashDB;
+  size_t _hashAgeThreshold;
+  absl::flat_hash_map<uint64_t, uint16_t> _pastHashDB;
   size_t _hashCollisions;
 
   // Per-step local hash collision counter

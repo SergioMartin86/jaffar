@@ -3284,7 +3284,7 @@ void  determine_col()
 }
 
 
-inline void get_frame_internal(const frame_type frame_table[], int frame, const char *frame_table_name, int count)
+void get_frame_internal(const frame_type frame_table[], int frame, const char *frame_table_name, int count)
 {
   if (frame >= 0 && frame < count)
   {

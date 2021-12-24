@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <algorithm>
 #include <set>
-#include <boost/sort/sort.hpp>
 
 void Train::run()
 {
@@ -219,7 +218,8 @@ void Train::computeFrames()
         bool collisionDetected = !threadLocalHashDB.insert(hash).second;
 
         // Then check the shared, read-only database
-        collisionDetected |= _pastHashDB.contains(hash);
+        if (collisionDetected == false)
+         collisionDetected |= _pastHashDB.contains(hash);
 
         // Finally, check the common read-write databases
         if (collisionDetected == false)
@@ -357,12 +357,14 @@ void Train::computeFrames()
   if (_frameDB[_currentStep+1].size() > _maxDatabaseSize)
   {
    auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-   boost::sort::block_indirect_sort(_frameDB[_currentStep+1].begin(), _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
-   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
    // If global frames exceed the maximum allowed, sort and truncate all excessive frames
-   if (_frameDB[_currentStep+1].size() > _maxDatabaseSize) _frameDB[_currentStep+1].resize(_maxDatabaseSize);
+   auto m = _frameDB[_currentStep+1].begin() + _maxDatabaseSize;
+   std::nth_element(_frameDB[_currentStep+1].begin(), m, _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+   _frameDB[_currentStep+1].resize(_maxDatabaseSize);
+
+   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
   }
 
   // Looking for and storing best frame
@@ -377,7 +379,17 @@ void Train::computeFrames()
 
   // Consolidating past hash databases into one, read-only
   auto pastHashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  _pastHashDB.merge(newHashes);
+
+  // Filtering old hashes
+  if (_currentStep % HASH_DATABASE_CLEAN_FREQUENCY == 0)
+  {
+   auto itr = _pastHashDB.begin();
+   while (itr != _pastHashDB.end()) if (_currentStep - itr->second > _hashAgeThreshold) _pastHashDB.erase(itr++); else itr++;
+  }
+
+  // Merging new hashes
+  for (const auto& hash : newHashes) _pastHashDB[hash] = _currentStep;
+
   auto pastHashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepPastHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(pastHashConsolidationTimeEnd - pastHashConsolidationTimeBegin).count(); // Profiling
 
@@ -427,7 +439,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Hash DB Entries: %lu\n", _pastHashDB.size());
   printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_databaseSize * sizeof(Frame)) / (1024.0 * 1024.0));
-  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_pastHashDB.size() * (sizeof(uint64_t) + sizeof(void*))) / (1024.0 * 1024.0));
+  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_pastHashDB.size() * (sizeof(uint64_t) + sizeof(uint16_t) + sizeof(void*))) / (1024.0 * 1024.0));
   printf("[Jaffar] Best Frame Information:\n");
 
   char bestFrameData[_FRAME_DATA_SIZE];
@@ -486,6 +498,10 @@ Train::Train(int argc, char *argv[])
 
   // Setting starting step
   _currentStep = 0;
+
+  // Parsing max hash DB entries
+  if (const char *hashAgeThresholdString = std::getenv("JAFFAR_HASH_AGE_THRESHOLD")) _hashAgeThreshold = std::stol(hashAgeThresholdString);
+  else EXIT_WITH_ERROR("[Jaffar] JAFFAR_HASH_AGE_THRESHOLD environment variable not defined.\n");
 
   // Parsing max frame DB entries
   size_t maxDBSizeMb = 0;
@@ -610,7 +626,7 @@ Train::Train(int argc, char *argv[])
   initialFrame->reward = _state[0]->getFrameReward(initialFrame->rulesStatus);
 
   // Registering hash for initial frame
-  _pastHashDB.insert(hash);
+  _pastHashDB[0] = hash;
 
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
