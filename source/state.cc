@@ -4,94 +4,6 @@
 extern nlohmann::json _scriptJs;
 size_t _currentStep;
 
-template <class T>
-void AddItem(std::vector<Item> *dest, T &val, ItemType type)
-{
-  dest->push_back({&val, sizeof(val), type});
-}
-
-std::vector<Item> GenerateDifferentialItemsMap(miniPoPInstance *_miniPop)
-{
-  std::vector<Item> dest;
-  AddItem(&dest, gameState.quick_control, PER_FRAME_STATE);
-  AddItem(&dest, gameState.level, HASHABLE_MANUAL);
-  AddItem(&dest, gameState.checkpoint, PER_FRAME_STATE);
-  AddItem(&dest, gameState.upside_down, PER_FRAME_STATE);
-  AddItem(&dest, gameState.drawn_room, HASHABLE);
-  AddItem(&dest, gameState.current_level, PER_FRAME_STATE);
-  AddItem(&dest, gameState.next_level, PER_FRAME_STATE);
-  AddItem(&dest, gameState.mobs_count, HASHABLE_MANUAL);
-  AddItem(&dest, gameState.mobs, HASHABLE_MANUAL);
-  AddItem(&dest, gameState.trobs_count, HASHABLE_MANUAL);
-  AddItem(&dest, gameState.trobs, HASHABLE_MANUAL);
-  return dest;
-}
-
-std::vector<Item> GenerateFixedItemsMap(miniPoPInstance *_miniPop)
-{
-  std::vector<Item> dest;
-  AddItem(&dest, gameState.leveldoor_open, HASHABLE);
-  AddItem(&dest, gameState.Kid, HASHABLE);
-  AddItem(&dest, gameState.hitp_curr, HASHABLE_MANUAL);
-  AddItem(&dest, gameState.hitp_max, PER_FRAME_STATE);
-  AddItem(&dest, gameState.hitp_beg_lev, PER_FRAME_STATE);
-  AddItem(&dest, gameState.grab_timer, HASHABLE);
-  AddItem(&dest, gameState.holding_sword, HASHABLE);
-  AddItem(&dest, gameState.united_with_shadow, HASHABLE);
-  AddItem(&dest, gameState.have_sword, HASHABLE);
-  AddItem(&dest, gameState.kid_sword_strike, HASHABLE);
-  AddItem(&dest, gameState.pickup_obj_type, PER_FRAME_STATE);
-  AddItem(&dest, gameState.offguard, HASHABLE);
-  AddItem(&dest, gameState.Guard, PER_FRAME_STATE);
-  AddItem(&dest, gameState.Char, PER_FRAME_STATE);
-  AddItem(&dest, gameState.Opp, PER_FRAME_STATE);
-  AddItem(&dest, gameState.guardhp_curr, PER_FRAME_STATE);
-  AddItem(&dest, gameState.guardhp_max, PER_FRAME_STATE);
-  AddItem(&dest, gameState.demo_index, PER_FRAME_STATE);
-  AddItem(&dest, gameState.demo_time, PER_FRAME_STATE);
-  AddItem(&dest, gameState.curr_guard_color, PER_FRAME_STATE);
-  AddItem(&dest, gameState.guard_notice_timer, HASHABLE);
-  AddItem(&dest, gameState.guard_skill, PER_FRAME_STATE);
-  AddItem(&dest, gameState.shadow_initialized, PER_FRAME_STATE);
-  AddItem(&dest, gameState.guard_refrac, HASHABLE);
-  AddItem(&dest, gameState.justblocked, HASHABLE);
-  AddItem(&dest, gameState.droppedout, HASHABLE);
-  AddItem(&dest, gameState.curr_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, gameState.curr_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, gameState.below_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, gameState.below_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, gameState.above_row_coll_room, PER_FRAME_STATE);
-  AddItem(&dest, gameState.above_row_coll_flags, PER_FRAME_STATE);
-  AddItem(&dest, gameState.prev_collision_row, PER_FRAME_STATE);
-  AddItem(&dest, gameState.flash_color, PER_FRAME_STATE);
-  AddItem(&dest, gameState.flash_time, PER_FRAME_STATE);
-  AddItem(&dest, gameState.need_level1_music, HASHABLE);
-  AddItem(&dest, gameState.is_screaming, HASHABLE);
-  AddItem(&dest, gameState.is_feather_fall, HASHABLE);
-  AddItem(&dest, gameState.last_loose_sound, PER_FRAME_STATE);
-  AddItem(&dest, gameState.random_seed, PER_FRAME_STATE);
-  AddItem(&dest, gameState.rem_min, PER_FRAME_STATE);
-  AddItem(&dest, gameState.rem_tick, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_x, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_y, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_shift, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_forward, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_backward, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_up, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_down, PER_FRAME_STATE);
-  AddItem(&dest, gameState.control_shift2, PER_FRAME_STATE);
-  AddItem(&dest, gameState.ctrl1_forward, PER_FRAME_STATE);
-  AddItem(&dest, gameState.ctrl1_backward, PER_FRAME_STATE);
-  AddItem(&dest, gameState.ctrl1_up, PER_FRAME_STATE);
-  AddItem(&dest, gameState.ctrl1_down, PER_FRAME_STATE);
-  AddItem(&dest, gameState.ctrl1_shift2, PER_FRAME_STATE);
-  AddItem(&dest, gameState.exit_room_timer, PER_FRAME_STATE);
-  AddItem(&dest, gameState.replay_curr_tick, PER_FRAME_STATE);
-  AddItem(&dest, gameState.is_guard_notice, PER_FRAME_STATE);
-  AddItem(&dest, gameState.can_guard_see_kid, PER_FRAME_STATE);
-  return dest;
-}
-
 State::State(const std::string& saveString, const nlohmann::json stateConfig, const nlohmann::json rulesConfig, const int seed)
 {
   // Setting hash types
@@ -231,10 +143,6 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
      }
     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as satisfied by rule %lu.\n", label, satisfiedId);
    }
-
-  // Generating hash items map
-  _differentialItems = GenerateDifferentialItemsMap(_miniPop);
-  _fixedItems = GenerateFixedItemsMap(_miniPop);
 
   // Update the SDLPop instance with the savefile contents
   pushState(saveString.data());

@@ -158,7 +158,6 @@ void Train::computeFrames()
   _stepFrameDeserializationTime = 0.0;
 
   // Processing frame database in parallel
-  auto frameComputationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   #pragma omp parallel
   {
     // Getting thread id
@@ -359,9 +358,6 @@ void Train::computeFrames()
     }
   }
 
-  auto frameComputationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _frameComputationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameComputationTimeEnd - frameComputationTimeBegin).count(); // Profiling
-
   // Updating timer averages
   _stepHashCalculationTime /= _threadCount;
   _stepHashCheckingTime /= _threadCount;
@@ -371,29 +367,34 @@ void Train::computeFrames()
   _stepFrameEncodingTime /= _threadCount;
   _stepFrameDecodingTime /= _threadCount;
 
-  // Postprocessing steps
-  auto framePostprocessingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
   // Clearing all old frames
   _frameDB.erase(_currentStep);
 
   // Sorting local DB frames by reward
+  auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
   if (_frameDB[_currentStep+1].size() > _maxDatabaseSize)
   {
-   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
    // If global frames exceed the maximum allowed, sort and truncate all excessive frames
    auto m = _frameDB[_currentStep+1].begin() + _maxDatabaseSize;
    std::nth_element(_frameDB[_currentStep+1].begin(), m, _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
    _frameDB[_currentStep+1].resize(_maxDatabaseSize);
-
-   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
   }
 
-  // Looking for and storing best frame
+  // Looking for and storing best/worst frame
   _bestFrameReward = -std::numeric_limits<float>::infinity();
-  for (const auto& frame : _frameDB[_currentStep+1]) if (frame->reward > _bestFrameReward) { _bestFrame = *frame; _bestFrameReward = _bestFrame.reward; }
+  _worstFrameReward = std::numeric_limits<float>::infinity();
+  for (const auto& frame : _frameDB[_currentStep+1])
+  {
+   if (frame->reward > _bestFrameReward) { _bestFrame = *frame; _bestFrameReward = _bestFrame.reward; }
+   if (frame->reward < _worstFrameReward) { _worstFrame = *frame; _worstFrameReward = _worstFrame.reward; }
+  }
+
+  auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
+
+  // Calculating future frame count
+  _futureFrameCount = 0;
+  for (auto& db : _frameDB) if (db.first > _currentStep+1) _futureFrameCount += db.second.size();
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
@@ -416,9 +417,6 @@ void Train::computeFrames()
 
   auto pastHashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepPastHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(pastHashConsolidationTimeEnd - pastHashConsolidationTimeBegin).count(); // Profiling
-
-  auto framePostprocessingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _framePostprocessingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(framePostprocessingTimeEnd - framePostprocessingTimeBegin).count(); // Profiling
 }
 
 
@@ -439,28 +437,26 @@ void Train::printTrainStatus()
   size_t maxMilliSecs = floor((double)(maxStep % 12) / 0.012);
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
-  printf("[Jaffar] Best Reward: %f\n", _bestFrameReward);
-  printf("[Jaffar] Database Size: %lu\n", _databaseSize);
-  printf("           + First DB - Step %lu: %lu  / %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size(), _maxDatabaseSize);
+  printf("[Jaffar] Worst Reward / Best Reward: %f / %f\n", _worstFrameReward, _bestFrameReward);
+  printf("[Jaffar] Database Size (Current/Future/Limit): %lu (%lu / %lu / %lu)\n", _databaseSize, _frameDB[_currentStep].size(), _futureFrameCount, _maxDatabaseSize);
+  printf("           + First DB - Step %lu: %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size());
   printf("           + Last DB  - Step %lu: %lu Frames\n", _frameDB.rbegin()->first, _frameDB.rbegin()->second.size());
   printf("           + Win DB:  - Step %lu: %lu Frames\n", _winFrameDB.empty() ? 0 : _winFrameDB.begin()->first, _winFrameDB.empty() ? 0 : _winFrameDB.begin()->second.size());
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
-  printf("[Jaffar]   + Frame Computation:       %3.3fs\n", _frameComputationTime / 1.0e+9);
-  printf("[Jaffar]     + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
-  printf("[Jaffar]     + Hash Checking:           %3.3fs\n", _stepHashCheckingTime / 1.0e+9);
-  printf("[Jaffar]     + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
-  printf("[Jaffar]     + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
-  printf("[Jaffar]     + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
-  printf("[Jaffar]     + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
-  printf("[Jaffar]     + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
-  printf("[Jaffar]   + Frame Postprocessing:    %3.3fs\n", _framePostprocessingTime / 1.0e+9);
-  printf("[Jaffar]     + DB Sorting               %3.3fs\n", _DBSortingTime / 1.0e+9);
-  printf("[Jaffar]     + Hash Consolidation:      %3.3fs\n", _stepPastHashConsolidationTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Checking:           %3.3fs\n", _stepHashCheckingTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepPastHashConsolidationTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Sorting            %3.3fs\n", _DBSortingTime / 1.0e+9);
+
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu / %d\n", _maxFrameDiff, _MAX_FRAME_DIFF);
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
-
   printf("[Jaffar] Hash DB Entries: %lu\n", _pastHashDB.size());
   printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_databaseSize * sizeof(Frame)) / (1024.0 * 1024.0));
   printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_pastHashDB.size() * (sizeof(uint64_t) + sizeof(uint16_t) + sizeof(void*))) / (1024.0 * 1024.0));
@@ -513,12 +509,12 @@ Train::Train(int argc, char *argv[])
   // Profiling information
   _searchTotalTime = 0.0;
   _currentStepTime = 0.0;
-  _frameComputationTime = 0.0;
 
   // Initializing counters
   _stepFramesProcessedCounter = 0;
   _totalFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
+  _futureFrameCount = 0;
 
   // Setting starting step
   _currentStep = 0;

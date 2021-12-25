@@ -9,27 +9,11 @@
 #include <vector>
 #include <set>
 
-// Enumerations and structs
-enum ItemType
-{
-  PER_FRAME_STATE,
-  HASHABLE,
-  HASHABLE_MANUAL,
-};
-
 enum hashType
 {
   NONE,
   INDEX_ONLY,
   FULL,
-};
-
-
-struct Item
-{
-  void *ptr;
-  size_t size;
-  ItemType type;
 };
 
 // Struct to hold all of the frame's magnet information
@@ -63,8 +47,6 @@ class State
   std::vector<Rule *> _rules;
   size_t _ruleCount;
   miniPoPInstance *_miniPop;
-  std::vector<Item> _differentialItems;
-  std::vector<Item> _fixedItems;
 
   // Inlined functions
 
@@ -74,19 +56,31 @@ class State
     // Storage for hash calculation
     MetroHash64 hash;
 
-    // For items that are automatically hashable, do that now
-    for (const auto &item : _differentialItems) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
-    for (const auto &item : _fixedItems) if (item.type == HASHABLE) hash.Update(item.ptr, item.size);
+    // Adding fixed hash elements
+    hash.Update(gameState.drawn_room);
+    hash.Update(gameState.leveldoor_open);
+    hash.Update(gameState.Kid);
+    hash.Update(gameState.Guard);
+    hash.Update(gameState.grab_timer);
+    hash.Update(gameState.holding_sword);
+    hash.Update(gameState.united_with_shadow);
+    hash.Update(gameState.have_sword);
+    hash.Update(gameState.kid_sword_strike);
+    hash.Update(gameState.offguard);
+    hash.Update(gameState.guard_notice_timer);
+    hash.Update(gameState.guard_refrac);
+    hash.Update(gameState.justblocked);
+    hash.Update(gameState.droppedout);
+    hash.Update(gameState.need_level1_music);
+    hash.Update(gameState.is_screaming);
+    hash.Update(gameState.is_feather_fall);
 
     // Manual hashing
-
     hash.Update(gameState.level.guards_x);
     hash.Update(gameState.level.guards_dir);
-    if (gameState.Guard.alive) hash.Update(gameState.Guard);
     if (_hashKidCurrentHp == true) hash.Update(gameState.hitp_curr);
     if (_hashGuardCurrentHp == true) hash.Update(gameState.guardhp_curr);
     if (_hashTrobCount == true) hash.Update(gameState.trobs_count);
-
 
     // Mobs are moving objects (falling tiles only afaik).
     for (int i = 0; i < gameState.mobs_count; i++)

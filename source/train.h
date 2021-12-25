@@ -40,9 +40,6 @@ class Train
   // Store the number of openMP threads in use
   int _threadCount;
 
-  // Communication schedule for frame exchange
-  std::vector<size_t> _communicationSchedule;
-
   // Craeting State class instance, one per openMP thread
   std::vector<State *> _state;
   State* _showState;
@@ -54,6 +51,7 @@ class Train
   // Frame counter
   size_t _stepFramesProcessedCounter;
   size_t _totalFramesProcessedCounter;
+  size_t _futureFrameCount;
 
   // Frame databases
   size_t _databaseSize;
@@ -64,9 +62,11 @@ class Train
   // Frame database for showing
   std::vector<Frame> _showFrameDB;
 
-  // Storage for the best frame
+  // Storage for the best and worst frame
   Frame _bestFrame;
   float _bestFrameReward;
+  Frame _worstFrame;
+  float _worstFrameReward;
 
   // Hash information
   size_t _hashAgeThreshold;
@@ -102,8 +102,6 @@ class Train
   // Profiling and Debugging
   double _searchTotalTime;
   double _currentStepTime;
-  double _frameComputationTime;
-  double _framePostprocessingTime;
   double _stepHashCalculationTime;
   double _stepHashCheckingTime;
   double _stepFrameAdvanceTime;
