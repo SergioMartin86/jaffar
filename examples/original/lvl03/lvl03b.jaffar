@@ -4,15 +4,25 @@
   "State Configuration":
   {
    "Property Hash Types": [ ],
-   "Static Tile Hash Types": [  ],
+   "Static Tile Hash Types":
+   [ 
+    { "Room": 3, "Tile": 13, "Type": "Full" },
+    { "Room": 8, "Tile": 23, "Type": "Full" }
+   ],
    
    "Falling Tiles Hash Types": 
    [
+    { "Room": 3, "Column": 8, "Type": "Full" },
+    { "Room": 20, "Column": 8, "Type": "Full" },
+    { "Room": 8, "Column": 8, "Type": "Full" }
    ],
    
    "Active Objects Hash Types":
    [
-    { "Index": 129, "Type": "Full" }
+    { "Room": 6, "Tile": 24, "Type": "Full", "Comment": "Exit Door" },
+    { "Room": 3, "Tile": 13, "Type": "Full", "Comment": "Loose Tile" },
+    { "Room": 5, "Tile": 10, "Type": "Full", "Comment": "Gate" },
+    { "Room": 5, "Tile": 5, "Type": "Full", "Comment": "Chomper" }
    ]
   },
   

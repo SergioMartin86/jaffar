@@ -4,7 +4,13 @@
   "State Configuration":
   {
    "Property Hash Types": [ ],
-   "Static Tile Hash Types": [ ],
+   "Static Tile Hash Types":
+   [
+    { "Room": 4, "Tile": 18 },
+    { "Room": 4, "Tile": 19 },
+    { "Room": 4, "Tile": 28 },
+    { "Room": 4, "Tile": 29 }
+   ],
    
    "Falling Tiles Hash Types": 
    [
@@ -12,11 +18,49 @@
    
    "Active Objects Hash Types":
    [
+    { "Room": 4, "Tile": 18, "Type": "Full", "Comment": "Loose Tile" },
+    { "Room": 4, "Tile": 19, "Type": "Full", "Comment": "Loose Tile" }
    ]
   },
   
   "Rules":
   [
+   {
+    "Label": 2100,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "<", "Value":  0 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
+    {
+    "Label": 2101,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": ">", "Value":  24 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
    {
     "Label": 2000,
     "Description": "Reward arrival to the level. Setting magnet to make kid go to the left on the first screen",

@@ -20,6 +20,42 @@
   "Rules":
   [
    {
+    "Label": 2100,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": "<", "Value":  0 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
+    {
+    "Label": 2101,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  2 },
+     { "Property": "Kid Room", "Op": ">", "Value":  24 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
+   {
     "Label": 2007,
     "Description": "Make kid keep going up and then left.",
     "Conditions":

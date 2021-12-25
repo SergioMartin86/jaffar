@@ -4,27 +4,70 @@
   "State Configuration":
   {
    "Property Hash Types": [ ],
-   "Static Tile Hash Types": [  ],
+   "Static Tile Hash Types":
+   [ 
+    { "Room": 3, "Tile": 13, "Type": "Full" },
+    { "Room": 8, "Tile": 23, "Type": "Full" }
+   ],
    
    "Falling Tiles Hash Types": 
    [
+    { "Room": 3, "Column": 8, "Type": "Full" },
+    { "Room": 20, "Column": 8, "Type": "Full" },
+    { "Room": 8, "Column": 8, "Type": "Full" }
    ],
    
    "Active Objects Hash Types":
    [
+    { "Room": 3, "Tile": 13, "Type": "Full", "Comment": "Loose Tile" }
    ]
   },
   
   "Rules":
    [
     {
+    "Label": 3100,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  3 },
+     { "Property": "Kid Room", "Op": "<", "Value":  0 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+
+   { 
+    "Label": 3101,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Current Level", "Op": "==", "Value":  3 },
+     { "Property": "Kid Room", "Op": ">", "Value":  24 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   },
+   
+    {
      "Label": 3015,
      "Description": "Rewarding kid for coming back upstairs.",
      "Conditions":
      [
       { "Property": "Current Level", "Op": "==", "Value":  3 },
-      { "Property": "Kid Room", "Op": "==", "Value":  5 },
-      { "Property": "Exit Door Open", "Op": "==", "Value":  1 }
+      { "Property": "Kid Room", "Op": "==", "Value":  5 }
      ],
      
      "Dependencies": [ ],
@@ -44,8 +87,7 @@
      "Conditions":
      [
       { "Property": "Current Level", "Op": "==", "Value":  3 },
-      { "Property": "Kid Room", "Op": "==", "Value":  1 },
-      { "Property": "Exit Door Open", "Op": "==", "Value":  1 }
+      { "Property": "Kid Room", "Op": "==", "Value":  1 }
      ],
      
      "Dependencies": [ ],
@@ -67,8 +109,7 @@
      "Conditions":
      [
       { "Property": "Current Level", "Op": "==", "Value":  3 },
-      { "Property": "Kid Room", "Op": "==", "Value":  3 },
-      { "Property": "Exit Door Open", "Op": "==", "Value":  1 }
+      { "Property": "Kid Room", "Op": "==", "Value":  3 }
      ],
      
      "Dependencies": [ ],
@@ -90,7 +131,6 @@
      [
       { "Property": "Current Level", "Op": "==", "Value":  3 },
       { "Property": "Kid Room", "Op": "==", "Value":  6 },
-      { "Property": "Exit Door Open", "Op": "==", "Value":  1 },
       { "Property": "Kid Position Y", "Op": ">", "Value":  100 }
      ],
      

@@ -7,10 +7,10 @@
    
    "Static Tile Hash Types":
     [ 
-      { "Room": 15, "Column": 26, "Type": "Full" },
-      { "Room": 18, "Column": 6, "Type": "Full" },
-      { "Room": 22, "Column": 25, "Type": "Full" },
-      { "Room": 8, "Column": 23, "Type": "Full" }
+      { "Room": 15, "Tile": 26, "Type": "Full" },
+      { "Room": 18, "Tile": 6, "Type": "Full" },
+      { "Room": 22, "Tile": 25, "Type": "Full" },
+      { "Room": 8, "Tile": 23, "Type": "Full" }
     ],
    
    "Falling Tiles Hash Types": 
@@ -37,7 +37,7 @@
   "Rules":
    [
     {
-    "Label": 2000,
+    "Label": 3100,
     "Description": "Reward getting to a forbidden room",
     "Conditions":
     [
@@ -54,8 +54,8 @@
     ]
    },
 
-   {
-    "Label": 2001,
+   { 
+    "Label": 3101,
     "Description": "Reward getting to a forbidden room",
     "Conditions":
     [
@@ -257,6 +257,24 @@
      "Actions":
      [
       { "Type": "Trigger Win" }
+     ]
+    },
+    
+    {
+     "Label": 3019,
+     "Description": "If Kid dies, then fail.",
+     "Conditions":
+     [
+      { "Property": "Current Level", "Op": "==", "Value":  3 },
+      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
+     ],
+     
+     "Dependencies": [ ],
+     "Satisfies": [ ],
+     
+     "Actions":
+     [
+      { "Type": "Trigger Fail" }
      ]
     }
    ]  
