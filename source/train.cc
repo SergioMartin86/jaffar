@@ -115,6 +115,30 @@ void Train::run()
 
   // Stopping show thread
   pthread_join(_showThreadId, NULL);
+
+  // If it has finalized with a win, save the winning frame
+  if (_outputSaveBestSeconds > 0.0)
+  {
+   auto lastFrame = _winFrameFound ? _winFrame : _bestFrame;
+
+   // Saving best frame data
+   std::string winFrameData;
+   winFrameData.resize(_FRAME_DATA_SIZE);
+   lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
+   saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
+
+   #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+
+   // Storing the solution sequence
+   std::string solutionString;
+   solutionString += _possibleMoves[lastFrame.getMove(0)];
+   for (size_t i = 1; i < _currentStep; i++)
+    solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
+   solutionString += std::string(" .");
+   saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+
+   #endif
+  }
 }
 
 void Train::computeFrames()
@@ -676,6 +700,7 @@ void Train::showSavingLoop()
         solutionString += _possibleMoves[_bestFrame.getMove(0)];
         for (size_t i = 1; i < _currentStep; i++)
          solutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
+        solutionString += std::string(" .");
         saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
 
         #endif
@@ -684,29 +709,6 @@ void Train::showSavingLoop()
         bestFrameSaveTimer = std::chrono::steady_clock::now();
       }
     }
-  }
-
-  // If it has finalized with a win, save the winning frame
-  if (_outputSaveBestSeconds > 0.0)
-  {
-   auto lastFrame = _winFrameFound ? _winFrame : _bestFrame;
-
-   // Saving best frame data
-   std::string winFrameData;
-   winFrameData.resize(_FRAME_DATA_SIZE);
-   lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
-   saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
-
-   #ifndef JAFFAR_DISABLE_MOVE_HISTORY
-
-   // Storing the solution sequence
-   std::string solutionString;
-   solutionString += _possibleMoves[lastFrame.getMove(0)];
-   for (size_t i = 1; i < _currentStep; i++)
-    solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
-   saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
-
-   #endif
   }
 }
 
