@@ -2,7 +2,6 @@
 #include "utils.h"
 
 extern nlohmann::json _scriptJs;
-size_t _currentStep;
 
 State::State(const std::string& saveString, const nlohmann::json stateConfig, const nlohmann::json rulesConfig, const int seed)
 {

@@ -28,6 +28,9 @@ class Train
 
   private:
 
+  // Storage for current step
+  size_t _currentStep;
+
   // Jaffar script file
   std::string _scriptFile;
 

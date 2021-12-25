@@ -1,7 +1,5 @@
 #include "rule.h"
 
-extern size_t _currentStep;
-
 Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
 {
   // Adding identifying label for the rule
@@ -93,6 +91,9 @@ Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
 
     if (valueFound == false) EXIT_WITH_ERROR("[ERROR] Rule %lu contains an invalid 'Value' key.\n", _label, conditionJs["Value"].dump().c_str());
   }
+
+  // Storing condition count
+  _conditionCount = _conditions.size();
 
   // Adding Dependencies. All of them must be achieved for the rule to count
   if (isDefined(ruleJs, "Dependencies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Dependencies' key.\n");
@@ -213,17 +214,6 @@ void Rule::parseActions(nlohmann::json actionsJs)
   }
 }
 
-bool Rule::evaluate()
-{
-  bool isAchieved = true;
-
-  // The rule is achieved only if all conditions are met
-  for (size_t i = 0; i < _conditions.size(); i++)
-    isAchieved = isAchieved && _conditions[i]->evaluate();
-
-  return isAchieved;
-}
-
 operator_t Rule::getOperationType(const std::string &operation)
 {
   if (operation == "==") return op_equal;
@@ -285,7 +275,6 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Needs Level 1 Music") return dt_word;
   if (property == "United With Shadow") return dt_short;
   if (property == "Exit Door Timer") return dt_word;
-  if (property == "Current Step") return dt_ulong;
   if (property == "Is Feather Fall") return dt_word;
 
   // Tile Configuration
@@ -346,7 +335,6 @@ void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdl
   if (property == "Needs Level 1 Music") return &gameState.need_level1_music;
   if (property == "United With Shadow") return &gameState.united_with_shadow;
   if (property == "Exit Door Timer") return &gameState.leveldoor_open;
-  if (property == "Current Step") return &_currentStep;
 
   if (property == "Tile FG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile FG State.\n"); return &gameState.level.fg[index]; }
   if (property == "Tile BG State") { if (index == -1) EXIT_WITH_ERROR("[ERROR] Invalid or missing index for Tile BG State.\n"); return &gameState.level.bg[index]; }

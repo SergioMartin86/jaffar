@@ -24,9 +24,6 @@ struct magnetInfo_t
  float intensityY;
 };
 
-// Current solution step
-extern size_t _currentStep;
-
 class State
 {
   public:
@@ -47,8 +44,6 @@ class State
   std::vector<Rule *> _rules;
   size_t _ruleCount;
   miniPoPInstance *_miniPop;
-
-  // Inlined functions
 
   // This function computes the hash for the current state
   inline uint64_t computeHash() const
@@ -96,7 +91,7 @@ class State
     }
 
     // Trobs are stationary animated objects. They only change in state, hence we only read BG
-    for (int i = 0; i < gameState.trobs_count; ++i)
+    for (int i = 0; i < gameState.trobs_count; i++)
     {
       const auto &trob = gameState.trobs[i];
       const auto idx = (trob.room - 1) * 30 + trob.tilepos;
@@ -171,7 +166,7 @@ class State
     if (gameState.Kid.frame == frame_109_crouch)
       return {0, 1, 3, 4, 5, 7, 9, 13};
 
-    // Default, no nothing
+    // Default, do nothing
     return {0};
   }
 
@@ -394,14 +389,14 @@ class State
   }
 
   // Serialization/Deserialization Routines
-  inline void pushState(const char* inputStateData)
+  inline void pushState(const char* __restrict__ inputStateData) const
   {
     memcpy(&gameState, inputStateData, _FRAME_DATA_SIZE);
     next_room = gameState.drawn_room = gameState.Kid.room;
     load_room_links();
   }
 
-  inline void popState(char* outputStateData)
+  inline void popState(char* __restrict__ outputStateData) const
   {
    memcpy(outputStateData, &gameState, _FRAME_DATA_SIZE);
   }

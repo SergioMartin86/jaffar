@@ -36,53 +36,6 @@ struct magnet_t
 // Modifier that specifies whether to store move list
 extern bool _storeMoveList;
 
-class Condition;
-
-class Rule
-{
-  public:
-  Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop);
-  bool evaluate();
-
-  // Stores an identifying label for the rule
-  size_t _label;
-
-  // Stores the reward associated with meeting this rule
-  float _reward;
-
-  // Special condition flags
-  bool _isWinRule;
-  bool _isFailRule;
-
-  // Stores magnet information
-  std::vector<magnet_t> _kidMagnetPositionX;
-  std::vector<magnet_t> _kidMagnetIntensityX;
-  std::vector<magnet_t> _kidMagnetIntensityY;
-  std::vector<magnet_t> _guardMagnetPositionX;
-  std::vector<magnet_t> _guardMagnetIntensityX;
-  std::vector<magnet_t> _guardMagnetIntensityY;
-
-  // Stores dependencies with other rules
-  std::vector<size_t> _dependenciesLabels;
-  std::vector<size_t> _dependenciesIndexes;
-
-  // Stores rules that also satisfied if this one is
-  std::vector<size_t> _satisfiesLabels;
-  std::vector<size_t> _satisfiesIndexes;
-
-  private:
-  // Conditions are evaluated frequently, so this optimized for performance
-  // Operands are pre-parsed as pointers/immediates and the evaluation function
-  // is a template that is created at compilation time.
-  std::vector<Condition *> _conditions;
-  datatype_t getPropertyType(const std::string &property);
-  void *getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop, const int index);
-  operator_t getOperationType(const std::string &operation);
-
-  // Function to parse the json-encoded actions
-  void parseActions(nlohmann::json actionsJs);
-};
-
 class Condition
 {
   public:
@@ -91,7 +44,7 @@ class Condition
     _opType = opType;
   }
 
-  virtual bool evaluate() = 0;
+  virtual inline bool evaluate() = 0;
   virtual ~Condition() = default;
 
   protected:
@@ -103,7 +56,7 @@ class _vCondition : public Condition
 {
   public:
   _vCondition(const operator_t opType, void *property1, void *property2, T immediate);
-  bool evaluate() override;
+  inline bool evaluate() override;
 
   private:
   static inline bool _opEqual(const T a, const T b) { return a == b; }
@@ -136,8 +89,67 @@ _vCondition<T>::_vCondition(const operator_t opType, void *property1, void* prop
 }
 
 template <typename T>
-bool _vCondition<T>::evaluate()
+inline bool _vCondition<T>::evaluate()
 {
   if (_property2 != NULL) return _opFcPtr(*_property1, *_property2);
   return _opFcPtr(*_property1, _immediate);
 }
+
+class Rule
+{
+  public:
+  Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop);
+
+  // Stores an identifying label for the rule
+  size_t _label;
+
+  // Stores the reward associated with meeting this rule
+  float _reward;
+
+  // Special condition flags
+  bool _isWinRule;
+  bool _isFailRule;
+
+  // Stores magnet information
+  std::vector<magnet_t> _kidMagnetPositionX;
+  std::vector<magnet_t> _kidMagnetIntensityX;
+  std::vector<magnet_t> _kidMagnetIntensityY;
+  std::vector<magnet_t> _guardMagnetPositionX;
+  std::vector<magnet_t> _guardMagnetIntensityX;
+  std::vector<magnet_t> _guardMagnetIntensityY;
+
+  // Stores dependencies with other rules
+  std::vector<size_t> _dependenciesLabels;
+  std::vector<size_t> _dependenciesIndexes;
+
+  // Stores rules that also satisfied if this one is
+  std::vector<size_t> _satisfiesLabels;
+  std::vector<size_t> _satisfiesIndexes;
+
+  private:
+
+  // Conditions are evaluated frequently, so this optimized for performance
+  // Operands are pre-parsed as pointers/immediates and the evaluation function
+  // is a template that is created at compilation time.
+  std::vector<Condition *> _conditions;
+  size_t _conditionCount;
+  datatype_t getPropertyType(const std::string &property);
+  void *getPropertyPointer(const std::string &property, miniPoPInstance *sdlPop, const int index);
+  operator_t getOperationType(const std::string &operation);
+
+  // Function to parse the json-encoded actions
+  void parseActions(nlohmann::json actionsJs);
+
+  public:
+
+  // The rule is achieved only if all conditions are met
+  inline bool evaluate() const
+  {
+    #pragma GCC unroll 8
+    for (size_t i = 0; i < _conditionCount; i++) if(_conditions[i]->evaluate() == false) return false;
+    return true;
+  }
+
+};
+
+
