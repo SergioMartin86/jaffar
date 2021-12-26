@@ -17,9 +17,6 @@
 #include <string>
 #include <vector>
 
-// The frequency with which we clean the hash database of old entries
-#define HASH_DATABASE_CLEAN_FREQUENCY 10
-
 class Train
 {
   public:
@@ -58,21 +55,20 @@ class Train
   // Frame databases
   size_t _databaseSize;
   size_t _maxDatabaseSize;
-  std::map<size_t, std::vector<std::unique_ptr<Frame>>> _frameDB;
-  std::vector<std::unique_ptr<Frame>> _winFrameDB;
+  std::vector<std::unique_ptr<Frame>> _frameDB;
 
   // Frame database for showing
   std::vector<Frame> _showFrameDB;
 
-  // Storage for the best and worst frame
+  // Storage for the win, best and worst frame
   Frame _bestFrame;
   float _bestFrameReward;
   Frame _worstFrame;
   float _worstFrameReward;
 
   // Hash information
-  size_t _hashAgeThreshold;
   absl::flat_hash_map<uint64_t, uint16_t> _pastHashDB;
+  size_t _hashAgeThreshold;
   size_t _hashCollisions;
 
   // Per-step local hash collision counter

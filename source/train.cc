@@ -57,7 +57,7 @@ void Train::run()
     _currentStep++;
 
     // Terminate if all DBs are depleted and no winning rule was found
-    _databaseSize = _frameDB[_currentStep].size();
+    _databaseSize = _frameDB.size();
     if (_databaseSize == 0)
     {
       printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
@@ -65,10 +65,9 @@ void Train::run()
     }
 
     // Terminate if a winning rule was found
-    if (_winFrameDB.size() != 0)
+    if (_winFrameFound)
     {
       printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep-1);
-      _winFrameFound = true;
       terminate = true;
     }
 
@@ -91,7 +90,6 @@ void Train::run()
     size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
 
-    _winFrame = *_winFrameDB[0];
     char winFrameData[_FRAME_DATA_SIZE];
     _winFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData);
     _state[0]->pushState(winFrameData);
@@ -151,6 +149,9 @@ void Train::computeFrames()
   // Creating shared database for new hashes
   absl::flat_hash_map<uint64_t, uint16_t> newHashes;
 
+  // Creating shared database for new frames
+  std::vector<std::unique_ptr<Frame>> newFrames;
+
   // Initializing step timers
   _stepHashCalculationTime = 0.0;
   _stepHashCheckingTime = 0.0;
@@ -181,7 +182,7 @@ void Train::computeFrames()
 
     // Computing always the last frame while resizing the database to reduce memory footprint
     #pragma omp for schedule(dynamic, 32)
-    for (auto& baseFrame : _frameDB[_currentStep])
+    for (auto& baseFrame : _frameDB)
     {
       auto t0 = std::chrono::steady_clock::now(); // Profiling
       baseFrame->getFrameDataFromDifference(_sourceFrameData, baseFrameData);
@@ -306,8 +307,8 @@ void Train::computeFrames()
         // If frame has succeded or is a regular frame, adding it in the corresponding database
         #pragma omp critical(insertFrame)
         {
-         if (type == f_win) _winFrameDB.push_back(std::move(newFrame));
-         if (type == f_regular) _frameDB[_currentStep+1].push_back(std::move(newFrame));
+         if (type == f_win) { _winFrameFound = true; _winFrame = *newFrame; };
+         if (type == f_regular) newFrames.push_back(std::move(newFrame));
         }
       }
 
@@ -338,26 +339,29 @@ void Train::computeFrames()
   _stepFrameDecodingTime /= _threadCount;
 
   // Clearing all old frames
-  _frameDB.erase(_currentStep);
+  _frameDB.clear();
 
   // Sorting local DB frames by reward
   auto DBSortingTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  if (_frameDB[_currentStep+1].size() > _maxDatabaseSize)
+  if (newFrames.size() > _maxDatabaseSize)
   {
    // If global frames exceed the maximum allowed, sort and truncate all excessive frames
-   auto m = _frameDB[_currentStep+1].begin() + _maxDatabaseSize;
-   std::nth_element(_frameDB[_currentStep+1].begin(), m, _frameDB[_currentStep+1].end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
-   _frameDB[_currentStep+1].resize(_maxDatabaseSize);
+   auto m = newFrames.begin() + _maxDatabaseSize;
+   std::nth_element(newFrames.begin(), m, newFrames.end(), [](const auto &a, const auto &b) { return a->reward > b->reward; });
+   newFrames.resize(_maxDatabaseSize);
   }
 
   // Looking for and storing best/worst frame
   _bestFrameReward = -std::numeric_limits<float>::infinity();
   _worstFrameReward = std::numeric_limits<float>::infinity();
-  for (const auto& frame : _frameDB[_currentStep+1])
+  for (const auto& frame : newFrames)
   {
    if (frame->reward > _bestFrameReward) { _bestFrame = *frame; _bestFrameReward = _bestFrame.reward; }
    if (frame->reward < _worstFrameReward) { _worstFrame = *frame; _worstFrameReward = _worstFrame.reward; }
   }
+
+  // Setting new frames to be current frames for the next step
+  std::swap(newFrames, _frameDB);
 
   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
@@ -372,10 +376,7 @@ void Train::computeFrames()
   auto pastHashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
   // Filtering old hashes
-  size_t preSize = _pastHashDB.size();
   erase_if(_pastHashDB, [this](const auto &a) { return _currentStep - a.second > _hashAgeThreshold; });
-  size_t postSize = _pastHashDB.size();
-  printf("%lu, %lu\n", preSize, postSize);
 
   // Merging new hashes
   _pastHashDB.merge(newHashes);
@@ -481,6 +482,9 @@ Train::Train(int argc, char *argv[])
 
   // Setting starting step
   _currentStep = 0;
+
+  // Flag to determine if win frame was found
+  _winFrameFound = false;
 
   // Parsing max hash DB entries
   if (const char *hashAgeThresholdString = std::getenv("JAFFAR_HASH_AGE_THRESHOLD")) _hashAgeThreshold = std::stol(hashAgeThresholdString);
@@ -617,7 +621,7 @@ Train::Train(int argc, char *argv[])
 
   // Adding frame to the initial database
   _databaseSize = 1;
-  _frameDB[0].push_back(std::move(initialFrame));
+  _frameDB.push_back(std::move(initialFrame));
 
   // Initializing show thread
   if (pthread_create(&_showThreadId, NULL, showThreadFunction, this) != 0)
