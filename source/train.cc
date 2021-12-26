@@ -124,7 +124,8 @@ void Train::run()
    std::string winFrameData;
    winFrameData.resize(_FRAME_DATA_SIZE);
    lastFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData.data());
-   saveStringToFile(winFrameData, _outputSaveBestPath.c_str());
+   std::string outputBestStateFilePath = _outputSaveBestPath + std::string(".best.sav");
+   saveStringToFile(winFrameData, outputBestStateFilePath.c_str());
 
    #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
@@ -134,7 +135,8 @@ void Train::run()
    for (size_t i = 1; i < _currentStep; i++)
     solutionString += std::string(" ") + _possibleMoves[lastFrame.getMove(i)];
    solutionString += std::string(" .");
-   saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+   std::string outputBestSolutionFilePath = _outputSaveBestPath + std::string(".best.sol");
+   saveStringToFile(solutionString, outputBestSolutionFilePath.c_str());
 
    #endif
   }
@@ -147,7 +149,7 @@ void Train::computeFrames()
   _newCollisionCounter = 0;
 
   // Creating shared database for new hashes
-  absl::flat_hash_set<uint64_t> newHashes;
+  absl::flat_hash_map<uint64_t, uint16_t> newHashes;
 
   // Initializing step timers
   _stepHashCalculationTime = 0.0;
@@ -242,7 +244,7 @@ void Train::computeFrames()
         // Finally, check the common read-write databases
         if (collisionDetected == false)
          #pragma omp critical
-         collisionDetected |= !newHashes.insert(hash).second;
+         collisionDetected |= !newHashes.insert({hash, _currentStep}).second;
 
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
@@ -370,14 +372,13 @@ void Train::computeFrames()
   auto pastHashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
 
   // Filtering old hashes
-  if (_currentStep % HASH_DATABASE_CLEAN_FREQUENCY == 0)
-  {
-   auto itr = _pastHashDB.begin();
-   while (itr != _pastHashDB.end()) if (_currentStep - itr->second > _hashAgeThreshold) _pastHashDB.erase(itr++); else itr++;
-  }
+  size_t preSize = _pastHashDB.size();
+  erase_if(_pastHashDB, [this](const auto &a) { return _currentStep - a.second > _hashAgeThreshold; });
+  size_t postSize = _pastHashDB.size();
+  printf("%lu, %lu\n", preSize, postSize);
 
   // Merging new hashes
-  for (const auto& hash : newHashes) _pastHashDB[hash] = _currentStep;
+  _pastHashDB.merge(newHashes);
 
   auto pastHashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepPastHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(pastHashConsolidationTimeEnd - pastHashConsolidationTimeBegin).count(); // Profiling

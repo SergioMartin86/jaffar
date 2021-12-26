@@ -12,17 +12,17 @@
    
    "Active Objects Hash Types":
    [
+    { "Room": 7, "Tile": 29, "Type": "Full", "Comment": "Gate" }
    ]
   },
   
   "Rules":
   [
-    {
-    "Label": 5100,
+   {
+    "Label": 5000,
     "Description": "Setting magnet to make kid go to the right on the first screen and luring guard",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Kid Room", "Op": "==", "Value":  7 }
     ],
    
@@ -32,21 +32,38 @@
     "Actions":
     [
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 7, "Value": 1.0 },
+     { "Type": "Set Kid Horizontal Magnet Position", "Room": 7, "Value": 0.0 }
+    ]
+   },
+   
+    {
+    "Label": 5001,
+    "Description": "Setting magnet to make kid go to the right on the first screen and luring guard",
+    "Conditions":
+    [
+     { "Property": "Kid Room", "Op": "==", "Value":  7 },
+     { "Property": "Tile BG State", "Room": 7, "Tile": 29, "Op": ">", "Value": 0, "Comment": "Gate" }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ 5000 ],
+
+    "Actions":
+    [
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 7, "Value": 220.0 }
     ]
    },
    
    {
-    "Label": 5000,
+    "Label": 5002,
     "Description": "Setting magnet to make kid go to the right on the first screen and luring guard",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Kid Room", "Op": "==", "Value":  9 }
     ],
    
     "Dependencies": [ ],
-    "Satisfies": [ ],
+    "Satisfies": [ 5001 ],
 
     "Actions":
     [
@@ -58,17 +75,16 @@
    },
    
    {
-    "Label": 5001,
+    "Label": 5003,
     "Description": "Rewarding kid for coming back with the guard.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Kid Room", "Op": "==", "Value":  7 },
      { "Property": "Guard Room", "Op": "==", "Value":  7 }
     ],
     
     "Dependencies": [ 5000 ],
-    "Satisfies": [ ],
+    "Satisfies": [ 5002 ],
     
     "Actions":
     [
@@ -82,17 +98,16 @@
    },
    
    {
-    "Label": 5002,
+    "Label": 5004,
     "Description": "Rewarding kid for crossing the door.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Kid Room", "Op": "==", "Value":  8 },
      { "Property": "Kid Position X", "Op": "<", "Value":  155 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 5001 ],
+    "Satisfies": [ 5003 ],
     
     "Actions":
     [
@@ -105,17 +120,16 @@
    }, 
    
    {
-    "Label": 5003,
+    "Label": 5005,
     "Description": "Win on climb.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Kid Room", "Op": "==", "Value":  8 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
     ],
     
     "Dependencies": [ ],
-    "Satisfies": [ 5002 ],
+    "Satisfies": [ 5004 ],
     
     "Actions":
     [
@@ -128,7 +142,6 @@
     "Description": "If Kid dies, then fail.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  5 },
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     
@@ -139,6 +152,41 @@
     [
      { "Type": "Trigger Fail" }
     ]
-   }   
+   },
+   
+   {
+     "Label": 5101,
+     "Description": "Reward getting to a forbidden room",
+     "Conditions":
+     [
+      { "Property": "Kid Room", "Op": "<", "Value":  0 }
+     ],
+    
+     "Dependencies": [ ],
+     "Satisfies": [ ],
+ 
+     "Actions":
+     [
+      { "Type": "Trigger Win" }
+     ]
+    },
+   
+    {
+    "Label": 5102,
+    "Description": "Reward getting to a forbidden room",
+    "Conditions":
+    [
+     { "Property": "Kid Room", "Op": ">", "Value":  24 }
+    ],
+   
+    "Dependencies": [ ],
+    "Satisfies": [ ],
+
+    "Actions":
+    [
+     { "Type": "Trigger Win" }
+    ]
+   }
+   
   ]  
 }
