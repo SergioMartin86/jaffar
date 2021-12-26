@@ -57,8 +57,7 @@ void Train::run()
     _currentStep++;
 
     // Terminate if all DBs are depleted and no winning rule was found
-    _databaseSize = 0;
-    for (const auto& db : _frameDB) _databaseSize += db.second.size();
+    _databaseSize = _frameDB[_currentStep].size();
     if (_databaseSize == 0)
     {
       printf("[Jaffar] Frame database depleted with no winning frames, finishing...\n");
@@ -66,7 +65,7 @@ void Train::run()
     }
 
     // Terminate if a winning rule was found
-    if (_winFrameDB.find(_currentStep) != _winFrameDB.end())
+    if (_winFrameDB.size() != 0)
     {
       printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep-1);
       _winFrameFound = true;
@@ -92,7 +91,7 @@ void Train::run()
     size_t curMilliSecs = ceil((double)(timeStep - (curMins * 720) - (curSecs * 12)) / 0.012);
     printf("[Jaffar]  + Solution IGT:  %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs);
 
-    _winFrame = *_winFrameDB[_currentStep][0];
+    _winFrame = *_winFrameDB[0];
     char winFrameData[_FRAME_DATA_SIZE];
     _winFrame.getFrameDataFromDifference(_sourceFrameData, winFrameData);
     _state[0]->pushState(winFrameData);
@@ -180,12 +179,8 @@ void Train::computeFrames()
 
     // Computing always the last frame while resizing the database to reduce memory footprint
     #pragma omp for schedule(dynamic, 32)
-    for (size_t baseFrameIdx = 0; baseFrameIdx < _frameDB[_currentStep].size(); baseFrameIdx++)
+    for (auto& baseFrame : _frameDB[_currentStep])
     {
-      // Storage for the base frame
-      const auto baseFrame = std::move(_frameDB[_currentStep][baseFrameIdx]);
-
-      // Loading frame state
       auto t0 = std::chrono::steady_clock::now(); // Profiling
       baseFrame->getFrameDataFromDifference(_sourceFrameData, baseFrameData);
       auto tf = std::chrono::steady_clock::now();
@@ -274,47 +269,16 @@ void Train::computeFrames()
         // Storage for new move ids
         std::vector<uint8_t> possibleNewMoveIds;
 
-        // Storage for new frame step
-        size_t newFrameStep = _currentStep+1;
+        // Evaluating rules on the new frame
+        _state[threadId]->evaluateRules(newFrame->rulesStatus);
 
-        /////////// While loop for advancement on non divergent states
-        do
-        {
-         // Evaluating rules on the new frame
-         _state[threadId]->evaluateRules(newFrame->rulesStatus);
+        // Getting frame type
+        type = _state[threadId]->getFrameType(newFrame->rulesStatus);
 
-         // Getting frame type
-         type = _state[threadId]->getFrameType(newFrame->rulesStatus);
-
-         // If required, store move history
-         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
-         newFrame->setMove(newFrameStep-1, moveId);
-         #endif
-
-         // Getting possible new set of moves
-         possibleNewMoveIds = _state[threadId]->getPossibleMoveIds();
-
-         // If only one move is possible, run it directly and re-evaluate rules
-         if (possibleNewMoveIds.size() == 1)
-         {
-          // Increasing processed frames counter
-          #pragma omp atomic
-          _stepFramesProcessedCounter++;
-
-          // Advancing to the next step in the sequence
-          newFrameStep++;
-          moveId = possibleNewMoveIds[0];
-
-          // Executing move
-          t0 = std::chrono::steady_clock::now(); // Profiling
-          _state[threadId]->_miniPop->advanceFrame(moveId);
-          tf = std::chrono::steady_clock::now();
-          threadFrameAdvanceTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-         }
-        } while(possibleNewMoveIds.size() == 1 && type == f_regular && newFrameStep < _MAX_MOVELIST_SIZE);
-
-        // If this frame exceeded the maximum move list, discard it
-        if (newFrameStep >= _MAX_MOVELIST_SIZE) continue;
+        // If required, store move history
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
+        newFrame->setMove(_currentStep, moveId);
+        #endif
 
         // If frame type is failed, continue to the next one
         if (type == f_fail) continue;
@@ -340,11 +304,15 @@ void Train::computeFrames()
         // If frame has succeded or is a regular frame, adding it in the corresponding database
         #pragma omp critical(insertFrame)
         {
-         if (type == f_win) _winFrameDB[newFrameStep].push_back(std::move(newFrame));
-         if (type == f_regular) _frameDB[newFrameStep].push_back(std::move(newFrame));
+         if (type == f_win) _winFrameDB.push_back(std::move(newFrame));
+         if (type == f_regular) _frameDB[_currentStep+1].push_back(std::move(newFrame));
         }
       }
+
+      // Freeing up base frame memory
+      baseFrame.reset();
     }
+
     // Updating timers
     #pragma omp critical
     {
@@ -392,10 +360,6 @@ void Train::computeFrames()
   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
-  // Calculating future frame count
-  _futureFrameCount = 0;
-  for (auto& db : _frameDB) if (db.first > _currentStep+1) _futureFrameCount += db.second.size();
-
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
 
@@ -438,10 +402,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Worst Reward / Best Reward: %f / %f\n", _worstFrameReward, _bestFrameReward);
-  printf("[Jaffar] Database Size (Current/Future/Limit): %lu (%lu / %lu / %lu)\n", _databaseSize, _frameDB[_currentStep].size(), _futureFrameCount, _maxDatabaseSize);
-  printf("           + First DB - Step %lu: %lu Frames\n", _frameDB.begin()->first, _frameDB.begin()->second.size());
-  printf("           + Last DB  - Step %lu: %lu Frames\n", _frameDB.rbegin()->first, _frameDB.rbegin()->second.size());
-  printf("           + Win DB:  - Step %lu: %lu Frames\n", _winFrameDB.empty() ? 0 : _winFrameDB.begin()->first, _winFrameDB.empty() ? 0 : _winFrameDB.begin()->second.size());
+  printf("[Jaffar] Database Size: %lu / %lu\n", _databaseSize, _maxDatabaseSize);
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
@@ -459,7 +420,9 @@ void Train::printTrainStatus()
   printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
   printf("[Jaffar] Hash DB Entries: %lu\n", _pastHashDB.size());
   printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_databaseSize * sizeof(Frame)) / (1024.0 * 1024.0));
-  printf("[Jaffar] Hash DB Size: %.3fmb\n", (double)(_pastHashDB.size() * (sizeof(uint64_t) + sizeof(uint16_t) + sizeof(void*))) / (1024.0 * 1024.0));
+
+  double hashDBSize = (9.0*(double)_pastHashDB.bucket_count() + ((double)sizeof(std::pair<const uint16_t, uint64_t>)*(double)_pastHashDB.size())) / (1024.0 * 1024.0);
+  printf("[Jaffar] Hash DB Size: %.3fmb\n", hashDBSize);
   printf("[Jaffar] Best Frame Information:\n");
 
   char bestFrameData[_FRAME_DATA_SIZE];
@@ -514,7 +477,6 @@ Train::Train(int argc, char *argv[])
   _stepFramesProcessedCounter = 0;
   _totalFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
-  _futureFrameCount = 0;
 
   // Setting starting step
   _currentStep = 0;
@@ -533,7 +495,7 @@ Train::Train(int argc, char *argv[])
   if (const char *outputSaveBestSecondsEnv = std::getenv("JAFFAR_SAVE_BEST_EVERY_SECONDS")) _outputSaveBestSeconds = std::stof(outputSaveBestSecondsEnv);
 
   // Parsing savegame files output path
-  _outputSaveBestPath = "/tmp/jaffar.best.sav";
+  _outputSaveBestPath = "/tmp/jaffar";
   if (const char *outputSaveBestPathEnv = std::getenv("JAFFAR_SAVE_BEST_PATH")) _outputSaveBestPath = std::string(outputSaveBestPathEnv);
 
   // Parsing solution files output path
@@ -619,7 +581,6 @@ Train::Train(int argc, char *argv[])
   // Setting initial values
   _hasFinalized = false;
   _hashCollisions = 0;
-  _bestFrameReward = 0;
 
   // Check rule count does not exceed maximum
   _ruleCount = _state[0]->_rules.size();
@@ -650,6 +611,8 @@ Train::Train(int argc, char *argv[])
 
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;
+  _bestFrameReward = initialFrame->reward;
+ _worstFrameReward = initialFrame->reward;
 
   // Adding frame to the initial database
   _databaseSize = 1;
@@ -687,17 +650,35 @@ void Train::showSavingLoop()
         std::string bestFrameData;
         bestFrameData.resize(_FRAME_DATA_SIZE);
         _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData.data());
-        saveStringToFile(bestFrameData, _outputSaveBestPath.c_str());
+        std::string outputBestFilePath = _outputSaveBestPath + std::string(".best.sav");
+        saveStringToFile(bestFrameData, outputBestFilePath.c_str());
+
+        // Saving worst frame data
+        std::string worstFrameData;
+        worstFrameData.resize(_FRAME_DATA_SIZE);
+        _worstFrame.getFrameDataFromDifference(_sourceFrameData, worstFrameData.data());
+        std::string outputWorstFilePath = _outputSaveBestPath + std::string(".worst.sav");
+        saveStringToFile(worstFrameData, outputWorstFilePath.c_str());
 
         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 
         // Storing the solution sequence
-        std::string solutionString;
-        solutionString += _possibleMoves[_bestFrame.getMove(0)];
+        std::string bestSolutionString;
+        bestSolutionString += _possibleMoves[_bestFrame.getMove(0)];
         for (size_t i = 1; i < _currentStep; i++)
-         solutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
-        solutionString += std::string(" .");
-        saveStringToFile(solutionString, _outputSolutionBestPath.c_str());
+         bestSolutionString += std::string(" ") + _possibleMoves[_bestFrame.getMove(i)];
+        bestSolutionString += std::string(" .");
+        std::string outputSolPath = _outputSaveBestPath + std::string(".best.sol");
+        saveStringToFile(bestSolutionString, outputSolPath.c_str());
+
+        // Storing the solution sequence
+        std::string worstSolutionString;
+        worstSolutionString += _possibleMoves[_worstFrame.getMove(0)];
+        for (size_t i = 1; i < _currentStep; i++)
+         worstSolutionString += std::string(" ") + _possibleMoves[_worstFrame.getMove(i)];
+        worstSolutionString += std::string(" .");
+        std::string outputWorstSolPath = _outputSaveBestPath + std::string(".worst.sol");
+        saveStringToFile(worstSolutionString, outputWorstSolPath.c_str());
 
         #endif
 

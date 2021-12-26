@@ -268,7 +268,7 @@
     
     "Actions":
     [ 
-     { "Type": "Add Reward", "Value": 100000 },
+     { "Type": "Add Reward", "Value": 1000 },
      { "Type": "Set Kid Horizontal Magnet Position", "Room": 4, "Value": 220.0 },
      { "Type": "Set Kid Horizontal Magnet Intensity", "Room": 4, "Value": 1.0 }
     ]

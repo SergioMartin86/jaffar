@@ -54,13 +54,12 @@ class Train
   // Frame counter
   size_t _stepFramesProcessedCounter;
   size_t _totalFramesProcessedCounter;
-  size_t _futureFrameCount;
 
   // Frame databases
   size_t _databaseSize;
   size_t _maxDatabaseSize;
   std::map<size_t, std::vector<std::unique_ptr<Frame>>> _frameDB;
-  std::map<size_t, std::vector<std::unique_ptr<Frame>>> _winFrameDB;
+  std::vector<std::unique_ptr<Frame>> _winFrameDB;
 
   // Frame database for showing
   std::vector<Frame> _showFrameDB;
