@@ -31,7 +31,6 @@
     "Description": "Setting magnet to make kid go advancing to the right screen while luring guard.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Kid Room", "Op": "==", "Value":  2 }
     ],
    
@@ -53,7 +52,6 @@
     "Description": "Clearing magnets and rewarding when they get closed to the tile.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Kid Room", "Op": "==", "Value":  2 },
      { "Property": "Kid Position X", "Op": ">", "Value":  220 },
      { "Property": "Guard Room", "Op": "==", "Value":  2 },
@@ -78,7 +76,6 @@
     "Description": "If Guard starts falling, then obtain reward",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Guard Room", "Op": "==", "Value":  7 },
      { "Property": "Guard Frame", "Op": "==", "Value": 102 } 
     ],
@@ -97,7 +94,6 @@
     "Description": "Reward having the guard go down alive.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Guard Room", "Op": "==", "Value":  7 },
      { "Property": "Guard Position Y", "Op": "==", "Value":  181 },
      { "Property": "Guard Current HP", "Op": ">", "Value":  0 }
@@ -122,7 +118,6 @@
     "Description": "If both Kid and Guard got to get down, then go to the left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Kid Room", "Op": "==", "Value":  7 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  181 },
      { "Property": "Kid Current HP", "Op": ">", "Value":  0 },
@@ -148,7 +143,6 @@
     "Description": "Keep going left",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Kid Room", "Op": "==", "Value":  2 },
      { "Property": "Kid Position Y", "Op": ">", "Value":  120 }
     ],
@@ -167,7 +161,6 @@
     "Description": "If Guard dies, then fail.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Guard Room", "Op": "==", "Value": "Kid Room" },
      { "Property": "Guard Room", "Op": "!=", "Value": 1 },
      { "Property": "Guard Current HP", "Op": "==", "Value":  0 }
@@ -187,7 +180,6 @@
     "Description": "If Kid dies, then fail.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  7 },
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     

@@ -9,7 +9,7 @@
 #endif
 
 #ifndef _MAX_MOVELIST_SIZE
- #define _MAX_MOVELIST_SIZE 230
+ #define _MAX_MOVELIST_SIZE 365
 #endif
 
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
@@ -33,25 +33,14 @@ enum frameType
 
 extern size_t _maxFrameDiff;
 
-struct frameDiff_t
-{
- uint16_t pos;
- uint8_t val;
-};
-
 class Frame
 {
   public:
   Frame();
 
-  // The score calculated for this frame
-  float reward;
-
   // Positions of the difference with respect to a base frame
-  uint16_t frameDiffCount;
-
-  // Positions of the difference with respect to a base frame
-  frameDiff_t frameDiffs[_MAX_FRAME_DIFF];
+  uint16_t frameDiffPositions[_MAX_FRAME_DIFF];
+  uint8_t frameDiffValues[_MAX_FRAME_DIFF];
 
   // Fixed state data
   char fixedStateData[_FRAME_FIXED_SIZE];
@@ -65,9 +54,18 @@ class Frame
    frameDiffCount = 0;
    #pragma GCC unroll 32
    #pragma GCC ivdep
-   for (uint16_t i = 0; i < _FRAME_DIFFERENTIAL_SIZE; i++) if (baseFrameData[i] != newFrameData[i]) frameDiffs[frameDiffCount++] = (frameDiff_t) { .pos = i, .val = (uint8_t)newFrameData[i] };
-   if (frameDiffCount > _maxFrameDiff) _maxFrameDiff = frameDiffCount;
-   if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d. Increase this maximum in the frame.h source file and rebuild.\n", frameDiffCount, _MAX_FRAME_DIFF);
+   for (uint16_t i = 0; i < _FRAME_DIFFERENTIAL_SIZE; i++) if (baseFrameData[i] != newFrameData[i])
+   {
+    frameDiffPositions[frameDiffCount] = i;
+    frameDiffValues[frameDiffCount] = (uint8_t)newFrameData[i];
+    frameDiffCount++;
+   }
+
+   if (frameDiffCount > _maxFrameDiff)
+   {
+    _maxFrameDiff = frameDiffCount;
+     if (frameDiffCount > _MAX_FRAME_DIFF) EXIT_WITH_ERROR("[Error] Exceeded maximum frame difference: %d > %d. Increase this maximum in the frame.h source file and rebuild.\n", frameDiffCount, _MAX_FRAME_DIFF);
+   }
    memcpy(fixedStateData, &newFrameData[_FRAME_DIFFERENTIAL_SIZE], _FRAME_FIXED_SIZE);
   }
 
@@ -76,7 +74,7 @@ class Frame
     memcpy(stateData, baseFrameData, _FRAME_DIFFERENTIAL_SIZE);
     #pragma GCC unroll 32
     #pragma GCC ivdep
-    for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffs[i].pos] = frameDiffs[i].val;
+    for (uint16_t i = 0; i < frameDiffCount; i++) stateData[frameDiffPositions[i]] = frameDiffValues[i];
     memcpy(&stateData[_FRAME_DIFFERENTIAL_SIZE], fixedStateData, _FRAME_FIXED_SIZE);
   }
 
@@ -109,5 +107,10 @@ class Frame
 
 #endif
 
+  // The score calculated for this frame
+  float reward;
+
+  // Positions of the difference with respect to a base frame
+  uint16_t frameDiffCount;
 };
 
