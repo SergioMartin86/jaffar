@@ -4,63 +4,31 @@
   "State Configuration":
   {
    "Property Hash Types": [ ],
-   "Static Tile Hash Types": [ ],
+   "Static Tile Hash Types": 
+   [
+    { "Room": 18, "Tile": 5, "Comment": "Loose Tile -> Empty" },
+    { "Room": 18, "Tile": 25, "Comment": "Floor -> Debris" }
+   ],
    
    "Falling Tiles Hash Types": 
    [
+    { "Room": 18, "Column": 16, "Type": "Full", "Comment": "Falling Tile" }
    ],
    
    "Active Objects Hash Types":
    [
-    { "Index": 536, "Type": "Full" },
-    { "Index": 519, "Type": "Full" }
+    { "Room": 7, "Tile": 10, "Type": "Full", "Comment": "Gate" },
+    { "Room": 18, "Tile": 5, "Type": "Full", "Comment": "Loose Tile" }
    ]
   },
   
   "Rules":
   [
    {
-    "Label": 2100,
-    "Description": "Reward getting to a forbidden room",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": "<", "Value":  0 }
-    ],
-   
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Trigger Win" }
-    ]
-   },
-   
-    {
-    "Label": 2101,
-    "Description": "Reward getting to a forbidden room",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": ">", "Value":  24 }
-    ],
-   
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Trigger Win" }
-    ]
-   },
-   
-   {
     "Label": 2008,
     "Description": "Meet guard and go left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  11 }
     ],
     
@@ -80,7 +48,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  18 }
     ],
     
@@ -101,7 +68,6 @@
     "Description": "Meet other guard and keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  7 }
     ],
     
@@ -122,7 +88,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  13 }
     ],
     
@@ -143,7 +108,6 @@
     "Description": "[Checkpoint] Reward climbing up.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  13 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
@@ -162,7 +126,6 @@
     "Description": "If Kid dies, then fail.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     

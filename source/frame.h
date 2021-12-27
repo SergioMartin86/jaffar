@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef _MAX_FRAME_DIFF
- #define _MAX_FRAME_DIFF 50
+ #define _MAX_FRAME_DIFF 80
 #endif
 
 #ifndef _MAX_RULE_COUNT

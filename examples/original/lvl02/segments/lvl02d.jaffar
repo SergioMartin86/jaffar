@@ -22,7 +22,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  13 }
     ],
     
@@ -41,7 +40,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  15 }
     ],
     
@@ -62,7 +60,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  16 }
     ],
     
@@ -83,7 +80,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  19 }
     ],
     
@@ -104,7 +100,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  21 }
     ],
     
@@ -126,7 +121,6 @@
     "Description": "Keep going left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  21 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
@@ -145,7 +139,6 @@
     "Description": "If Kid dies, then fail.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     
