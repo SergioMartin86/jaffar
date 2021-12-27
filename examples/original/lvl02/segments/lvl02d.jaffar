@@ -25,7 +25,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  13 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ ],
     
     "Actions":
@@ -43,7 +42,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  15 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2012 ],
     
     "Actions":
@@ -63,7 +61,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  16 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2013 ],
     
     "Actions":
@@ -83,7 +80,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  19 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2014 ],
     
     "Actions":
@@ -103,7 +99,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  21 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2015 ],
     
     "Actions":
@@ -125,7 +120,6 @@
      { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2016 ],
     
     "Actions":
@@ -142,7 +136,6 @@
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ ],
     
     "Actions":

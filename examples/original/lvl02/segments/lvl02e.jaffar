@@ -51,7 +51,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  2 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2017 ],
     
     "Actions":
@@ -72,7 +71,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  9 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2018 ],
     
     "Actions":
@@ -94,7 +92,6 @@
      { "Property": "Tile BG State", "Room": 23, "Tile": 14, "Op": ">", "Value": 0, "Comment": "Exit Level Door" }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2019 ],
     
     "Actions":
@@ -114,7 +111,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  23 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2019 ],
     
     "Actions":
@@ -135,7 +131,6 @@
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ ],
     
     "Actions":
