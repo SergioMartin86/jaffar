@@ -12,8 +12,7 @@
    
    "Active Objects Hash Types":
    [
-    { "Index": 311, "Type": "Index Only" },
-    { "Index": 519, "Type": "Index Only" }
+    { "Room": 18, "Tile": 10, "Type": "Full", "Comment": "Gate" }
    ]
   },
   
@@ -28,7 +27,6 @@
      { "Property": "Kid Room", "Op": "<", "Value":  0 }
     ],
    
-    "Dependencies": [ ],
     "Satisfies": [ ],
 
     "Actions":
@@ -46,7 +44,6 @@
      { "Property": "Kid Room", "Op": ">", "Value":  24 }
     ],
    
-    "Dependencies": [ ],
     "Satisfies": [ ],
 
     "Actions":
@@ -64,7 +61,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  22 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ ],
     
     "Actions":
@@ -84,7 +80,6 @@
      { "Property": "Kid Room", "Op": "==", "Value":  11 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2007 ],
     
     "Actions":
@@ -107,7 +102,6 @@
      { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2008 ],
     
     "Actions":
@@ -125,7 +119,6 @@
      { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ ],
     
     "Actions":

@@ -95,11 +95,6 @@ Rule::Rule(nlohmann::json ruleJs, miniPoPInstance *sdlPop)
   // Storing condition count
   _conditionCount = _conditions.size();
 
-  // Adding Dependencies. All of them must be achieved for the rule to count
-  if (isDefined(ruleJs, "Dependencies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Dependencies' key.\n");
-  _dependenciesLabels = ruleJs["Dependencies"].get<std::vector<size_t>>();
-  _dependenciesIndexes.resize(_dependenciesLabels.size());
-
   // Adding Rules that are satisfied by this rule activation
   if (isDefined(ruleJs, "Satisfies") == false) EXIT_WITH_ERROR("[ERROR] Rule missing 'Satisfies' key.\n");
   _satisfiesLabels = ruleJs["Satisfies"].get<std::vector<size_t>>();

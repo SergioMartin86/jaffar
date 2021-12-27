@@ -353,15 +353,6 @@ class State
       // Evaluate rule only if it's active
       if (rulesStatus[ruleId] == false)
       {
-        // Checking dependencies first. If not met, continue to the next rule
-        bool dependenciesMet = true;
-        for (size_t i = 0; i < _rules[ruleId]->_dependenciesIndexes.size(); i++)
-          if (rulesStatus[_rules[ruleId]->_dependenciesIndexes[i]] == false)
-            dependenciesMet = false;
-
-        // If dependencies aren't met, then continue to next rule
-        if (dependenciesMet == false) continue;
-
         // Checking if conditions are met
         bool isSatisfied = _rules[ruleId]->evaluate();
 

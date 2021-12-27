@@ -118,10 +118,6 @@ class Rule
   std::vector<magnet_t> _guardMagnetIntensityX;
   std::vector<magnet_t> _guardMagnetIntensityY;
 
-  // Stores dependencies with other rules
-  std::vector<size_t> _dependenciesLabels;
-  std::vector<size_t> _dependenciesIndexes;
-
   // Stores rules that also satisfied if this one is
   std::vector<size_t> _satisfiesLabels;
   std::vector<size_t> _satisfiesIndexes;

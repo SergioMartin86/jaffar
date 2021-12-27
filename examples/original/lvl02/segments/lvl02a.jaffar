@@ -6,10 +6,10 @@
    "Property Hash Types": [ ],
    "Static Tile Hash Types":
    [
-    { "Room": 4, "Tile": 18 },
-    { "Room": 4, "Tile": 19 },
-    { "Room": 4, "Tile": 28 },
-    { "Room": 4, "Tile": 29 }
+    { "Room": 4, "Tile": 18, "Comment": "Loose Tile -> Empty" },
+    { "Room": 4, "Tile": 19, "Comment": "Loose Tile -> Empty" },
+    { "Room": 4, "Tile": 28, "Comment": "Floor -> Debris" },
+    { "Room": 4, "Tile": 29, "Comment": "Floor -> Debris" }
    ],
    
    "Falling Tiles Hash Types": 
@@ -19,58 +19,22 @@
    "Active Objects Hash Types":
    [
     { "Room": 4, "Tile": 18, "Type": "Full", "Comment": "Loose Tile" },
-    { "Room": 4, "Tile": 19, "Type": "Full", "Comment": "Loose Tile" }
+    { "Room": 4, "Tile": 19, "Type": "Full", "Comment": "Loose Tile" },
+    { "Room": 6, "Tile": 16, "Type": "Full", "Comment": "Loose Tile" },
+    { "Room": 6, "Tile": 14, "Type": "Full", "Comment": "Spikes" }
    ]
   },
   
   "Rules":
   [
    {
-    "Label": 2100,
-    "Description": "Reward getting to a forbidden room",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": "<", "Value":  0 }
-    ],
-   
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Trigger Win" }
-    ]
-   },
-   
-    {
-    "Label": 2101,
-    "Description": "Reward getting to a forbidden room",
-    "Conditions":
-    [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
-     { "Property": "Kid Room", "Op": ">", "Value":  24 }
-    ],
-   
-    "Dependencies": [ ],
-    "Satisfies": [ ],
-
-    "Actions":
-    [
-     { "Type": "Trigger Win" }
-    ]
-   },
-   
-   {
     "Label": 2000,
     "Description": "Reward arrival to the level. Setting magnet to make kid go to the left on the first screen",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  5 }
     ],
    
-    "Dependencies": [ ],
     "Satisfies": [ ],
 
     "Actions":
@@ -86,11 +50,9 @@
     "Description": "Rewarding kid for advancing to the second screen",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  4 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2000 ],
     
     "Actions":
@@ -107,11 +69,9 @@
     "Description": "Rewarding kid for advancing to the third screen.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  6 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2001 ],
     
     "Actions":
@@ -128,12 +88,10 @@
     "Description": "Reward kid arriving in the center, set magnets to encourage climbing up.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },    
      { "Property": "Kid Room", "Op": "==", "Value":  6 },
      { "Property": "Kid Position X", "Op": "<", "Value":  98 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2002 ],
     
     "Actions":
@@ -149,12 +107,10 @@
     "Description": "[Checkpoint] Reward kid for climbing. Set magnet to go to the left.",
     "Conditions":
     [ 
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  6 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  55 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2003 ],
     
     "Actions":
@@ -170,12 +126,10 @@
     "Description": "If Kid advances to the left on the upper level, reward him and go left/up.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  1 },
      { "Property": "Kid Position Y", "Op": "<", "Value":  60 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2004 ],
     
     "Actions":
@@ -193,11 +147,9 @@
     "Description": "Make kid keep going up and then left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  22 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2006 ],
     
     "Actions":
@@ -210,22 +162,36 @@
     ]
    },
    
-      {
-    "Label": 2008,
+   {
+    "Label": 2998,
     "Description": "Make kid keep going up and then left.",
     "Conditions":
     [
-     { "Property": "Current Level", "Op": "==", "Value":  2 },
      { "Property": "Kid Room", "Op": "==", "Value":  22 },
      { "Property": "Kid Position Y", "Op": "==", "Value":  118 }
     ],
     
-    "Dependencies": [ ],
     "Satisfies": [ 2006 ],
     
     "Actions":
     [
      { "Type": "Trigger Win"}
+    ]
+   },
+   
+   {
+    "Label": 2999,
+    "Description": "If Kid dies, then fail.",
+    "Conditions":
+    [
+     { "Property": "Kid Current HP", "Op": "==", "Value":  0 }
+    ],
+    
+    "Satisfies": [ ],
+    
+    "Actions":
+    [
+     { "Type": "Trigger Fail" }
     ]
    }
    

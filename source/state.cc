@@ -108,23 +108,6 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
     EXIT_WITH_ERROR("[ERROR] Rule label %lu is repeated in the configuration file.\n", label);
   }
 
-  // Looking for rule dependency indexes that match their labels
-  for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
-   for (size_t depId = 0; depId < _rules[ruleId]->_dependenciesLabels.size(); depId++)
-   {
-    bool foundLabel = false;
-    size_t label = _rules[ruleId]->_dependenciesLabels[depId];
-    if (label == _rules[ruleId]->_label) EXIT_WITH_ERROR("[ERROR] Rule %lu references itself in dependencies vector.\n", label);
-    for (size_t subRuleId = 0; subRuleId < _ruleCount; subRuleId++)
-     if (_rules[subRuleId]->_label == label)
-     {
-      _rules[ruleId]->_dependenciesIndexes[depId] = subRuleId;
-      foundLabel = true;
-      break;
-     }
-    if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as dependency by rule %lu.\n", label, _rules[ruleId]->_label);
-   }
-
   // Looking for rule satisfied sub-rules indexes that match their labels
   for (size_t ruleId = 0; ruleId < _ruleCount; ruleId++)
    for (size_t satisfiedId = 0; satisfiedId < _rules[ruleId]->_satisfiesLabels.size(); satisfiedId++)
