@@ -42,6 +42,8 @@ __thread sbyte control_backward;
 __thread sbyte control_up;
 __thread sbyte control_down;
 __thread sbyte control_shift2;
+__thread char_type Char;
+__thread char_type Opp;
 
 __thread struct miniPopState_t gameState;
 __thread custom_options_type *custom = &custom_defaults;
@@ -1117,7 +1119,7 @@ int  play_kid_frame()
   load_fram_det_col();
   check_killed_shadow();
   play_kid();
-  if (gameState.upside_down && gameState.Char.alive >= 0)
+  if (gameState.upside_down && Char.alive >= 0)
   {
     gameState.upside_down = 0;
     need_redraw_because_flipped = 1;
@@ -1126,7 +1128,7 @@ int  play_kid_frame()
   {
     return 1;
   }
-  if (gameState.Char.room != 0)
+  if (Char.room != 0)
   {
     play_seq();
     fall_accel();
@@ -1161,10 +1163,10 @@ void  play_guard_frame()
     load_fram_det_col();
     check_killed_shadow();
     play_guard();
-    if (gameState.Char.room == gameState.drawn_room)
+    if (Char.room == gameState.drawn_room)
     {
       play_seq();
-      if (gameState.Char.x >= 44 && gameState.Char.x < 211)
+      if (Char.x >= 44 && Char.x < 211)
       {
         fall_accel();
         fall_speed();
@@ -1241,7 +1243,7 @@ void  set_health_life()
 void  do_delta_hp()
 {
   // level 12: if the shadow is hurt, gameState.Kid is also hurt
-  if (gameState.Opp.charid == charid_1_shadow &&
+  if (Opp.charid == charid_1_shadow &&
       gameState.current_level == 12 &&
       guardhp_delta != 0)
   {
@@ -1417,9 +1419,9 @@ void  parse_cmdline_sound()
 // seg002:0000
 void  do_init_shad(const byte *source, int seq_index)
 {
-  memcpy_near(&gameState.Char, source, 7);
+  memcpy_near(&Char, source, 7);
   seqtbl_offset_char(seq_index);
-  gameState.Char.charid = charid_1_shadow;
+  Char.charid = charid_1_shadow;
   gameState.demo_time = 0;
   gameState.guard_skill = 3;
   guardhp_delta = gameState.guardhp_curr = gameState.guardhp_max = 4;
@@ -1441,7 +1443,7 @@ void  check_shadow()
     // Special event: level 12 shadow
     if (!gameState.united_with_shadow && gameState.drawn_room == 15)
     {
-      gameState.Char.room = gameState.drawn_room;
+      Char.room = gameState.drawn_room;
       if (get_tile(15, 1, 0) == tiles_22_sword)
       {
         return;
@@ -1454,8 +1456,8 @@ void  check_shadow()
   else if (gameState.current_level == 6)
   {
     // Special event: level 6 shadow
-    gameState.Char.room = gameState.drawn_room;
-    if (gameState.Char.room == 1)
+    Char.room = gameState.drawn_room;
+    if (Char.room == 1)
     {
       if (gameState.leveldoor_open != 0x4D)
       {
@@ -1468,8 +1470,8 @@ void  check_shadow()
   else if (gameState.current_level == 5)
   {
     // Special event: level 5 shadow
-    gameState.Char.room = gameState.drawn_room;
-    if (gameState.Char.room == 24)
+    Char.room = gameState.drawn_room;
+    if (Char.room == 24)
     {
       if (get_tile(24, 3, 0) != tiles_10_potion)
       {
@@ -1491,17 +1493,17 @@ void  enter_guard()
   byte seq_hi;
   // arrays are indexed 0..23 instead of 1..24
   room_minus_1 = gameState.drawn_room - 1;
-  frame = gameState.Char.frame; // hm?
+  frame = Char.frame; // hm?
   guard_tile = gameState.level.guards_tile[room_minus_1];
   if (guard_tile >= 30)
     return;
 
-  gameState.Char.room = gameState.drawn_room;
-  gameState.Char.curr_row = guard_tile / 10;
-  gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-  gameState.Char.x = gameState.level.guards_x[room_minus_1];
-  gameState.Char.curr_col = get_tile_div_mod_m7(gameState.Char.x);
-  gameState.Char.direction = gameState.level.guards_dir[room_minus_1];
+  Char.room = gameState.drawn_room;
+  Char.curr_row = guard_tile / 10;
+  Char.y = y_land[Char.curr_row + 1];
+  Char.x = gameState.level.guards_x[room_minus_1];
+  Char.curr_col = get_tile_div_mod_m7(Char.x);
+  Char.direction = gameState.level.guards_dir[room_minus_1];
   // only regular guards have different colors (and only on VGA)
    gameState.curr_guard_color = 0;
 
@@ -1514,29 +1516,29 @@ void  enter_guard()
   //if (gameState.current_level == 3) {
   if (custom->tbl_guard_type[gameState.current_level] == 2)
   {
-    gameState.Char.charid = charid_4_skeleton;
+    Char.charid = charid_4_skeleton;
   }
   else
   {
-    gameState.Char.charid = charid_2_guard;
+    Char.charid = charid_2_guard;
   }
   seq_hi = gameState.level.guards_seq_hi[room_minus_1];
   if (seq_hi == 0)
   {
-    if (gameState.Char.charid == charid_4_skeleton)
+    if (Char.charid == charid_4_skeleton)
     {
-      gameState.Char.sword = sword_2_drawn;
+      Char.sword = sword_2_drawn;
       seqtbl_offset_char(seq_63_guard_stand_active); // stand active (when entering room) (skeleton)
     }
     else
     {
-      gameState.Char.sword = sword_0_sheathed;
+      Char.sword = sword_0_sheathed;
       seqtbl_offset_char(seq_77_guard_stand_inactive); // stand inactive (when entering room)
     }
   }
   else
   {
-    gameState.Char.curr_seq = gameState.level.guards_seq_lo[room_minus_1] + (seq_hi << 8);
+    Char.curr_seq = gameState.level.guards_seq_lo[room_minus_1] + (seq_hi << 8);
   }
   play_seq();
   gameState.guard_skill = gameState.level.guards_skill[room_minus_1];
@@ -1544,23 +1546,23 @@ void  enter_guard()
   {
     gameState.guard_skill = 3;
   }
-  frame = gameState.Char.frame;
+  frame = Char.frame;
   if (frame == frame_185_dead || frame == frame_177_spiked || frame == frame_178_chomped)
   {
-    gameState.Char.alive = 1;
+    Char.alive = 1;
     gameState.guardhp_curr = 0;
   }
   else
   {
-    gameState.Char.alive = -1;
+    Char.alive = -1;
     gameState.justblocked = 0;
     gameState.guard_refrac = 0;
     gameState.is_guard_notice = 0;
     get_guard_hp();
   }
-  gameState.Char.fall_y = 0;
-  gameState.Char.fall_x = 0;
-  gameState.Char.action = actions_1_run_jump;
+  Char.fall_y = 0;
+  Char.fall_x = 0;
+  Char.action = actions_1_run_jump;
   saveshad();
 }
 
@@ -1635,34 +1637,34 @@ void  leave_guard()
 // seg002:0486
 int  goto_other_room(short direction)
 {
-  //printf("goto_other_room: direction = %d, gameState.Char.room = %d\n", direction, gameState.Char.room);
+  //printf("goto_other_room: direction = %d, Char.room = %d\n", direction, Char.room);
   short opposite_dir;
-  byte other_room = ((byte *)&gameState.level.roomlinks[gameState.Char.room - 1])[direction];
-  gameState.Char.room = other_room;
+  byte other_room = ((byte *)&gameState.level.roomlinks[Char.room - 1])[direction];
+  Char.room = other_room;
   if (direction == 0)
   {
     // left
-    gameState.Char.x += 140;
+    Char.x += 140;
     opposite_dir = 1;
   }
   else if (direction == 1)
   {
     // right
-    gameState.Char.x -= 140;
+    Char.x -= 140;
     opposite_dir = 0;
   }
   else if (direction == 2)
   {
     // up
-    gameState.Char.y += 189;
-    gameState.Char.curr_row = y_to_row_mod4(gameState.Char.y);
+    Char.y += 189;
+    Char.curr_row = y_to_row_mod4(Char.y);
     opposite_dir = 3;
   }
   else
   {
     // down
-    gameState.Char.y -= 189;
-    gameState.Char.curr_row = y_to_row_mod4(gameState.Char.y);
+    Char.y -= 189;
+    Char.curr_row = y_to_row_mod4(Char.y);
     opposite_dir = 2;
   }
   return opposite_dir;
@@ -1685,9 +1687,9 @@ short  leave_room()
   word action;
   short chary;
   short leave_dir;
-  chary = gameState.Char.y;
-  action = gameState.Char.action;
-  frame = gameState.Char.frame;
+  chary = Char.y;
+  action = Char.action;
+  frame = Char.frame;
   if (action != actions_5_bumped &&
       action != actions_4_in_freefall &&
       action != actions_3_in_midair &&
@@ -1714,7 +1716,7 @@ short  leave_room()
   {
     return -1;
   }
-  else if (gameState.Char.direction != dir_0_right)
+  else if (Char.direction != dir_0_right)
   {
     // looking left
     if (char_x_left <= 54)
@@ -1733,7 +1735,7 @@ short  leave_room()
   else
   {
     // looking right
-    get_tile(gameState.Char.room, 9, gameState.Char.curr_row);
+    get_tile(Char.room, 9, Char.curr_row);
     if (curr_tile2 != tiles_7_doortop_with_floor &&
         curr_tile2 != tiles_12_doortop &&
         char_x_right >= 201)
@@ -1763,7 +1765,7 @@ short  leave_room()
   //case 2: // up
   case 3: // down
     // Special event: falling exit
-    if (gameState.current_level == custom->falling_exit_level /*6*/ && gameState.Char.room == custom->falling_exit_room /*1*/)
+    if (gameState.current_level == custom->falling_exit_level /*6*/ && Char.room == custom->falling_exit_room /*1*/)
     {
       return -2;
     }
@@ -1797,7 +1799,7 @@ void  exit_room()
     return;
   }
   savekid();
-  next_room = gameState.Char.room;
+  next_room = Char.room;
   if (gameState.Guard.direction == dir_56_none)
     return;
   if (gameState.Guard.alive < 0 && gameState.Guard.sword == sword_2_drawn)
@@ -1866,7 +1868,7 @@ void  Jaffar_exit()
 void  level3_set_chkp()
 {
   // Special event: set gameState.checkpoint
-  if (gameState.current_level == /*3*/ custom->checkpoint_level && gameState.Char.room == 7 /* TODO: add a custom option */)
+  if (gameState.current_level == /*3*/ custom->checkpoint_level && Char.room == 7 /* TODO: add a custom option */)
   {
     gameState.checkpoint = 1;
     gameState.hitp_beg_lev = gameState.hitp_max;
@@ -1877,7 +1879,7 @@ void  level3_set_chkp()
 void  sword_disappears()
 {
   // Special event: sword disappears
-  if (gameState.current_level == 12 && gameState.Char.room == 18)
+  if (gameState.current_level == 12 && Char.room == 18)
   {
     get_tile(15, 1, 0);
     curr_room_tiles[curr_tilepos] = tiles_1_floor;
@@ -1889,7 +1891,7 @@ void  sword_disappears()
 void  meet_Jaffar()
 {
   // Special event: play music
-  if (gameState.current_level == 13 && gameState.leveldoor_open == 0 && gameState.Char.room == 3)
+  if (gameState.current_level == 13 && gameState.leveldoor_open == 0 && Char.room == 3)
   {
     // Special event: Jaffar waits a bit (28/12=2.33 seconds)
     gameState.guard_notice_timer = 28;
@@ -1904,8 +1906,8 @@ void  play_mirr_mus()
     gameState.leveldoor_open != 0 &&
     gameState.leveldoor_open != 0x4D && // was the music played already?
     gameState.current_level == /*4*/ custom->mirror_level &&
-    gameState.Char.curr_row == /*0*/ custom->mirror_row &&
-    gameState.Char.room == 11 /* TODO: add a custom option */
+    Char.curr_row == /*0*/ custom->mirror_row &&
+    Char.room == 11 /* TODO: add a custom option */
   )
   {
     gameState.leveldoor_open = 0x4D;
@@ -1992,7 +1994,7 @@ void  autocontrol_opponent()
 {
   word charid;
   move_0_nothing();
-  charid = gameState.Char.charid;
+  charid = Char.charid;
   if (charid == charid_0_kid)
   {
     autocontrol_kid();
@@ -2031,20 +2033,20 @@ void  autocontrol_opponent()
 // seg002:07EB
 void  autocontrol_mouse()
 {
-  if (gameState.Char.direction == dir_56_none)
+  if (Char.direction == dir_56_none)
   {
     return;
   }
-  if (gameState.Char.action == actions_0_stand)
+  if (Char.action == actions_0_stand)
   {
-    if (gameState.Char.x >= 200)
+    if (Char.x >= 200)
     {
       clear_char();
     }
   }
   else
   {
-    if (gameState.Char.x < 166)
+    if (Char.x < 166)
     {
       seqtbl_offset_char(seq_107_mouse_stand_up_and_go); // mouse
       play_seq();
@@ -2076,7 +2078,7 @@ void  autocontrol_shadow()
 // seg002:0850
 void  autocontrol_skeleton()
 {
-  gameState.Char.sword = sword_2_drawn;
+  Char.sword = sword_2_drawn;
   autocontrol_guard();
 }
 
@@ -2095,7 +2097,7 @@ void  autocontrol_kid()
 // seg002:0864
 void  autocontrol_guard()
 {
-  if (gameState.Char.sword < sword_2_drawn)
+  if (Char.sword < sword_2_drawn)
   {
     autocontrol_guard_inactive();
   }
@@ -2112,7 +2114,7 @@ void  autocontrol_guard_inactive()
   if (gameState.Kid.alive >= 0)
     return;
   distance = char_opp_dist();
-  if (gameState.Opp.curr_row != gameState.Char.curr_row || (word)distance < (word)-8)
+  if (Opp.curr_row != Char.curr_row || (word)distance < (word)-8)
   {
     // If gameState.Kid made a sound ...
     if (gameState.is_guard_notice)
@@ -2149,7 +2151,7 @@ void  autocontrol_guard_active()
   short opp_frame;
   short char_frame;
   short distance;
-  char_frame = gameState.Char.frame;
+  char_frame = Char.frame;
   if (char_frame != frame_166_stand_inactive && char_frame >= 150 && gameState.can_guard_see_kid != 1)
   {
     if (gameState.can_guard_see_kid == 0)
@@ -2159,7 +2161,7 @@ void  autocontrol_guard_active()
         guard_follows_kid_down();
         //return;
       }
-      else if (gameState.Char.charid != charid_4_skeleton)
+      else if (Char.charid != charid_4_skeleton)
       {
         move_down_back();
       }
@@ -2167,20 +2169,20 @@ void  autocontrol_guard_active()
     }
     else
     { // gameState.can_guard_see_kid == 2
-      opp_frame = gameState.Opp.frame;
+      opp_frame = Opp.frame;
       distance = char_opp_dist();
       if (distance >= 12 &&
           // frames 102..117: falling and landing
           opp_frame >= frame_102_start_fall_1 && opp_frame < frame_118_stand_up_from_crouch_9 &&
-          gameState.Opp.action == actions_5_bumped)
+          Opp.action == actions_5_bumped)
       {
         return;
       }
       if (distance < 35)
       {
-        if ((gameState.Char.sword < sword_2_drawn && distance < 8) || distance < 12)
+        if ((Char.sword < sword_2_drawn && distance < 8) || distance < 12)
         {
-          if (gameState.Char.direction == gameState.Opp.direction)
+          if (Char.direction == Opp.direction)
           {
             // turn around
             move_2_backward();
@@ -2202,7 +2204,7 @@ void  autocontrol_guard_active()
       {
         if (gameState.guard_refrac != 0)
           return;
-        if (gameState.Char.direction != gameState.Opp.direction)
+        if (Char.direction != Opp.direction)
         {
           // frames 7..14: running
           // frames 34..43: run-jump
@@ -2267,7 +2269,7 @@ void  guard_follows_kid_down()
 {
   // This is called from autocontrol_guard_active, so char=Guard, Opp=gameState.Kid
   word opp_action;
-  opp_action = gameState.Opp.action;
+  opp_action = Opp.action;
   if (opp_action == actions_2_hang_climb || opp_action == actions_6_hang_straight)
   {
     return;
@@ -2282,7 +2284,7 @@ void  guard_follows_kid_down()
                                      // ... or into a chasm
                                      !tile_is_floor(curr_tile2)) ||
                                     // ... or gameState.Kid is not below
-                                    gameState.Char.curr_row + 1 != gameState.Opp.curr_row)))
+                                    Char.curr_row + 1 != Opp.curr_row)))
   {
     // don't follow
     gameState.droppedout = 0;
@@ -2298,7 +2300,7 @@ void  guard_follows_kid_down()
 // seg002:0A93
 void  autocontrol_guard_kid_in_sight(short distance)
 {
-  if (gameState.Opp.sword == sword_2_drawn)
+  if (Opp.sword == sword_2_drawn)
   {
     autocontrol_guard_kid_armed(distance);
   }
@@ -2355,7 +2357,7 @@ void  guard_advance()
 void  guard_block()
 {
   word opp_frame;
-  opp_frame = gameState.Opp.frame;
+  opp_frame = Opp.frame;
   if (opp_frame == frame_152_strike_2 || opp_frame == frame_153_strike_3 || opp_frame == frame_162_block_to_strike)
   {
     if (gameState.justblocked != 0)
@@ -2380,10 +2382,10 @@ void  guard_strike()
 {
   word opp_frame;
   word char_frame;
-  opp_frame = gameState.Opp.frame;
+  opp_frame = Opp.frame;
   if (opp_frame == frame_169_begin_block || opp_frame == frame_151_strike_1)
     return;
-  char_frame = gameState.Char.frame;
+  char_frame = Char.frame;
   if (char_frame == frame_161_parry || char_frame == frame_150_parry)
   {
     if (custom->restrikeprob[gameState.guard_skill] > prandom(255))
@@ -2404,9 +2406,9 @@ void  guard_strike()
 void  hurt_by_sword()
 {
   short distance;
-  if (gameState.Char.alive >= 0)
+  if (Char.alive >= 0)
     return;
-  if (gameState.Char.sword != sword_2_drawn)
+  if (Char.sword != sword_2_drawn)
   {
     // Being hurt when not in fighting pose means death.
     take_hp(100);
@@ -2416,19 +2418,19 @@ void  hurt_by_sword()
         (distance = distance_to_edge_weight()) < 4)
     {
       seqtbl_offset_char(seq_85_stabbed_to_death); // dying (stabbed)
-      if (gameState.Char.charid != charid_0_kid &&
-          gameState.Char.direction < dir_0_right && // looking left
+      if (Char.charid != charid_0_kid &&
+          Char.direction < dir_0_right && // looking left
           (curr_tile2 == tiles_4_gate || get_tile_at_char() == tiles_4_gate))
       {
-          gameState.Char.x = x_bump[tile_col - (curr_tile2 != tiles_4_gate) + 5] + 7;
-        gameState.Char.x = char_dx_forward(10);
+          Char.x = x_bump[tile_col - (curr_tile2 != tiles_4_gate) + 5] + 7;
+        Char.x = char_dx_forward(10);
       }
-      gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-      gameState.Char.fall_y = 0;
+      Char.y = y_land[Char.curr_row + 1];
+      Char.fall_y = 0;
     }
     else
     {
-      gameState.Char.x = char_dx_forward(distance - 20);
+      Char.x = char_dx_forward(distance - 20);
       load_fram_det_col();
       inc_curr_row();
       seqtbl_offset_char(seq_81_kid_pushed_off_ledge); // gameState.Kid/Guard is killed and pushed off the ledge
@@ -2437,14 +2439,14 @@ void  hurt_by_sword()
   else
   {
     // You can't hurt skeletons
-    if (gameState.Char.charid != charid_4_skeleton)
+    if (Char.charid != charid_4_skeleton)
     {
       if (take_hp(1))
         goto loc_4276;
     }
     seqtbl_offset_char(seq_74_hit_by_sword); // being hit with sword
-    gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-    gameState.Char.fall_y = 0;
+    Char.y = y_land[Char.curr_row + 1];
+    Char.fall_y = 0;
   }
   // sound 13: gameState.Kid hurt (by sword), sound 12: Guard hurt (by sword)
   play_seq();
@@ -2496,26 +2498,26 @@ void  check_sword_hurting()
 void  check_hurting()
 {
   short opp_frame, char_frame, distance, min_hurt_range;
-  if (gameState.Char.sword != sword_2_drawn)
+  if (Char.sword != sword_2_drawn)
     return;
-  if (gameState.Char.curr_row != gameState.Opp.curr_row)
+  if (Char.curr_row != Opp.curr_row)
     return;
-  char_frame = gameState.Char.frame;
+  char_frame = Char.frame;
   // frames 153..154: poking with sword
   if (char_frame != frame_153_strike_3 && char_frame != frame_154_poking)
     return;
   // If char is poking ...
   distance = char_opp_dist();
-  opp_frame = gameState.Opp.frame;
+  opp_frame = Opp.frame;
   // frames 161 and 150: parrying
   if (distance < 0 || distance >= 29 ||
       (opp_frame != frame_161_parry && opp_frame != frame_150_parry))
   {
     // ... and Opp is not parrying
     // frame 154: poking
-    if (gameState.Char.frame == frame_154_poking)
+    if (Char.frame == frame_154_poking)
     {
-      if (gameState.Opp.sword < sword_2_drawn)
+      if (Opp.sword < sword_2_drawn)
       {
         min_hurt_range = 8;
       }
@@ -2526,25 +2528,25 @@ void  check_hurting()
       distance = char_opp_dist();
       if (distance >= min_hurt_range && distance < 29)
       {
-        gameState.Opp.action = actions_99_hurt;
+        Opp.action = actions_99_hurt;
       }
     }
   }
   else
   {
-    gameState.Opp.frame = frame_161_parry;
-    if (gameState.Char.charid != charid_0_kid)
+    Opp.frame = frame_161_parry;
+    if (Char.charid != charid_0_kid)
     {
       gameState.justblocked = 4;
     }
     seqtbl_offset_char(seq_69_attack_was_parried); // attack was parried
     play_seq();
   }
-  if (gameState.Char.direction == dir_56_none)
+  if (Char.direction == dir_56_none)
     return; // Fix looping "sword moving" sound.
   // frame 154: poking
   // frame 161: parrying
-  if (gameState.Char.frame == frame_154_poking && gameState.Opp.frame != frame_161_parry && gameState.Opp.action != actions_99_hurt)
+  if (Char.frame == frame_154_poking && Opp.frame != frame_161_parry && Opp.action != actions_99_hurt)
   {
   }
 }
@@ -2567,21 +2569,21 @@ void  check_skel()
       curr_room_tiles[curr_tilepos] = tiles_1_floor;
       redraw_height = 24;
       ++curr_tilepos;
-      gameState.Char.room = gameState.drawn_room;
-      gameState.Char.curr_row = /*1*/ custom->skeleton_row;
-      gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-      gameState.Char.curr_col = /*5*/ custom->skeleton_column;
-      gameState.Char.x = x_bump[gameState.Char.curr_col + 5] + 14;
-      gameState.Char.direction = dir_FF_left;
+      Char.room = gameState.drawn_room;
+      Char.curr_row = /*1*/ custom->skeleton_row;
+      Char.y = y_land[Char.curr_row + 1];
+      Char.curr_col = /*5*/ custom->skeleton_column;
+      Char.x = x_bump[Char.curr_col + 5] + 14;
+      Char.direction = dir_FF_left;
       seqtbl_offset_char(seq_88_skel_wake_up); // skel wake up
       play_seq();
       gameState.guard_skill = /*2*/ custom->skeleton_skill;
-      gameState.Char.alive = -1;
+      Char.alive = -1;
       gameState.guardhp_max = gameState.guardhp_curr = 3;
-      gameState.Char.fall_x = gameState.Char.fall_y = 0;
+      Char.fall_x = Char.fall_y = 0;
       gameState.is_guard_notice = gameState.guard_refrac = 0;
-      gameState.Char.sword = sword_2_drawn;
-      gameState.Char.charid = charid_4_skeleton;
+      Char.sword = sword_2_drawn;
+      Char.charid = charid_4_skeleton;
       saveshad();
     }
   }
@@ -2640,9 +2642,9 @@ void  do_auto_moves(const auto_move_type *moves_ptr)
 // seg002:1000
 void  autocontrol_shadow_level4()
 {
-  if (gameState.Char.room == 4)
+  if (Char.room == 4)
   {
-    if (gameState.Char.x < 80)
+    if (Char.x < 80)
     {
       clear_char();
     }
@@ -2656,7 +2658,7 @@ void  autocontrol_shadow_level4()
 // seg002:101A
 void  autocontrol_shadow_level5()
 {
-  if (gameState.Char.room == 24)
+  if (Char.room == 24)
   {
     if (gameState.demo_time == 0)
     {
@@ -2667,7 +2669,7 @@ void  autocontrol_shadow_level5()
       gameState.demo_index = 0;
     }
     do_auto_moves(custom->shad_drink_move);
-    if (gameState.Char.x < 15)
+    if (Char.x < 15)
     {
       clear_char();
     }
@@ -2677,7 +2679,7 @@ void  autocontrol_shadow_level5()
 // seg002:1064
 void  autocontrol_shadow_level6()
 {
-  if (gameState.Char.room == 1 &&
+  if (Char.room == 1 &&
       gameState.Kid.frame == frame_43_running_jump_4 && // a frame in run-jump
       gameState.Kid.x < 128)
   {
@@ -2691,16 +2693,16 @@ void  autocontrol_shadow_level12()
 {
   short opp_frame;
   short xdiff;
-  if (gameState.Char.room == 15 && gameState.shadow_initialized == 0)
+  if (Char.room == 15 && gameState.shadow_initialized == 0)
   {
-    if (gameState.Opp.x >= 150)
+    if (Opp.x >= 150)
     {
       do_init_shad(/*&*/ custom->init_shad_12, 7 /*fall*/);
       return;
     }
     gameState.shadow_initialized = 1;
   }
-  if (gameState.Char.sword >= sword_2_drawn)
+  if (Char.sword >= sword_2_drawn)
   {
     // if the gameState.Kid puts his sword away, the shadow does the same,
     // but only if the shadow was already hurt (?)
@@ -2714,7 +2716,7 @@ void  autocontrol_shadow_level12()
     }
     return;
   }
-  if (gameState.Opp.sword >= sword_2_drawn || gameState.offguard == 0)
+  if (Opp.sword >= sword_2_drawn || gameState.offguard == 0)
   {
     xdiff = 0x7000; // bugfix/workaround
     // This behavior matches the DOS version but not the Apple II source.
@@ -2727,7 +2729,7 @@ void  autocontrol_shadow_level12()
       return;
     }
     // Shadow draws his sword
-    if (gameState.Char.frame == 15)
+    if (Char.frame == 15)
     {
       move_down_forw();
     }
@@ -2743,7 +2745,7 @@ void  autocontrol_shadow_level12()
     // time of gameState.Kid-shadow flash
     gameState.united_with_shadow = 42;
     // put the gameState.Kid where the shadow was
-    gameState.Char.charid = charid_0_kid;
+    Char.charid = charid_0_kid;
     savekid();
     // remove the shadow
     clear_char();
@@ -2752,7 +2754,7 @@ void  autocontrol_shadow_level12()
   if (gameState.can_guard_see_kid == 2)
   {
     // If gameState.Kid runs to shadow, shadow runs to gameState.Kid.
-    opp_frame = gameState.Opp.frame;
+    opp_frame = Opp.frame;
     // frames 1..14: running
     // frames 121..132: stepping
     if ((opp_frame >= frame_3_start_run && opp_frame < frame_15_stand) ||
@@ -2861,13 +2863,13 @@ void  do_startpos()
              /*0*/ custom->checkpoint_clear_tile_row);
     curr_room_tiles[curr_tilepos] = tiles_0_empty;
   }
-  next_room = gameState.Char.room = gameState.level.start_room;
+  next_room = Char.room = gameState.level.start_room;
   x = gameState.level.start_pos;
-  gameState.Char.curr_col = x % 10;
-  gameState.Char.curr_row = x / 10;
-  gameState.Char.x = x_bump[gameState.Char.curr_col + 5] + 14;
+  Char.curr_col = x % 10;
+  Char.curr_row = x / 10;
+  Char.x = x_bump[Char.curr_col + 5] + 14;
   // Start in the opposite direction (and turn into the correct one).
-  gameState.Char.direction = ~gameState.level.start_dir;
+  Char.direction = ~gameState.level.start_dir;
   if (seamless == 0)
   {
     if (gameState.current_level != 0)
@@ -2903,20 +2905,20 @@ void  do_startpos()
 // seg003:028A
 void  set_start_pos()
 {
-  gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-  gameState.Char.alive = -1;
-  gameState.Char.charid = charid_0_kid;
+  Char.y = y_land[Char.curr_row + 1];
+  Char.alive = -1;
+  Char.charid = charid_0_kid;
   gameState.is_screaming = 0;
   knock = 0;
   gameState.upside_down = custom->start_upside_down; // 0
   gameState.is_feather_fall = 0;
-  gameState.Char.fall_y = 0;
-  gameState.Char.fall_x = 0;
+  Char.fall_y = 0;
+  Char.fall_x = 0;
   gameState.offguard = 0;
-  gameState.Char.sword = sword_0_sheathed;
+  Char.sword = sword_0_sheathed;
   gameState.droppedout = 0;
   play_seq();
-  if (gameState.current_level == /*7*/ custom->falling_entry_level && gameState.Char.room == /*17*/ custom->falling_entry_room)
+  if (gameState.current_level == /*7*/ custom->falling_entry_level && Char.room == /*17*/ custom->falling_entry_room)
   {
     // Special event: level 7 falling entry
     // level 7, room 17: show room below
@@ -2996,7 +2998,7 @@ void  check_knock()
 {
   if (knock)
   {
-    do_knock(gameState.Char.room, gameState.Char.curr_row - (knock > 0));
+    do_knock(Char.room, Char.curr_row - (knock > 0));
     knock = 0;
   }
 }
@@ -3029,7 +3031,7 @@ void  timers()
   }
 
   // Special event: mouse
-  if (gameState.current_level == /*8*/ custom->mouse_level && gameState.Char.room == /*16*/ custom->mouse_room && gameState.leveldoor_open)
+  if (gameState.current_level == /*8*/ custom->mouse_level && Char.room == /*16*/ custom->mouse_room && gameState.leveldoor_open)
   {
     ++gameState.leveldoor_open;
     // time before mouse comes: 150/12=12.5 seconds
@@ -3053,7 +3055,7 @@ void  check_mirror()
 void  jump_through_mirror()
 {
   jumped_through_mirror = 0;
-  gameState.Char.charid = charid_1_shadow;
+  Char.charid = charid_1_shadow;
   gameState.guardhp_max = gameState.guardhp_curr = gameState.hitp_max;
   gameState.hitp_curr = 1;
 }
@@ -3063,15 +3065,15 @@ void  check_mirror_image()
 {
   short distance;
   short xpos;
-  xpos = x_bump[gameState.Char.curr_col + 5] + 10;
+  xpos = x_bump[Char.curr_col + 5] + 10;
   distance = distance_to_edge_weight();
-  if (gameState.Char.direction >= dir_0_right)
+  if (Char.direction >= dir_0_right)
   {
     distance = (~distance) + 14;
   }
   distance_mirror = distance - 2;
-  gameState.Char.x = (xpos << 1) - gameState.Char.x;
-  gameState.Char.direction = ~gameState.Char.direction;
+  Char.x = (xpos << 1) - Char.x;
+  Char.direction = ~Char.direction;
 }
 
 // seg003:08AA
@@ -3080,17 +3082,17 @@ void  bump_into_opponent()
   // This is called from play_kid_frame, so char=gameState.Kid, Opp=Guard
   short distance;
   if (gameState.can_guard_see_kid >= 2 &&
-      gameState.Char.sword == sword_0_sheathed && // gameState.Kid must not be in fighting pose
-      gameState.Opp.sword != sword_0_sheathed &&  // but Guard must
-      gameState.Opp.action < 2 &&
-      gameState.Char.direction != gameState.Opp.direction // must be facing toward each other
+      Char.sword == sword_0_sheathed && // gameState.Kid must not be in fighting pose
+      Opp.sword != sword_0_sheathed &&  // but Guard must
+      Opp.action < 2 &&
+      Char.direction != Opp.direction // must be facing toward each other
   )
   {
     distance = char_opp_dist();
     if (ABS(distance) <= 15)
     {
-      gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-      gameState.Char.fall_y = 0;
+      Char.y = y_land[Char.curr_row + 1];
+      Char.fall_y = 0;
       seqtbl_offset_char(seq_47_bump); // bump into opponent
       play_seq();
     }
@@ -3202,12 +3204,12 @@ Possible results in gameState.can_guard_see_kid:
 void  do_mouse()
 {
   loadkid();
-  gameState.Char.charid = /*charid_24_mouse*/ custom->mouse_object;
-  gameState.Char.x = /*200*/ custom->mouse_start_x;
-  gameState.Char.curr_row = 0;
-  gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-  gameState.Char.alive = -1;
-  gameState.Char.direction = dir_FF_left;
+  Char.charid = /*charid_24_mouse*/ custom->mouse_object;
+  Char.x = /*200*/ custom->mouse_start_x;
+  Char.curr_row = 0;
+  Char.y = y_land[Char.curr_row + 1];
+  Char.alive = -1;
+  Char.direction = dir_FF_left;
   gameState.guardhp_curr = 1;
   seqtbl_offset_char(seq_105_mouse_forward); // mouse forward
   play_seq();
@@ -3288,7 +3290,7 @@ void  load_fram_det_col()
 // seg006:014D
 void  determine_col()
 {
-  gameState.Char.curr_col = get_tile_div_mod_m7(dx_weight());
+  Char.curr_col = get_tile_div_mod_m7(dx_weight());
 }
 
 
@@ -3311,9 +3313,9 @@ inline void load_frame()
 {
   short frame;
   short add_frame;
-  frame = gameState.Char.frame;
+  frame = Char.frame;
   add_frame = 0;
-  switch (gameState.Char.charid)
+  switch (Char.charid)
   {
   case charid_0_kid:
   case charid_24_mouse:
@@ -3342,11 +3344,11 @@ inline void load_frame()
 // seg006:0213
 int  char_dx_forward(int delta_x)
 {
-  if (gameState.Char.direction < dir_0_right)
+  if (Char.direction < dir_0_right)
   {
     delta_x = -delta_x;
   }
-  return delta_x + gameState.Char.x;
+  return delta_x + Char.x;
 }
 
 // seg006:0234
@@ -3365,31 +3367,31 @@ void  play_seq()
 {
   for (;;)
   {
-    byte item = *(SEQTBL_0 + gameState.Char.curr_seq++);
+    byte item = *(SEQTBL_0 + Char.curr_seq++);
     switch (item)
     {
     case SEQ_DX: // dx
-      gameState.Char.x = char_dx_forward(*(SEQTBL_0 + gameState.Char.curr_seq++));
+      Char.x = char_dx_forward(*(SEQTBL_0 + Char.curr_seq++));
       break;
     case SEQ_DY: // dy
-      gameState.Char.y += *(SEQTBL_0 + gameState.Char.curr_seq++);
+      Char.y += *(SEQTBL_0 + Char.curr_seq++);
       break;
     case SEQ_FLIP: // flip
-      gameState.Char.direction = ~gameState.Char.direction;
+      Char.direction = ~Char.direction;
       break;
     case SEQ_JMP_IF_FEATHER: // jump if feather
       if (!gameState.is_feather_fall)
       {
-        ++gameState.Char.curr_seq;
-        ++gameState.Char.curr_seq;
+        ++Char.curr_seq;
+        ++Char.curr_seq;
         break;
       }
       // fallthrough!
     case SEQ_JMP: // jump
-      gameState.Char.curr_seq = *(const word *)(SEQTBL_0 + gameState.Char.curr_seq);
+      Char.curr_seq = *(const word *)(SEQTBL_0 + Char.curr_seq);
       break;
     case SEQ_UP: // up
-      --gameState.Char.curr_row;
+      --Char.curr_row;
       start_chompers();
       break;
     case SEQ_DOWN: // down
@@ -3397,11 +3399,11 @@ void  play_seq()
       start_chompers();
       break;
     case SEQ_ACTION: // action
-      gameState.Char.action = *(SEQTBL_0 + gameState.Char.curr_seq++);
+      Char.action = *(SEQTBL_0 + Char.curr_seq++);
       break;
     case SEQ_SET_FALL: // set fall
-      gameState.Char.fall_x = *(SEQTBL_0 + gameState.Char.curr_seq++);
-      gameState.Char.fall_y = *(SEQTBL_0 + gameState.Char.curr_seq++);
+      Char.fall_x = *(SEQTBL_0 + Char.curr_seq++);
+      Char.fall_y = *(SEQTBL_0 + Char.curr_seq++);
       break;
     case SEQ_KNOCK_UP: // knock up
       knock = 1;
@@ -3410,7 +3412,7 @@ void  play_seq()
       knock = -1;
       break;
     case SEQ_SOUND: // sound
-      switch (*(SEQTBL_0 + gameState.Char.curr_seq++))
+      switch (*(SEQTBL_0 + Char.curr_seq++))
       {
       case SND_SILENT: // no sound actually played, but guards still notice the kid
         gameState.is_guard_notice = 1;
@@ -3440,7 +3442,7 @@ void  play_seq()
       ++gameState.next_level;
       break;
     case SEQ_GET_ITEM: // get item
-      if (*(SEQTBL_0 + gameState.Char.curr_seq++) == 1)
+      if (*(SEQTBL_0 + Char.curr_seq++) == 1)
       {
         proc_get_object();
       }
@@ -3448,8 +3450,8 @@ void  play_seq()
     case SEQ_DIE: // nop
       break;
     default:
-      gameState.Char.frame = item;
-      //if (gameState.Char.frame == 185) gameState.Char.frame = 185;
+      Char.frame = item;
+      //if (Char.frame == 185) Char.frame = 185;
       return;
     }
   }
@@ -3534,53 +3536,53 @@ int  y_to_row_mod4(int ypos)
 // seg006:044F
 void  loadkid()
 {
-  gameState.Char = gameState.Kid;
+  Char = gameState.Kid;
 }
 
 // seg006:0464
 void  savekid()
 {
-  gameState.Kid = gameState.Char;
+  gameState.Kid = Char;
 }
 
 // seg006:0479
 void  loadshad()
 {
-  gameState.Char = gameState.Guard;
+  Char = gameState.Guard;
 }
 
 // seg006:048E
 void  saveshad()
 {
- gameState.Guard = gameState.Char;
+ gameState.Guard = Char;
 }
 
 // seg006:04A3
 void  loadkid_and_opp()
 {
   loadkid();
-  gameState.Opp = gameState.Guard;
+  Opp = gameState.Guard;
 }
 
 // seg006:04BC
 void  savekid_and_opp()
 {
   savekid();
-  gameState.Guard = gameState.Opp;
+  gameState.Guard = Opp;
 }
 
 // seg006:04D5
 void  loadshad_and_opp()
 {
   loadshad();
-  gameState.Opp = gameState.Kid;
+  Opp = gameState.Kid;
 }
 
 // seg006:04EE
 void  saveshad_and_opp()
 {
   saveshad();
-  gameState.Kid = gameState.Opp;
+  gameState.Kid = Opp;
 }
 
 // seg006:0507
@@ -3610,19 +3612,19 @@ void  x_to_xh_and_xl(int xpos, sbyte *xh_addr, sbyte *xl_addr)
 // seg006:057C
 void  fall_accel()
 {
-  if (gameState.Char.action == actions_4_in_freefall)
+  if (Char.action == actions_4_in_freefall)
   {
     if (gameState.is_feather_fall)
     {
-      ++gameState.Char.fall_y;
-      if (gameState.Char.fall_y > 4)
-        gameState.Char.fall_y = 4;
+      ++Char.fall_y;
+      if (Char.fall_y > 4)
+        Char.fall_y = 4;
     }
     else
     {
-      gameState.Char.fall_y += 3;
-      if (gameState.Char.fall_y > 33)
-        gameState.Char.fall_y = 33;
+      Char.fall_y += 3;
+      if (Char.fall_y > 33)
+        Char.fall_y = 33;
     }
   }
 }
@@ -3630,10 +3632,10 @@ void  fall_accel()
 // seg006:05AE
 void  fall_speed()
 {
-  gameState.Char.y += gameState.Char.fall_y;
-  if (gameState.Char.action == actions_4_in_freefall)
+  Char.y += Char.fall_y;
+  if (Char.action == actions_4_in_freefall)
   {
-    gameState.Char.x = char_dx_forward(gameState.Char.fall_x);
+    Char.x = char_dx_forward(Char.fall_x);
     load_fram_det_col();
   }
 }
@@ -3643,8 +3645,8 @@ void  check_action()
 {
   short frame;
   short action;
-  action = gameState.Char.action;
-  frame = gameState.Char.frame;
+  action = Char.action;
+  frame = Char.frame;
   // frame 109: crouching
   if (action == actions_6_hang_straight ||
       action == actions_5_bumped)
@@ -3697,8 +3699,8 @@ void  check_spiked()
 {
   short harmful;
   short frame;
-  frame = gameState.Char.frame;
-  if (get_tile(gameState.Char.room, gameState.Char.curr_col, gameState.Char.curr_row) == tiles_2_spike)
+  frame = Char.frame;
+  if (get_tile(Char.room, Char.curr_col, Char.curr_row) == tiles_2_spike)
   {
     harmful = is_spike_harmful();
     // frames 7..14: running
@@ -3719,7 +3721,7 @@ int  take_hp(int count)
 {
   word dead;
   dead = 0;
-  if (gameState.Char.charid == charid_0_kid)
+  if (Char.charid == charid_0_kid)
   {
     if (count >= gameState.hitp_curr)
     {
@@ -3749,7 +3751,7 @@ int  take_hp(int count)
 // seg006:070D
 int  get_tile_at_char()
 {
-  return get_tile(gameState.Char.room, gameState.Char.curr_col, gameState.Char.curr_row);
+  return get_tile(Char.room, Char.curr_col, Char.curr_row);
 }
 
 // Get an image, with index and NULL checks.
@@ -3790,7 +3792,7 @@ inline void set_char_collision()
     char_height = image->/*height*/ h;
   }
   char_x_left = obj_x / 2 + 58;
-  if (gameState.Char.direction >= dir_0_right)
+  if (Char.direction >= dir_0_right)
   {
     char_x_left -= char_width_half;
   }
@@ -3831,8 +3833,8 @@ void  check_on_floor()
       // Special event: floors appear
       if (gameState.current_level == 12 &&
           gameState.united_with_shadow < 0 &&
-          gameState.Char.curr_row == 0 &&
-          (gameState.Char.room == 2 || (gameState.Char.room == 13 && tile_col >= 6)))
+          Char.curr_row == 0 &&
+          (Char.room == 2 || (Char.room == 13 && tile_col >= 6)))
       {
         curr_room_tiles[curr_tilepos] = tiles_1_floor;
         ++curr_tilepos;
@@ -3850,8 +3852,8 @@ void  start_fall()
 {
   short frame;
   word seq_id;
-  frame = gameState.Char.frame;
-  gameState.Char.sword = sword_0_sheathed;
+  frame = Char.frame;
+  Char.sword = sword_0_sheathed;
   inc_curr_row();
   start_chompers();
   fall_frame = frame;
@@ -3879,25 +3881,25 @@ void  start_fall()
   {
     // frame 81..85: land after jump up
     seq_id = seq_19_fall; // fall after jumping up
-    gameState.Char.x = char_dx_forward(5);
+    Char.x = char_dx_forward(5);
     load_fram_det_col();
   }
   else if (frame >= 150 && frame < 180)
   {
     // frame 150..179: with sword + fall + dead
-    if (gameState.Char.charid == charid_2_guard)
+    if (Char.charid == charid_2_guard)
     {
-      if (gameState.Char.curr_row == 3 && gameState.Char.curr_col == 10)
+      if (Char.curr_row == 3 && Char.curr_col == 10)
       {
         clear_char();
         return;
       }
-      if (gameState.Char.fall_x < 0)
+      if (Char.fall_x < 0)
       {
         seq_id = seq_82_guard_pushed_off_ledge; // Guard is pushed off the ledge
-        if (gameState.Char.direction < dir_0_right && distance_to_edge_weight() <= 7)
+        if (Char.direction < dir_0_right && distance_to_edge_weight() <= 7)
         {
-          gameState.Char.x = char_dx_forward(-5);
+          Char.x = char_dx_forward(-5);
         }
       }
       else
@@ -3909,9 +3911,9 @@ void  start_fall()
     else
     {
       gameState.droppedout = 1;
-      if (gameState.Char.direction < dir_0_right && distance_to_edge_weight() <= 7)
+      if (Char.direction < dir_0_right && distance_to_edge_weight() <= 7)
       {
-        gameState.Char.x = char_dx_forward(-5);
+        Char.x = char_dx_forward(-5);
       }
       seq_id = seq_81_kid_pushed_off_ledge; // fall after backing with sword / gameState.Kid is pushed off the ledge
     }
@@ -3934,7 +3936,7 @@ void  start_fall()
   {
     if (fall_frame != 44 || distance_to_edge_weight() >= 6)
     {
-      gameState.Char.x = char_dx_forward(-1);
+      Char.x = char_dx_forward(-1);
     }
     else
     {
@@ -3953,23 +3955,23 @@ void  check_grab()
   #define MAX_GRAB_FALLING_SPEED 32
 
   if (control_shift < 0 &&                    // press Shift to grab
-      gameState.Char.fall_y < MAX_GRAB_FALLING_SPEED && // you can't grab if you're falling too fast ...
-      gameState.Char.alive < 0 &&                       // ... or dead
-      (word)y_land[gameState.Char.curr_row + 1] <= (word)(gameState.Char.y + 25))
+      Char.fall_y < MAX_GRAB_FALLING_SPEED && // you can't grab if you're falling too fast ...
+      Char.alive < 0 &&                       // ... or dead
+      (word)y_land[Char.curr_row + 1] <= (word)(Char.y + 25))
   {
-    //printf("Falling speed: %d\t x: %d\n", gameState.Char.fall_y, gameState.Char.x);
-    old_x = gameState.Char.x;
-    gameState.Char.x = char_dx_forward(-8);
+    //printf("Falling speed: %d\t x: %d\n", Char.fall_y, Char.x);
+    old_x = Char.x;
+    Char.x = char_dx_forward(-8);
     load_fram_det_col();
     if (!can_grab_front_above())
     {
-      gameState.Char.x = old_x;
+      Char.x = old_x;
     }
     else
     {
-      gameState.Char.x = char_dx_forward(distance_to_edge_weight());
-      gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-      gameState.Char.fall_y = 0;
+      Char.x = char_dx_forward(distance_to_edge_weight());
+      Char.y = y_land[Char.curr_row + 1];
+      Char.fall_y = 0;
       seqtbl_offset_char(seq_15_grab_ledge_midair); // grab a ledge (after falling)
       play_seq();
       gameState.grab_timer = 12;
@@ -3999,7 +4001,7 @@ void  in_wall()
   {
     delta_x += 4;
   }
-  gameState.Char.x = char_dx_forward(delta_x);
+  Char.x = char_dx_forward(delta_x);
   load_fram_det_col();
   get_tile_at_char();
 }
@@ -4007,21 +4009,21 @@ void  in_wall()
 // seg006:0B0C
 int  get_tile_infrontof_char()
 {
-  return get_tile(gameState.Char.room, infrontx = dir_front[gameState.Char.direction + 1] + gameState.Char.curr_col, gameState.Char.curr_row);
+  return get_tile(Char.room, infrontx = dir_front[Char.direction + 1] + Char.curr_col, Char.curr_row);
 }
 
 // seg006:0B30
 int  get_tile_infrontof2_char()
 {
   short var_2;
-  var_2 = dir_front[gameState.Char.direction + 1];
-  return get_tile(gameState.Char.room, infrontx = (var_2 << 1) + gameState.Char.curr_col, gameState.Char.curr_row);
+  var_2 = dir_front[Char.direction + 1];
+  return get_tile(Char.room, infrontx = (var_2 << 1) + Char.curr_col, Char.curr_row);
 }
 
 // seg006:0B66
 int  get_tile_behind_char()
 {
-  return get_tile(gameState.Char.room, dir_behind[gameState.Char.direction + 1] + gameState.Char.curr_col, gameState.Char.curr_row);
+  return get_tile(Char.room, dir_behind[Char.direction + 1] + Char.curr_col, Char.curr_row);
 }
 
 // seg006:0B8A
@@ -4036,7 +4038,7 @@ int  distance_to_edge(int xpos)
   short distance;
   get_tile_div_mod_m7(xpos);
   distance = obj_xl;
-  if (gameState.Char.direction == dir_0_right)
+  if (Char.direction == dir_0_right)
   {
     distance = 13 - distance;
   }
@@ -4046,11 +4048,11 @@ int  distance_to_edge(int xpos)
 // seg006:0BC4
 void  fell_out()
 {
-  if (gameState.Char.alive < 0 && gameState.Char.room == 0)
+  if (Char.alive < 0 && Char.room == 0)
   {
     take_hp(100);
-    gameState.Char.alive = 0;
-    gameState.Char.frame = frame_185_dead; // dead
+    Char.alive = 0;
+    Char.frame = frame_185_dead; // dead
   }
 }
 
@@ -4059,29 +4061,29 @@ void  play_kid()
 {
   fell_out();
   control_kid();
-  if (gameState.Char.alive >= 0 && is_dead())
+  if (Char.alive >= 0 && is_dead())
   {
     if (resurrect_time)
     {
       loadkid();
       hitp_delta = gameState.hitp_max;
       seqtbl_offset_char(seq_2_stand); // stand
-      gameState.Char.x += 8;
+      Char.x += 8;
       play_seq();
       load_fram_det_col();
       set_start_pos();
     }
     is_show_time = 0;
-    ++gameState.Char.alive;
+    ++Char.alive;
   }
 }
 
 // seg006:0CD1
 void  control_kid()
 {
-  if (gameState.Char.alive < 0 && gameState.hitp_curr == 0)
+  if (Char.alive < 0 && gameState.hitp_curr == 0)
   {
-    gameState.Char.alive = 0;
+    Char.alive = 0;
   }
   if (gameState.grab_timer != 0)
   {
@@ -4102,7 +4104,7 @@ void  do_demo()
     control_shift2 = release_arrows();
     control_forward = control_x = -1;
   }
-  else if (gameState.Char.sword)
+  else if (Char.sword)
   {
     gameState.guard_skill = 10;
     autocontrol_opponent();
@@ -4117,17 +4119,17 @@ void  do_demo()
 // seg006:0D85
 void  play_guard()
 {
-  if (gameState.Char.charid == charid_24_mouse)
+  if (Char.charid == charid_24_mouse)
   {
     autocontrol_opponent();
   }
   else
   {
-    if (gameState.Char.alive < 0)
+    if (Char.alive < 0)
     {
       if (gameState.guardhp_curr == 0)
       {
-        gameState.Char.alive = 0;
+        Char.alive = 0;
         on_guard_killed();
       }
       else
@@ -4135,7 +4137,7 @@ void  play_guard()
         goto loc_7A65;
       }
     }
-    if (gameState.Char.charid == charid_1_shadow)
+    if (Char.charid == charid_1_shadow)
     {
       clear_char();
     }
@@ -4148,7 +4150,7 @@ void  play_guard()
 // seg006:0DC0
 void  user_control()
 {
-  if (gameState.Char.direction >= dir_0_right)
+  if (Char.direction >= dir_0_right)
   {
     flip_control_x();
     control();
@@ -4288,7 +4290,7 @@ int  can_grab()
   if (through_tile == tiles_20_wall)
     return 0;
   // can't grab through a door top if looking right
-  if (through_tile == tiles_12_doortop && gameState.Char.direction >= dir_0_right)
+  if (through_tile == tiles_12_doortop && Char.direction >= dir_0_right)
     return 0;
   // can't grab through floor
   if (tile_is_floor(through_tile))
@@ -4298,7 +4300,7 @@ int  can_grab()
   if (curr_tile2 == tiles_11_loose && modifier != 0 && !(custom->loose_floor_delay > 11))
     return 0;
   // a doortop with floor can be grabbed only from the left (looking right)
-  if (curr_tile2 == tiles_7_doortop_with_floor && gameState.Char.direction < dir_0_right)
+  if (curr_tile2 == tiles_7_doortop_with_floor && Char.direction < dir_0_right)
     return 0;
   // can't grab something that has no floor
   if (!tile_is_floor(curr_tile2))
@@ -4309,25 +4311,25 @@ int  can_grab()
 // seg006:1005
 int  get_tile_above_char()
 {
-  return get_tile(gameState.Char.room, gameState.Char.curr_col, gameState.Char.curr_row - 1);
+  return get_tile(Char.room, Char.curr_col, Char.curr_row - 1);
 }
 
 // seg006:1020
 int  get_tile_behind_above_char()
 {
-  return get_tile(gameState.Char.room, dir_behind[gameState.Char.direction + 1] + gameState.Char.curr_col, gameState.Char.curr_row - 1);
+  return get_tile(Char.room, dir_behind[Char.direction + 1] + Char.curr_col, Char.curr_row - 1);
 }
 
 // seg006:1049
 int  get_tile_front_above_char()
 {
-  return get_tile(gameState.Char.room, infrontx = dir_front[gameState.Char.direction + 1] + gameState.Char.curr_col, gameState.Char.curr_row - 1);
+  return get_tile(Char.room, infrontx = dir_front[Char.direction + 1] + Char.curr_col, Char.curr_row - 1);
 }
 
 // seg006:1072
 int  back_delta_x(int delta_x)
 {
-  if (gameState.Char.direction < dir_0_right)
+  if (Char.direction < dir_0_right)
   {
     // direction = left
     return delta_x;
@@ -4355,8 +4357,8 @@ void  check_press()
 {
   short frame;
   short action;
-  frame = gameState.Char.frame;
-  action = gameState.Char.action;
+  frame = Char.frame;
+  action = Char.action;
   // frames 87..99: hanging
   // frames 135..140: start climb up
   if ((frame >= frame_87_hanging_1 && frame < 100) || (frame >= frame_135_climbing_1 && frame < frame_141_climbing_7))
@@ -4386,7 +4388,7 @@ void  check_press()
   }
   if (curr_tile2 == tiles_15_opener || curr_tile2 == tiles_6_closer)
   {
-    if (gameState.Char.alive < 0)
+    if (Char.alive < 0)
     {
       trigger_button(1, 0, -1);
     }
@@ -4413,11 +4415,11 @@ void  check_spike_below()
   right_col = get_tile_div_mod_m7(char_x_right);
   if (right_col < 0)
     return;
-  row = gameState.Char.curr_row;
-  room = gameState.Char.room;
+  row = Char.curr_row;
+  room = Char.room;
   for (col = get_tile_div_mod_m7(char_x_left); col <= right_col; ++col)
   {
-    row = gameState.Char.curr_row;
+    row = Char.curr_row;
     do
     {
       not_finished = 0;
@@ -4448,10 +4450,10 @@ void  clip_char()
   short var_A;
   short row;
   short var_E;
-  frame = gameState.Char.frame;
-  action = gameState.Char.action;
-  room = gameState.Char.room;
-  row = gameState.Char.curr_row;
+  frame = Char.frame;
+  action = Char.action;
+  room = Char.room;
+  row = Char.curr_row;
   reset_obj_clip();
   // frames 217..228: going up the level door
   if (frame >= frame_224_exit_stairs_8 && frame < 229)
@@ -4491,14 +4493,14 @@ void  clip_char()
           action == actions_3_in_midair ||
           (action == actions_4_in_freefall && frame == frame_106_fall) ||
           (action == actions_5_bumped && frame == frame_107_fall_land_1) ||
-          (gameState.Char.direction < dir_0_right && (action == actions_2_hang_climb ||
+          (Char.direction < dir_0_right && (action == actions_2_hang_climb ||
                                             action == actions_6_hang_straight ||
                                             (action == actions_1_run_jump &&
                                              frame >= frame_137_climbing_3 && frame < frame_140_climbing_6))))
       {
         if (
           (get_tile(room, col = get_tile_div_mod(char_x_right_coll), row) == tiles_20_wall ||
-           (curr_tile2 == tiles_13_mirror && gameState.Char.direction == dir_0_right)) &&
+           (curr_tile2 == tiles_13_mirror && Char.direction == dir_0_right)) &&
           (get_tile(room, col, char_top_row) == tiles_20_wall ||
            curr_tile2 == tiles_13_mirror) &&
           room == curr_room)
@@ -4519,7 +4521,7 @@ void  stuck_lower()
 {
   if (get_tile_at_char() == tiles_5_stuck)
   {
-    ++gameState.Char.y;
+    ++Char.y;
   }
 }
 
@@ -4528,8 +4530,8 @@ void  set_objtile_at_char()
 {
   short char_frame;
   short char_action;
-  char_frame = gameState.Char.frame;
-  char_action = gameState.Char.action;
+  char_frame = Char.frame;
+  char_action = Char.action;
   if (char_action == actions_1_run_jump)
   {
     tile_row = char_bottom_row;
@@ -4537,8 +4539,8 @@ void  set_objtile_at_char()
   }
   else
   {
-    tile_row = gameState.Char.curr_row;
-    tile_col = gameState.Char.curr_col;
+    tile_row = Char.curr_row;
+    tile_col = Char.curr_col;
   }
   // frame 135..148: climbing
   if ((char_frame >= frame_135_climbing_1 && char_frame < 149) ||
@@ -4556,7 +4558,7 @@ void  set_objtile_at_char()
 // seg006:1463
 void  proc_get_object()
 {
-  if (gameState.Char.charid != charid_0_kid || gameState.pickup_obj_type == 0)
+  if (Char.charid != charid_0_kid || gameState.pickup_obj_type == 0)
     return;
   if (gameState.pickup_obj_type == -1)
   {
@@ -4611,7 +4613,7 @@ int  is_dead()
 {
   // 177: spiked, 178: chomped, 185: dead
   // or maybe this was a switch-case?
-  return gameState.Char.frame >= frame_177_spiked && (gameState.Char.frame <= frame_178_chomped || gameState.Char.frame == frame_185_dead);
+  return Char.frame >= frame_177_spiked && (Char.frame <= frame_178_chomped || Char.frame == frame_185_dead);
 }
 
 
@@ -4632,7 +4634,7 @@ void  on_guard_killed()
     is_show_time = 1;
     gameState.leveldoor_open = 2;
   }
-  else if (gameState.Char.charid != charid_1_shadow)
+  else if (Char.charid != charid_1_shadow)
   {
   }
 }
@@ -4640,9 +4642,9 @@ void  on_guard_killed()
 // seg006:1634
 void  clear_char()
 {
-  gameState.Char.direction = dir_56_none;
-  gameState.Char.alive = 0;
-  gameState.Char.action = 0;
+  Char.direction = dir_56_none;
+  Char.alive = 0;
+  Char.action = 0;
   gameState.guardhp_curr = 0;
 }
 
@@ -4680,7 +4682,7 @@ void  load_obj()
 void  draw_hurt_splash()
 {
   short frame;
-  frame = gameState.Char.frame;
+  frame = Char.frame;
   if (frame != frame_178_chomped)
   { // chomped
     save_obj();
@@ -4698,10 +4700,10 @@ void  draw_hurt_splash()
     }
     else
     {
-      obj_y -= ((gameState.Char.charid == charid_0_kid) << 2) + 11;
+      obj_y -= ((Char.charid == charid_0_kid) << 2) + 11;
       obj_dx_forward(5);
     }
-    if (gameState.Char.charid == charid_0_kid)
+    if (Char.charid == charid_0_kid)
     {
       obj_chtab = id_chtab_2_kid;
       obj_id = 218; // splash!
@@ -4722,8 +4724,8 @@ void  check_killed_shadow()
   // Special event: killed the shadow
   if (gameState.current_level == 12)
   {
-    if ((gameState.Char.charid | gameState.Opp.charid) == charid_1_shadow &&
-        gameState.Char.alive < 0 && gameState.Opp.alive >= 0)
+    if ((Char.charid | Opp.charid) == charid_1_shadow &&
+        Char.alive < 0 && Opp.alive >= 0)
     {
       gameState.flash_color = color_15_brightwhite; // white
       gameState.flash_time = 5;
@@ -4735,7 +4737,7 @@ void  check_killed_shadow()
 // seg006:1827
 void  control_guard_inactive()
 {
-  if (gameState.Char.frame == frame_166_stand_inactive && control_down < 0)
+  if (Char.frame == frame_166_stand_inactive && control_down < 0)
   {
     if (control_forward < 0)
     {
@@ -4755,16 +4757,16 @@ int  char_opp_dist()
   // >0 if Opp is in front of char
   // <0 if Opp is behind char
   short distance;
-  if (gameState.Char.room != gameState.Opp.room)
+  if (Char.room != Opp.room)
   {
     return 999;
   }
-  distance = gameState.Opp.x - gameState.Char.x;
-  if (gameState.Char.direction < dir_0_right)
+  distance = Opp.x - Char.x;
+  if (Char.direction < dir_0_right)
   {
     distance = -distance;
   }
-  if (distance >= 0 && gameState.Char.direction != gameState.Opp.direction)
+  if (distance >= 0 && Char.direction != Opp.direction)
   {
     distance += 13;
   }
@@ -4774,7 +4776,7 @@ int  char_opp_dist()
 // seg006:189B
 void  inc_curr_row()
 {
-  ++gameState.Char.curr_row;
+  ++Char.curr_row;
 }
 
 // seg004:0004
@@ -4782,9 +4784,9 @@ void  check_collisions()
 {
   short column;
   bump_col_left_of_wall = bump_col_right_of_wall = -1;
-  if (gameState.Char.action == actions_7_turn)
+  if (Char.action == actions_7_turn)
     return;
-  collision_row = gameState.Char.curr_row;
+  collision_row = Char.curr_row;
   move_coll_to_prev();
   gameState.prev_collision_row = collision_row;
   right_checked_col = MIN(get_tile_div_mod_m7(char_x_right_coll) + 2, 11);
@@ -4858,7 +4860,7 @@ inline void  get_row_collision_data(short row, sbyte *row_coll_room_ptr, byte *r
   short room;
   short column;
   short left_wall_xpos;
-  room = gameState.Char.room;
+  room = Char.room;
   coll_tile_left_xpos = x_bump[left_checked_col + 5] + 7;
   for (column = left_checked_col; column <= right_checked_col; ++column)
   {
@@ -4908,10 +4910,10 @@ int  get_right_wall_xpos(int room, int column, int row)
 void  check_bumped()
 {
   if (
-    gameState.Char.action != actions_2_hang_climb &&
-    gameState.Char.action != actions_6_hang_straight &&
+    Char.action != actions_2_hang_climb &&
+    Char.action != actions_6_hang_straight &&
     // frames 135..149: climb up
-    (gameState.Char.frame < frame_135_climbing_1 || gameState.Char.frame >= 149))
+    (Char.frame < frame_135_climbing_1 || Char.frame >= 149))
   {
     if (bump_col_left_of_wall >= 0)
     {
@@ -4927,7 +4929,7 @@ void  check_bumped()
 // seg004:02D2
 void  check_bumped_look_left()
 {
-  if ((gameState.Char.sword == sword_2_drawn || gameState.Char.direction < dir_0_right) && // looking left
+  if ((Char.sword == sword_2_drawn || Char.direction < dir_0_right) && // looking left
       is_obstacle_at_col(bump_col_right_of_wall))
   {
     bumped(get_right_wall_xpos(curr_room, tile_col, tile_row) - char_x_left_coll, dir_0_right);
@@ -4937,7 +4939,7 @@ void  check_bumped_look_left()
 // seg004:030A
 void  check_bumped_look_right()
 {
-  if ((gameState.Char.sword == sword_2_drawn || gameState.Char.direction == dir_0_right) && // looking right
+  if ((Char.sword == sword_2_drawn || Char.direction == dir_0_right) && // looking right
       is_obstacle_at_col(bump_col_left_of_wall))
   {
     bumped(get_left_wall_xpos(curr_room, tile_col, tile_row) - char_x_right_coll, dir_FF_left);
@@ -4948,7 +4950,7 @@ void  check_bumped_look_right()
 int  is_obstacle_at_col(int tile_col)
 {
   short tile_row;
-  tile_row = gameState.Char.curr_row;
+  tile_row = Char.curr_row;
   if (tile_row < 0)
   {
     tile_row += 3;
@@ -4981,9 +4983,9 @@ int  is_obstacle()
   }
   else if (
     curr_tile2 == tiles_13_mirror &&
-    gameState.Char.charid == charid_0_kid &&
-    gameState.Char.frame >= frame_39_start_run_jump_6 && gameState.Char.frame < frame_44_running_jump_5 && // run-jump
-    gameState.Char.direction < dir_0_right                                                       // right-to-left only
+    Char.charid == charid_0_kid &&
+    Char.frame >= frame_39_start_run_jump_6 && Char.frame < frame_44_running_jump_5 && // run-jump
+    Char.direction < dir_0_right                                                       // right-to-left only
   )
   {
     curr_room_modif[curr_tilepos] = 0x56; // broken mirror or what?
@@ -5015,9 +5017,9 @@ int  xpos_in_drawn_room(int xpos)
 void  bumped(sbyte delta_x, sbyte push_direction)
 {
   // frame 177: spiked
-  if (gameState.Char.alive < 0 && gameState.Char.frame != frame_177_spiked)
+  if (Char.alive < 0 && Char.frame != frame_177_spiked)
   {
-    gameState.Char.x += delta_x;
+    Char.x += delta_x;
     if (push_direction < dir_0_right)
     {
       // pushing left
@@ -5036,7 +5038,7 @@ void  bumped(sbyte delta_x, sbyte push_direction)
         ++tile_col;
         if (curr_room == 0 && tile_col == 10)
         {
-          curr_room = gameState.Char.room;
+          curr_room = Char.room;
           tile_col = 0;
         }
         get_tile(curr_room, tile_col, tile_row);
@@ -5067,7 +5069,7 @@ int  dist_from_wall_forward(byte tiletype)
     type = wall_type(tiletype);
     if (type == 0)
       return -1;
-    if (gameState.Char.direction < dir_0_right)
+    if (Char.direction < dir_0_right)
     {
       // looking left
       //return wall_dist_from_right[type] + char_x_left_coll - coll_tile_left_xpos - 13;
@@ -5086,11 +5088,11 @@ int  dist_from_wall_forward(byte tiletype)
 void  bumped_fall()
 {
   short action;
-  action = gameState.Char.action;
-  gameState.Char.x = char_dx_forward(-4);
+  action = Char.action;
+  Char.x = char_dx_forward(-4);
   if (action == actions_4_in_freefall)
   {
-    gameState.Char.fall_x = 0;
+    Char.fall_x = 0;
   }
   else
   {
@@ -5105,29 +5107,29 @@ void  bumped_floor(sbyte push_direction)
 {
   short frame;
   short seq_index;
-  if (gameState.Char.sword != sword_2_drawn && (word)(y_land[gameState.Char.curr_row + 1] - gameState.Char.y) >= (word)15)
+  if (Char.sword != sword_2_drawn && (word)(y_land[Char.curr_row + 1] - Char.y) >= (word)15)
   {
     bumped_fall();
   }
   else
   {
-    gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-    if (gameState.Char.fall_y >= 22)
+    Char.y = y_land[Char.curr_row + 1];
+    if (Char.fall_y >= 22)
     {
-      gameState.Char.x = char_dx_forward(-5);
+      Char.x = char_dx_forward(-5);
     }
     else
     {
-      gameState.Char.fall_y = 0;
-      if (gameState.Char.alive)
+      Char.fall_y = 0;
+      if (Char.alive)
       {
-        if (gameState.Char.sword == sword_2_drawn)
+        if (Char.sword == sword_2_drawn)
         {
-          if (push_direction == gameState.Char.direction)
+          if (push_direction == Char.direction)
           {
             seqtbl_offset_char(seq_65_bump_forward_with_sword); // pushed forward with sword (gameState.Kid)
             play_seq();
-            gameState.Char.x = char_dx_forward(1);
+            Char.x = char_dx_forward(1);
             return;
           }
           else
@@ -5137,7 +5139,7 @@ void  bumped_floor(sbyte push_direction)
         }
         else
         {
-          frame = gameState.Char.frame;
+          frame = Char.frame;
           if (frame == 24 || frame == 25 ||
               (frame >= 40 && frame < 43) ||
               (frame >= frame_102_start_fall_1 && frame < 107))
@@ -5196,7 +5198,7 @@ Possible results in edge_type:
   tiletype = get_tile_at_char();
   if (wall_type(tiletype) != 0)
   {
-    tile_col = gameState.Char.curr_col;
+    tile_col = Char.curr_col;
     distance = dist_from_wall_forward(tiletype);
     if (distance >= 0)
     {
@@ -5220,7 +5222,7 @@ Possible results in edge_type:
   {
   loc_59E8:
     tiletype = get_tile_infrontof_char();
-    if (tiletype == tiles_12_doortop && gameState.Char.direction >= dir_0_right)
+    if (tiletype == tiles_12_doortop && Char.direction >= dir_0_right)
     {
     loc_59FB:
       edge_type = 0;
@@ -5276,7 +5278,7 @@ void  check_chomped_kid()
 {
   short tile_col;
   short tile_row;
-  tile_row = gameState.Char.curr_row;
+  tile_row = Char.curr_row;
   for (tile_col = 0; tile_col < 10; ++tile_col)
   {
     if (gameState.curr_row_coll_flags[tile_col] == 0xFF &&
@@ -5293,11 +5295,11 @@ void  check_chomped_kid()
 void  chomped()
 {
     curr_room_modif[curr_tilepos] |= 0x80; // put blood
-  if (gameState.Char.frame != frame_178_chomped && gameState.Char.room == curr_room)
+  if (Char.frame != frame_178_chomped && Char.room == curr_room)
   {
-      gameState.Char.x = x_bump[tile_col + 5] + 7;
-    gameState.Char.x = char_dx_forward(7 - !gameState.Char.direction);
-    gameState.Char.y = y_land[gameState.Char.curr_row + 1];
+      Char.x = x_bump[tile_col + 5] + 7;
+    Char.x = char_dx_forward(7 - !Char.direction);
+    Char.y = y_land[Char.curr_row + 1];
     take_hp(100);
     seqtbl_offset_char(seq_54_chomped); // chomped
     play_seq();
@@ -5315,7 +5317,7 @@ int  dist_from_wall_behind(byte tiletype)
   }
   else
   {
-    if (gameState.Char.direction >= dir_0_right)
+    if (Char.direction >= dir_0_right)
     {
       // looking right
       //return wall_dist_from_right[type] + char_x_left_coll - coll_tile_left_xpos - 13;
@@ -5336,8 +5338,8 @@ void  check_gate_push()
   // Closing gate pushes gameState.Kid
   short frame;
   short orig_col;
-  frame = gameState.Char.frame;
-  if (gameState.Char.action == actions_7_turn ||
+  frame = Char.frame;
+  if (Char.action == actions_7_turn ||
       frame == frame_15_stand ||                      // stand
       (frame >= frame_108_fall_land_2 && frame < 111) // crouch
   )
@@ -5350,10 +5352,10 @@ void  check_gate_push()
         can_bump_into_gate())
     {
       bumped_sound();
-      //printf("check_gate_push: orig_col = %d, tile_col = %d, curr_room = %d, gameState.Char.room = %d, orig_room = %d\n", orig_col, tile_col, curr_room, gameState.Char.room, orig_room);
+      //printf("check_gate_push: orig_col = %d, tile_col = %d, curr_room = %d, Char.room = %d, orig_room = %d\n", orig_col, tile_col, curr_room, Char.room, orig_room);
       // push gameState.Kid left if orig_col <= tile_col, gate at char's tile
       // push gameState.Kid right if orig_col > tile_col, gate is left from char's tile
-      gameState.Char.x += 5 - (orig_col <= tile_col) * 10;
+      Char.x += 5 - (orig_col <= tile_col) * 10;
     }
   }
 }
@@ -5362,16 +5364,16 @@ void  check_gate_push()
 void  check_guard_bumped()
 {
   if (
-    gameState.Char.action == actions_1_run_jump &&
-    gameState.Char.alive < 0 &&
-    gameState.Char.sword >= sword_2_drawn)
+    Char.action == actions_1_run_jump &&
+    Char.alive < 0 &&
+    Char.sword >= sword_2_drawn)
   {
     if (
 
       get_tile_at_char() == tiles_20_wall ||
       curr_tile2 == tiles_7_doortop_with_floor ||
       (curr_tile2 == tiles_4_gate && can_bump_into_gate()) ||
-      (gameState.Char.direction >= dir_0_right && (get_tile(curr_room, --tile_col, tile_row) == tiles_7_doortop_with_floor ||
+      (Char.direction >= dir_0_right && (get_tile(curr_room, --tile_col, tile_row) == tiles_7_doortop_with_floor ||
                                          (curr_tile2 == tiles_4_gate && can_bump_into_gate()))))
     {
       load_frame_to_obj();
@@ -5382,7 +5384,7 @@ void  check_guard_bumped()
         delta_x = dist_from_wall_behind(curr_tile2);
         if (delta_x < 0 && delta_x > -13)
         {
-          gameState.Char.x = char_dx_forward(-delta_x);
+          Char.x = char_dx_forward(-delta_x);
           seqtbl_offset_char(seq_65_bump_forward_with_sword); // pushed to wall with sword (Guard)
           play_seq();
           load_fram_det_col();
@@ -6359,10 +6361,10 @@ void  start_chompers()
   short tilepos;
   short column;
   timing = 15;
-  if ((byte)gameState.Char.curr_row < 3)
+  if ((byte)Char.curr_row < 3)
   {
-    get_room_address(gameState.Char.room);
-    for (column = 0, tilepos = tbl_line[gameState.Char.curr_row];
+    get_room_address(Char.room);
+    for (column = 0, tilepos = tbl_line[Char.curr_row];
          column < 10;
          ++column, ++tilepos)
     {
@@ -6371,7 +6373,7 @@ void  start_chompers()
         modifier = curr_modifier & 0x7F;
         if (modifier == 0 || modifier >= 6)
         {
-          start_anim_chomper(gameState.Char.room, tilepos, timing | (curr_modifier & 0x80));
+          start_anim_chomper(Char.room, tilepos, timing | (curr_modifier & 0x80));
           timing = next_chomper_timing(timing);
         }
       }
@@ -6595,10 +6597,10 @@ int  is_spike_harmful()
 void  check_loose_fall_on_kid()
 {
   loadkid();
-  if (gameState.Char.room == curmob.room &&
-      gameState.Char.curr_col == curmob.xh >> 2 &&
-      curmob.y < gameState.Char.y &&
-      gameState.Char.y - 30 < curmob.y)
+  if (Char.room == curmob.room &&
+      Char.curr_col == curmob.xh >> 2 &&
+      curmob.y < Char.y &&
+      Char.y - 30 < curmob.y)
   {
     fell_on_your_head();
     savekid();
@@ -6610,20 +6612,20 @@ void  fell_on_your_head()
 {
   short frame;
   short action;
-  frame = gameState.Char.frame;
-  action = gameState.Char.action;
+  frame = Char.frame;
+  action = Char.action;
   // loose floors hurt you in frames 5..14 (running) only on level 13
   if (
     (gameState.current_level == 13 || (frame < frame_5_start_run || frame >= 15)) &&
     (action < actions_2_hang_climb || action == actions_7_turn))
   {
-    gameState.Char.y = y_land[gameState.Char.curr_row + 1];
+    Char.y = y_land[Char.curr_row + 1];
     if (take_hp(1))
     {
       seqtbl_offset_char(seq_22_crushed); // dead (because of loose floor)
       if (frame == frame_177_spiked)
       { // spiked
-        gameState.Char.x = char_dx_forward(-12);
+        Char.x = char_dx_forward(-12);
       }
     }
     else
@@ -6632,7 +6634,7 @@ void  fell_on_your_head()
       { // crouching
         if (get_tile_behind_char() == 0)
         {
-          gameState.Char.x = char_dx_forward(-2);
+          Char.x = char_dx_forward(-2);
         }
         seqtbl_offset_char(seq_52_loose_floor_fell_on_kid); // loose floor fell on gameState.Kid
       }
@@ -6644,23 +6646,23 @@ void  fell_on_your_head()
 // seg005:000A
 void  seqtbl_offset_char(short seq_index)
 {
-  gameState.Char.curr_seq = seqtbl_offsets[seq_index];
+  Char.curr_seq = seqtbl_offsets[seq_index];
 }
 
 // seg005:001D
 void  seqtbl_offset_opp(int seq_index)
 {
-  gameState.Opp.curr_seq = seqtbl_offsets[seq_index];
+  Opp.curr_seq = seqtbl_offsets[seq_index];
 }
 
 // seg005:0030
 void  do_fall()
 {
-  if (gameState.is_screaming == 0 && gameState.Char.fall_y >= 31)
+  if (gameState.is_screaming == 0 && Char.fall_y >= 31)
   {
     gameState.is_screaming = 1;
   }
-  if ((word)y_land[gameState.Char.curr_row + 1] > (word)gameState.Char.y)
+  if ((word)y_land[Char.curr_row + 1] > (word)Char.y)
   {
     check_grab();
   }
@@ -6687,11 +6689,11 @@ void  land()
 {
   word seq_id;
   gameState.is_screaming = 0;
-  gameState.Char.y = y_land[gameState.Char.curr_row + 1];
+  Char.y = y_land[Char.curr_row + 1];
   if (get_tile_at_char() != tiles_2_spike)
   {
     if (!tile_is_floor(get_tile_infrontof_char()) &&
-        distance_to_edge_weight() < 3)  gameState.Char.x = char_dx_forward(-3);
+        distance_to_edge_weight() < 3)  Char.x = char_dx_forward(-3);
     start_chompers();
   }
   else
@@ -6699,7 +6701,7 @@ void  land()
     // fell on spikes
     goto loc_5EE6;
   }
-  if (gameState.Char.alive < 0)
+  if (Char.alive < 0)
   {
     // alive
     if ((distance_to_edge_weight() >= 12 &&
@@ -6715,30 +6717,30 @@ void  land()
       }
     }
     {
-      if (gameState.Char.fall_y < 22)
+      if (Char.fall_y < 22)
       {
       // fell 1 row
       loc_5EFD:
-        if (gameState.Char.charid >= charid_2_guard || gameState.Char.sword == sword_2_drawn)
+        if (Char.charid >= charid_2_guard || Char.sword == sword_2_drawn)
         {
-          gameState.Char.sword = sword_2_drawn;
+          Char.sword = sword_2_drawn;
           seq_id = seq_63_guard_stand_active; // stand active after landing
         }
         else
         {
           seq_id = seq_17_soft_land; // crouch (soft land)
         }
-        if (gameState.Char.charid == charid_0_kid)
+        if (Char.charid == charid_0_kid)
         {
           gameState.is_guard_notice = 1;
         }
       }
-      else if (gameState.Char.fall_y < 33)
+      else if (Char.fall_y < 33)
       {
         // fell 2 rows
-        if (gameState.Char.charid == charid_1_shadow)
+        if (Char.charid == charid_1_shadow)
           goto loc_5EFD;
-        if (gameState.Char.charid == charid_2_guard)
+        if (Char.charid == charid_2_guard)
           goto loc_5F6C;
         // kid (or skeleton (bug!))
         if (!take_hp(1))
@@ -6770,7 +6772,7 @@ void  land()
   }
   seqtbl_offset_char(seq_id);
   play_seq();
-  gameState.Char.fall_y = 0;
+  Char.fall_y = 0;
 }
 
 // seg005:01B7
@@ -6778,10 +6780,10 @@ void  spiked()
 {
   // If someone falls into spikes, those spikes become harmless (to others).
   curr_room_modif[curr_tilepos] = 0xFF;
-  gameState.Char.y = y_land[gameState.Char.curr_row + 1];
-    gameState.Char.x = x_bump[tile_col + 5] + 10;
-  gameState.Char.x = char_dx_forward(8);
-  gameState.Char.fall_y = 0;
+  Char.y = y_land[Char.curr_row + 1];
+    Char.x = x_bump[tile_col + 5] + 10;
+  Char.x = char_dx_forward(8);
+  Char.fall_y = 0;
   take_hp(100);
   seqtbl_offset_char(seq_51_spiked); // spiked
   play_seq();
@@ -6792,8 +6794,8 @@ void  control()
 {
   short char_frame;
   short char_action;
-  char_frame = gameState.Char.frame;
-  if (gameState.Char.alive >= 0)
+  char_frame = Char.frame;
+  if (Char.alive >= 0)
   {
     if (char_frame == frame_15_stand ||             // stand
         char_frame == frame_166_stand_inactive ||   // stand
@@ -6806,17 +6808,17 @@ void  control()
   }
   else
   {
-    char_action = gameState.Char.action;
+    char_action = Char.action;
     if (char_action == actions_5_bumped ||
         char_action == actions_4_in_freefall)
     {
       release_arrows();
     }
-    else if (gameState.Char.sword == sword_2_drawn)
+    else if (Char.sword == sword_2_drawn)
     {
       control_with_sword();
     }
-    else if (gameState.Char.charid >= charid_2_guard)
+    else if (Char.charid >= charid_2_guard)
     {
       control_guard_inactive();
     }
@@ -6881,7 +6883,7 @@ void  control_standing()
   {
     return;
   }
-  if (gameState.Char.charid != charid_0_kid && control_down < 0 && control_forward < 0)
+  if (Char.charid != charid_0_kid && control_down < 0 && control_forward < 0)
   {
     draw_sword();
     return;
@@ -6898,8 +6900,8 @@ void  control_standing()
         gameState.holding_sword = 1;
         if ((word)var_2 < (word)-6)
         {
-          if (gameState.Opp.charid == charid_1_shadow &&
-              (gameState.Opp.action == actions_3_in_midair || (gameState.Opp.frame >= frame_107_fall_land_1 && gameState.Opp.frame < 118)))
+          if (Opp.charid == charid_1_shadow &&
+              (Opp.action == actions_3_in_midair || (Opp.frame >= frame_107_fall_land_1 && Opp.frame < 118)))
           {
             gameState.offguard = 0;
           }
@@ -7012,7 +7014,7 @@ void  down_pressed()
   if (!tile_is_floor(get_tile_infrontof_char()) &&
       distance_to_edge_weight() < 3)
   {
-    gameState.Char.x = char_dx_forward(5);
+    Char.x = char_dx_forward(5);
     load_fram_det_col();
   }
   else
@@ -7023,11 +7025,11 @@ void  down_pressed()
       through_tile = get_tile_behind_char();
       get_tile_at_char();
       if (can_grab() &&
-          (gameState.Char.direction >= dir_0_right ||
+          (Char.direction >= dir_0_right ||
            get_tile_at_char() != tiles_4_gate ||
            curr_room_modif[curr_tilepos] >> 2 >= 6))
       {
-        gameState.Char.x = char_dx_forward(distance_to_edge_weight() - 9);
+        Char.x = char_dx_forward(distance_to_edge_weight() - 9);
         seqtbl_offset_char(seq_68_climb_down); // climb down
       }
       else
@@ -7045,8 +7047,8 @@ void  down_pressed()
 // seg005:0574
 void  go_up_leveldoor()
 {
-  gameState.Char.x = x_bump[tile_col + 5] + 10;
-  gameState.Char.direction = dir_FF_left;                   // right
+  Char.x = x_bump[tile_col + 5] + 10;
+  Char.direction = dir_FF_left;                   // right
   seqtbl_offset_char(seq_70_go_up_on_level_door); // go up on level door
 }
 
@@ -7081,7 +7083,7 @@ void  back_pressed()
   }
   else
   {
-    gameState.Char.sword = sword_2_drawn;
+    Char.sword = sword_2_drawn;
     gameState.offguard = 0;
     seq_id = seq_89_turn_draw_sword; // turn and draw sword
   }
@@ -7111,7 +7113,7 @@ void  forward_pressed()
 // seg005:0649
 void  control_running()
 {
-  if (control_x == 0 && (gameState.Char.frame == frame_7_run || gameState.Char.frame == frame_11_run))
+  if (control_x == 0 && (Char.frame == frame_7_run || Char.frame == frame_11_run))
   {
     control_forward = release_arrows();
     seqtbl_offset_char(seq_13_stop_run); // stop run
@@ -7141,12 +7143,12 @@ void  safe_step()
   distance = get_edge_distance();
   if (distance)
   {
-    gameState.Char.repeat = 1;
+    Char.repeat = 1;
     seqtbl_offset_char(distance + 28); // 29..42: safe step to edge
   }
-  else if (edge_type != 1 && gameState.Char.repeat != 0)
+  else if (edge_type != 1 && Char.repeat != 0)
   {
-    gameState.Char.repeat = 0;
+    Char.repeat = 0;
     seqtbl_offset_char(seq_44_step_on_edge); // step on edge
   }
   else
@@ -7165,7 +7167,7 @@ int  check_get_item()
     {
       return 0;
     }
-    gameState.Char.x = char_dx_forward(-14);
+    Char.x = char_dx_forward(-14);
     load_fram_det_col();
   }
   if (get_tile_infrontof_char() == tiles_10_potion ||
@@ -7181,16 +7183,16 @@ int  check_get_item()
 void  get_item()
 {
   short distance;
-  if (gameState.Char.frame != frame_109_crouch)
+  if (Char.frame != frame_109_crouch)
   { // crouching
     distance = get_edge_distance();
     if (edge_type != 2)
     {
-      gameState.Char.x = char_dx_forward(distance);
+      Char.x = char_dx_forward(distance);
     }
-    if (gameState.Char.direction >= dir_0_right)
+    if (Char.direction >= dir_0_right)
     {
-      gameState.Char.x = char_dx_forward((curr_tile2 == tiles_10_potion) - 2);
+      Char.x = char_dx_forward((curr_tile2 == tiles_10_potion) - 2);
     }
     crouch();
   }
@@ -7287,7 +7289,7 @@ void  jump_up_or_grab()
   else
   {
     // There is floor behind char, go back a bit.
-    gameState.Char.x = char_dx_forward(distance - 14);
+    Char.x = char_dx_forward(distance - 14);
     load_fram_det_col();
     grab_up_with_floor_behind();
   }
@@ -7297,7 +7299,7 @@ void  jump_up_or_grab()
 void  grab_up_no_floor_behind()
 {
   get_tile_above_char();
-  gameState.Char.x = char_dx_forward(distance_to_edge_weight() - 10);
+  Char.x = char_dx_forward(distance_to_edge_weight() - 10);
   seqtbl_offset_char(seq_16_jump_up_and_grab); // jump up and grab (no floor behind)
 }
 
@@ -7309,9 +7311,9 @@ void  jump_up()
   distance = get_edge_distance();
   if (distance < 4 && edge_type == 1)
   {
-    gameState.Char.x = char_dx_forward(distance - 3);
+    Char.x = char_dx_forward(distance - 3);
   }
-  get_tile(gameState.Char.room, get_tile_div_mod(back_delta_x(0) + dx_weight() - 6), gameState.Char.curr_row - 1);
+  get_tile(Char.room, get_tile_div_mod(back_delta_x(0) + dx_weight() - 6), Char.curr_row - 1);
   if (curr_tile2 != tiles_20_wall && !tile_is_floor(curr_tile2))
   {
     seqtbl_offset_char(seq_28_jump_up_with_nothing_above); // jump up with nothing above
@@ -7325,7 +7327,7 @@ void  jump_up()
 // seg005:0968
 void  control_hanging()
 {
-  if (gameState.Char.alive < 0)
+  if (Char.alive < 0)
   {
     if (gameState.grab_timer == 0 && control_y < 0)
     {
@@ -7334,9 +7336,9 @@ void  control_hanging()
     else if (control_shift < 0)
     {
       // hanging against a wall or a doortop
-      if (gameState.Char.action != actions_6_hang_straight &&
+      if (Char.action != actions_6_hang_straight &&
           (get_tile_at_char() == tiles_20_wall ||
-           (gameState.Char.direction == dir_FF_left && ( // facing left
+           (Char.direction == dir_FF_left && ( // facing left
                                                curr_tile2 == tiles_7_doortop_with_floor ||
                                                curr_tile2 == tiles_12_doortop))))
       {
@@ -7372,8 +7374,8 @@ void  can_climb_up()
   control_up = control_shift2 = release_arrows();
   get_tile_above_char();
   if (((curr_tile2 == tiles_13_mirror || curr_tile2 == tiles_18_chomper) &&
-       gameState.Char.direction == dir_0_right) ||
-      (curr_tile2 == tiles_4_gate && gameState.Char.direction != dir_0_right &&
+       Char.direction == dir_0_right) ||
+      (curr_tile2 == tiles_4_gate && Char.direction != dir_0_right &&
        curr_room_modif[curr_tilepos] >> 2 < 6))
   {
     seq_id = seq_73_climb_up_to_closed_gate; // climb up to closed gate and down
@@ -7393,11 +7395,11 @@ void  hang_fall()
   else
   {
     if (get_tile_at_char() == tiles_20_wall ||
-        (gameState.Char.direction < dir_0_right && ( // looking left
+        (Char.direction < dir_0_right && ( // looking left
                                            curr_tile2 == tiles_7_doortop_with_floor ||
                                            curr_tile2 == tiles_12_doortop)))
     {
-      gameState.Char.x = char_dx_forward(-7);
+      Char.x = char_dx_forward(-7);
     }
     seqtbl_offset_char(seq_11_release_ledge_and_land); // end of climb down
   }
@@ -7417,12 +7419,12 @@ void  grab_up_with_floor_behind()
 
   if (JUMP_STRAIGHT_CONDITION)
   {
-    gameState.Char.x = char_dx_forward(distance);
+    Char.x = char_dx_forward(distance);
     seqtbl_offset_char(seq_8_jump_up_and_grab_straight); // jump up and grab (when?)
   }
   else
   {
-    gameState.Char.x = char_dx_forward(distance - 4);
+    Char.x = char_dx_forward(distance - 4);
     seqtbl_offset_char(seq_24_jump_up_and_grab_forward); // jump up and grab (with floor behind)
   }
 }
@@ -7434,15 +7436,15 @@ void  run_jump()
   short xpos;
   short col;
   short var_8;
-  if (gameState.Char.frame >= frame_7_run)
+  if (Char.frame >= frame_7_run)
   {
     // Align gameState.Kid to edge of floor.
     xpos = char_dx_forward(4);
     col = get_tile_div_mod_m7(xpos);
     for (var_2 = 0; var_2 < 2; ++var_2)
     {
-      col += dir_front[gameState.Char.direction + 1];
-      get_tile(gameState.Char.room, col, gameState.Char.curr_row);
+      col += dir_front[Char.direction + 1];
+      get_tile(Char.room, col, Char.curr_row);
       if (curr_tile2 == tiles_2_spike || !tile_is_floor(curr_tile2))
       {
         var_8 = distance_to_edge(xpos) + 14 * var_2 - 14;
@@ -7452,7 +7454,7 @@ void  run_jump()
             return;
           var_8 = -3;
         }
-        gameState.Char.x = char_dx_forward(var_8 + 4);
+        Char.x = char_dx_forward(var_8 + 4);
         break;
       }
     }
@@ -7465,7 +7467,7 @@ void  run_jump()
 void  back_with_sword()
 {
   short frame;
-  frame = gameState.Char.frame;
+  frame = Char.frame;
   if (frame == frame_158_stand_with_sword || frame == frame_170_stand_with_sword || frame == frame_171_stand_with_sword)
   {
     control_backward = 1;                       // disable automatic repeat
@@ -7477,11 +7479,11 @@ void  back_with_sword()
 void  forward_with_sword()
 {
   short frame;
-  frame = gameState.Char.frame;
+  frame = Char.frame;
   if (frame == frame_158_stand_with_sword || frame == frame_170_stand_with_sword || frame == frame_171_stand_with_sword)
   {
     control_forward = 1; // disable automatic repeat
-    if (gameState.Char.charid != charid_0_kid)
+    if (Char.charid != charid_0_kid)
     {
       seqtbl_offset_char(seq_56_guard_forward_with_sword); // forward with sword (Guard)
     }
@@ -7498,15 +7500,15 @@ void  draw_sword()
   word seq_id;
   seq_id = seq_55_draw_sword; // draw sword
   control_forward = control_shift2 = release_arrows();
-  if (gameState.Char.charid == charid_0_kid)
+  if (Char.charid == charid_0_kid)
   {
     gameState.offguard = 0;
   }
-  else if (gameState.Char.charid != charid_1_shadow)
+  else if (Char.charid != charid_1_shadow)
   {
     seq_id = seq_90_en_garde; // stand active
   }
-  gameState.Char.sword = sword_2_drawn;
+  Char.sword = sword_2_drawn;
   seqtbl_offset_char(seq_id);
 }
 
@@ -7514,7 +7516,7 @@ void  draw_sword()
 void  control_with_sword()
 {
   short distance;
-  if (gameState.Char.action < actions_2_hang_climb)
+  if (Char.action < actions_2_hang_climb)
   {
     if (get_tile_at_char() == tiles_11_loose || gameState.can_guard_see_kid >= 2)
     {
@@ -7539,16 +7541,16 @@ void  control_with_sword()
       }
     } /*else*/
     {
-      if (gameState.Char.charid == charid_0_kid && gameState.Char.alive < 0)
+      if (Char.charid == charid_0_kid && Char.alive < 0)
       {
         gameState.holding_sword = 0;
       }
-      if (gameState.Char.charid < charid_2_guard)
+      if (Char.charid < charid_2_guard)
       {
         // frame 171: stand with sword
-        if (gameState.Char.frame == frame_171_stand_with_sword)
+        if (Char.frame == frame_171_stand_with_sword)
         {
-          gameState.Char.sword = sword_0_sheathed;
+          Char.sword = sword_0_sheathed;
           seqtbl_offset_char(seq_92_put_sword_away); // put sword away (Guard died)
         }
       }
@@ -7566,8 +7568,8 @@ void  swordfight()
   short frame;
   short seq_id;
   short charid;
-  frame = gameState.Char.frame;
-  charid = gameState.Char.charid;
+  frame = Char.frame;
+  charid = Char.charid;
   // frame 161: parry
   if (frame == frame_161_parry && control_shift2 >= 0)
   {
@@ -7589,7 +7591,7 @@ void  swordfight()
     if (frame == frame_158_stand_with_sword || frame == frame_170_stand_with_sword || frame == frame_171_stand_with_sword)
     {
       control_down = 1; // disable automatic repeat
-      gameState.Char.sword = sword_0_sheathed;
+      Char.sword = sword_0_sheathed;
       if (charid == charid_0_kid)
       {
         gameState.offguard = 1;
@@ -7627,7 +7629,7 @@ void  sword_strike()
 {
   short frame;
   short seq_id;
-  frame = gameState.Char.frame;
+  frame = Char.frame;
   if (frame == frame_157_walk_with_sword ||  // walk with sword
       frame == frame_158_stand_with_sword || // stand with sword
       frame == frame_170_stand_with_sword || // stand with sword
@@ -7635,7 +7637,7 @@ void  sword_strike()
       frame == frame_165_walk_with_sword     // walk with sword
   )
   {
-    if (gameState.Char.charid == charid_0_kid)
+    if (Char.charid == charid_0_kid)
     {
       seq_id = seq_75_strike; // strike with sword (gameState.Kid)
     }
@@ -7664,9 +7666,9 @@ void  parry()
   short var_6;
   short seq_id;
   short char_charid;
-  char_frame = gameState.Char.frame;
-  opp_frame = gameState.Opp.frame;
-  char_charid = gameState.Char.charid;
+  char_frame = Char.frame;
+  opp_frame = Opp.frame;
+  char_charid = Char.charid;
   seq_id = seq_62_parry; // defend (parry) with sword
   var_6 = 0;
   if (
@@ -7820,12 +7822,12 @@ inline void load_frame_to_obj()
   chtab_base = id_chtab_2_kid;
   reset_obj_clip();
   load_frame();
-  obj_direction = gameState.Char.direction;
+  obj_direction = Char.direction;
   obj_id = cur_frame.image;
   // top 6 bits of sword are the chtab
   obj_chtab = chtab_base + (cur_frame.sword >> 6);
   obj_x = (char_dx_forward(cur_frame.dx) << 1) - 116;
-  obj_y = cur_frame.dy + gameState.Char.y;
+  obj_y = cur_frame.dy + Char.y;
   if ((sbyte)(cur_frame.flags ^ obj_direction) >= 0)
   {
     // 0x80: even/odd pixel

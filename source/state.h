@@ -438,8 +438,6 @@ static std::string loadSdlPopState(const std::string& sdlPopStateData)
  miniPopState.pickup_obj_type = sdlPopState.pickup_obj_type;
  miniPopState.offguard = sdlPopState.offguard;
  memcpy(&miniPopState.Guard, &sdlPopState.Guard, sizeof(miniPopState.Guard));
- memcpy(&miniPopState.Char, &sdlPopState.Char, sizeof(miniPopState.Char));
- memcpy(&miniPopState.Opp, &sdlPopState.Opp, sizeof(miniPopState.Opp));
  miniPopState.guardhp_curr = sdlPopState.guardhp_curr;
  miniPopState.guardhp_max = sdlPopState.guardhp_max;
  miniPopState.demo_index = sdlPopState.demo_index;
@@ -512,8 +510,8 @@ static std::string saveSdlPopState(const std::string& miniPopStateData)
  sdlPopState.pickup_obj_type = miniPopState.pickup_obj_type;
  sdlPopState.offguard = miniPopState.offguard;
  memcpy(&sdlPopState.Guard, &miniPopState.Guard, sizeof(sdlPopState.Guard));
- memcpy(&sdlPopState.Char, &miniPopState.Char, sizeof(sdlPopState.Char));
- memcpy(&sdlPopState.Opp, &miniPopState.Opp, sizeof(sdlPopState.Opp));
+ memcpy(&sdlPopState.Char, &miniPopState.Kid, sizeof(sdlPopState.Char));
+ memcpy(&sdlPopState.Opp, &miniPopState.Guard, sizeof(sdlPopState.Opp));
  sdlPopState.guardhp_curr = miniPopState.guardhp_curr;
  sdlPopState.guardhp_max = miniPopState.guardhp_max;
  sdlPopState.demo_index = miniPopState.demo_index;

@@ -1450,8 +1450,6 @@ struct miniPopState_t {
  short pickup_obj_type;
  word offguard; // name from Apple II source
  char_type Guard;
- char_type Char;
- char_type Opp;
  word guardhp_curr;
  word guardhp_max;
  word demo_index;
