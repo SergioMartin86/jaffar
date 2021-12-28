@@ -100,7 +100,7 @@ void Train::run()
 
     // Print Move History
     printf("[Jaffar]  + Move List: ");
-    for (size_t i = 0; i < _currentStep-1; i++)
+    for (uint16_t i = 0; i < _currentStep-1; i++)
       printf("%s ", _possibleMoves[_winFrame.getMove(i)].c_str());
     printf("\n");
 
