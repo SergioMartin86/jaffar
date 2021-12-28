@@ -17,6 +17,9 @@
 #include <string>
 #include <vector>
 
+// This variable defines how often we filter the hash database
+#define HASH_FILTERING_FREQUENCY 5
+
 class Train
 {
   public:
@@ -26,7 +29,7 @@ class Train
   private:
 
   // Storage for current step
-  size_t _currentStep;
+  uint16_t _currentStep;
 
   // Jaffar script file
   std::string _scriptFile;
@@ -102,11 +105,12 @@ class Train
   double _currentStepTime;
   double _stepHashCalculationTime;
   double _stepHashCheckingTime;
+  double _stepHashConsolidationTime;
+  double _stepHashFilteringTime;
   double _stepFrameAdvanceTime;
   double _stepFrameSerializationTime;
   double _stepFrameDeserializationTime;
   double _stepFrameEncodingTime;
   double _stepFrameDecodingTime;
-  double _DBSortingTime;
-  double _stepPastHashConsolidationTime;
+  double _stepFrameDBSortingTime;
 };

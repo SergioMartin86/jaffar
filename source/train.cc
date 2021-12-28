@@ -67,7 +67,7 @@ void Train::run()
     // Terminate if a winning rule was found
     if (_winFrameFound)
     {
-      printf("[Jaffar] Winning frame reached in %lu moves, finishing...\n", _currentStep-1);
+      printf("[Jaffar] Winning frame reached in %u moves, finishing...\n", _currentStep-1);
       terminate = true;
     }
 
@@ -364,7 +364,7 @@ void Train::computeFrames()
   std::swap(newFrames, _frameDB);
 
   auto DBSortingTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _DBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
+  _stepFrameDBSortingTime = std::chrono::duration_cast<std::chrono::nanoseconds>(DBSortingTimeEnd - DBSortingTimeBegin).count(); // Profiling
 
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
@@ -372,17 +372,21 @@ void Train::computeFrames()
   // Re-calculating global collision counter
   _hashCollisions += _newCollisionCounter;
 
-  // Consolidating past hash databases into one, read-only
-  auto pastHashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-
   // Filtering old hashes
-  erase_if(_pastHashDB, [this](const auto &a) { return _currentStep - a.second > _hashAgeThreshold; });
+  auto hashFilteringTimeBegin = std::chrono::steady_clock::now(); // Profiling
+  if (_currentStep > _hashAgeThreshold)
+  {
+   uint16_t currentAgeThreshold = _currentStep - _hashAgeThreshold;
+   if (_currentStep % HASH_FILTERING_FREQUENCY == 0) erase_if(_pastHashDB, [currentAgeThreshold](const auto &a) { return a.second < currentAgeThreshold; });
+  }
+  auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
 
-  // Merging new hashes
+  // Consolidating past hash databases into one, read-only
+  auto hashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
   _pastHashDB.merge(newHashes);
-
-  auto pastHashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _stepPastHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(pastHashConsolidationTimeEnd - pastHashConsolidationTimeBegin).count(); // Profiling
+  auto hashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _stepHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashConsolidationTimeEnd - hashConsolidationTimeBegin).count(); // Profiling
 }
 
 
@@ -390,7 +394,7 @@ void Train::computeFrames()
 void Train::printTrainStatus()
 {
   printf("[Jaffar] ----------------------------------------------------------------\n");
-  printf("[Jaffar] Current Step #: %lu (Max: %u)\n", _currentStep, _MAX_MOVELIST_SIZE);
+  printf("[Jaffar] Current Step #: %u (Max: %u)\n", _currentStep, _MAX_MOVELIST_SIZE);
 
   size_t timeStep = _currentStep-1;
   size_t curMins = timeStep / 720;
@@ -409,13 +413,14 @@ void Train::printTrainStatus()
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
   printf("[Jaffar]   + Hash Checking:           %3.3fs\n", _stepHashCheckingTime / 1.0e+9);
-  printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepPastHashConsolidationTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Filtering:          %3.3fs\n", _stepHashFilteringTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepHashConsolidationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
   printf("[Jaffar]   + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
-  printf("[Jaffar]   + Frame Sorting            %3.3fs\n", _DBSortingTime / 1.0e+9);
+  printf("[Jaffar]   + Frame Sorting            %3.3fs\n", _stepFrameDBSortingTime / 1.0e+9);
 
   printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu / %d\n", _maxFrameDiff, _MAX_FRAME_DIFF);
