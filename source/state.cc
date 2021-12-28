@@ -3,7 +3,7 @@
 
 extern nlohmann::json _scriptJs;
 
-State::State(const std::string& saveString, const nlohmann::json stateConfig, const nlohmann::json rulesConfig, const int seed)
+State::State(const std::string& miniPopStateData, const nlohmann::json stateConfig, const nlohmann::json rulesConfig, const int seed)
 {
   // Setting hash types
   _hashKidCurrentHp = false;
@@ -126,8 +126,8 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
     if (foundLabel == false) EXIT_WITH_ERROR("[ERROR] Could not find rule label %lu, specified as satisfied by rule %lu.\n", label, satisfiedId);
    }
 
-  // Update the SDLPop instance with the savefile contents
-  pushState(saveString.data());
+  // Update the miniPop instance with the savefile contents
+  pushState(miniPopStateData.data());
 
   // Starting level
   _miniPop->startLevel(gameState.next_level);
@@ -139,8 +139,8 @@ State::State(const std::string& saveString, const nlohmann::json stateConfig, co
   // Processing screen objects that might affect RNG state
   play_frame();
 
-  // Update the SDLPop instance with the savefile contents again
-  pushState(saveString.data());
+  // Update the miniPop instance with the savefile contents again
+  pushState(miniPopStateData.data());
 
   // If we require seed to be overwitten, do it now:
   if (seed >= 0)

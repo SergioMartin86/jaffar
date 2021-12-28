@@ -540,10 +540,13 @@ Train::Train(int argc, char *argv[])
   std::string sourceString;
   bool status = loadStringFromFile(sourceString, saveFilePath.c_str());
   if (status == false) EXIT_WITH_ERROR("[ERROR] Could not load save state from file: %s\n", saveFilePath.c_str());
-  if (sourceString.size() != _FRAME_DATA_SIZE) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), _FRAME_DATA_SIZE, sourceString.size());
+  if (sourceString.size() != sizeof(sdlPopState_t)) EXIT_WITH_ERROR("[ERROR] Wrong size of input state %s. Expected: %lu, Read: %lu bytes.\n", saveFilePath.c_str(), sizeof(sdlPopState_t), sourceString.size());
+
+  // If size if correct, convert it to a miniPop state
+  auto miniPopFrameDataString = State::loadSdlPopState(sourceString);
 
   // If size is correct, copy it to the source frame value
-  memcpy(_sourceFrameData, sourceString.data(), _FRAME_DATA_SIZE);
+  memcpy(_sourceFrameData, miniPopFrameDataString.data(), _FRAME_DATA_SIZE);
 
   // Calculating DB sizes
   _maxDatabaseSize = floor(((double)maxDBSizeMb * 1024.0 * 1024.0) / ((double)sizeof(Frame)));
@@ -569,7 +572,7 @@ Train::Train(int argc, char *argv[])
   _state.resize(_threadCount);
 
   // Instantiating state for result showing purposes
-  _showState = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
+  _showState = new State(miniPopFrameDataString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
 
   // Initializing thread-specific SDL instances
   #pragma omp parallel
@@ -578,7 +581,7 @@ Train::Train(int argc, char *argv[])
    int threadId = omp_get_thread_num();
 
    #pragma omp critical
-    _state[threadId] = new State(sourceString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
+    _state[threadId] = new State(miniPopFrameDataString, scriptJs["State Configuration"], scriptJs["Rules"], overrideRNGSeedActive == true ? overrideRNGSeedValue : -1);
   }
 
   printf("[Jaffar] miniPop initialized.\n");
@@ -656,14 +659,20 @@ void Train::showSavingLoop()
         bestFrameData.resize(_FRAME_DATA_SIZE);
         _bestFrame.getFrameDataFromDifference(_sourceFrameData, bestFrameData.data());
         std::string outputBestFilePath = _outputSaveBestPath + std::string(".best.sav");
-        saveStringToFile(bestFrameData, outputBestFilePath.c_str());
+
+        // Converting miniPop save state format to SDLPop and saving
+        auto sdlPopStateBest = State::saveSdlPopState(bestFrameData);
+        saveStringToFile(sdlPopStateBest, outputBestFilePath.c_str());
 
         // Saving worst frame data
         std::string worstFrameData;
         worstFrameData.resize(_FRAME_DATA_SIZE);
         _worstFrame.getFrameDataFromDifference(_sourceFrameData, worstFrameData.data());
         std::string outputWorstFilePath = _outputSaveBestPath + std::string(".worst.sav");
-        saveStringToFile(worstFrameData, outputWorstFilePath.c_str());
+
+        // Converting miniPop save state format to SDLPop and saving
+        auto sdlPopStateWorst = State::saveSdlPopState(worstFrameData);
+        saveStringToFile(sdlPopStateWorst, outputWorstFilePath.c_str());
 
         #ifndef JAFFAR_DISABLE_MOVE_HISTORY
 

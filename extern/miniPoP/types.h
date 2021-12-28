@@ -1426,7 +1426,82 @@ typedef struct directory_listing_type directory_listing_type;
 #endif
 
 #pragma pack(push,1)
-struct gameState_t {
+struct miniPopState_t {
+ level_type level;
+ word checkpoint;
+ word upside_down;
+ word drawn_room;
+ word current_level;
+ word next_level;
+ short mobs_count;
+ mob_type mobs[14];
+ short trobs_count;
+ trob_type trobs[30];
+ word leveldoor_open;
+ char_type Kid;
+ word hitp_curr;
+ word hitp_max;
+ word hitp_beg_lev;
+ word grab_timer;
+ word holding_sword;
+ short united_with_shadow;
+ word have_sword;
+ word kid_sword_strike;
+ short pickup_obj_type;
+ word offguard; // name from Apple II source
+ char_type Guard;
+ char_type Char;
+ char_type Opp;
+ word guardhp_curr;
+ word guardhp_max;
+ word demo_index;
+ short demo_time;
+ word curr_guard_color;
+ short guard_notice_timer;
+ word guard_skill;
+ word shadow_initialized;
+ word guard_refrac;
+ word justblocked; // name from Apple II source
+ word droppedout; // name from Apple II source
+ sbyte curr_row_coll_room[10];
+ byte curr_row_coll_flags[10];
+ sbyte below_row_coll_room[10];
+ byte below_row_coll_flags[10];
+ sbyte above_row_coll_room[10];
+ byte above_row_coll_flags[10];
+ sbyte prev_collision_row;
+ word flash_color;
+ word flash_time;
+ word need_level1_music;
+ word is_screaming;
+ word is_feather_fall;
+ word last_loose_sound;
+ dword random_seed;
+ short rem_min;
+ word rem_tick;
+ sbyte control_x;
+ sbyte control_y;
+ sbyte control_shift;
+ sbyte control_forward;
+ sbyte control_backward;
+ sbyte control_up;
+ sbyte control_down;
+ sbyte control_shift2;
+ sbyte ctrl1_forward;
+ sbyte ctrl1_backward;
+ sbyte ctrl1_up;
+ sbyte ctrl1_down;
+ sbyte ctrl1_shift2;
+ word exit_room_timer;
+ float replay_curr_tick;
+ word is_guard_notice;
+ short can_guard_see_kid;
+};
+#pragma pack(pop)
+
+// SDLPop state to miniPop State conversion
+#pragma pack(push,1)
+struct sdlPopState_t {
  char quick_control[9];
  level_type level;
  word checkpoint;

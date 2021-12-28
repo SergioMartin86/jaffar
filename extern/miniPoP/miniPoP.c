@@ -33,7 +33,7 @@ The authors of this program may be contacted at https://forum.princed.org
 
 #define get_frame(frame_table, frame) get_frame_internal(frame_table, frame, #frame_table, COUNT(frame_table))
 
-__thread struct gameState_t gameState;
+__thread struct miniPopState_t gameState;
 __thread custom_options_type *custom = &custom_defaults;
 __thread byte is_validate_mode;
 __thread word text_time_remaining;

@@ -28,7 +28,7 @@ class State
 {
   public:
 
-  State(const std::string& saveString, const nlohmann::json stateConfig, const nlohmann::json rulesConfig, const int seed = -1);
+  State(const std::string& miniPopStateData, const nlohmann::json stateConfig, const nlohmann::json rulesConfig, const int seed = -1);
 
   // Print Rule information
   void printRuleStatus(const bool* rulesStatus);
@@ -406,4 +406,174 @@ class State
 
    return type;
   }
+
+static std::string loadSdlPopState(const std::string& sdlPopStateData)
+{
+ if (sdlPopStateData.size() != sizeof(sdlPopState_t)) EXIT_WITH_ERROR("Error reading sdlpop save state. Expected %lu bytes, read: %lu\n", sdlPopStateData.size(), sizeof(sdlPopState_t));
+
+ sdlPopState_t sdlPopState;
+ memcpy(&sdlPopState, sdlPopStateData.data(), sizeof(sdlPopState_t));
+
+ miniPopState_t miniPopState;
+ memcpy(&miniPopState.level, &sdlPopState.level, sizeof(miniPopState.level));
+ miniPopState.checkpoint = sdlPopState.checkpoint;
+ miniPopState.upside_down = sdlPopState.upside_down;
+ miniPopState.drawn_room = sdlPopState.drawn_room;
+ miniPopState.current_level = sdlPopState.current_level;
+ miniPopState.next_level = sdlPopState.next_level;
+ miniPopState.mobs_count = sdlPopState.mobs_count;
+ memcpy(miniPopState.mobs, sdlPopState.mobs, sizeof(sdlPopState.mobs));
+ miniPopState.trobs_count = sdlPopState.trobs_count;
+ memcpy(miniPopState.trobs, sdlPopState.trobs, sizeof(miniPopState.trobs));
+ miniPopState.leveldoor_open = sdlPopState.leveldoor_open;
+ memcpy(&miniPopState.Kid, &sdlPopState.Kid, sizeof(miniPopState.Kid));
+ miniPopState.hitp_curr = sdlPopState.hitp_curr;
+ miniPopState.hitp_max = sdlPopState.hitp_max;
+ miniPopState.hitp_beg_lev = sdlPopState.hitp_beg_lev;
+ miniPopState.grab_timer = sdlPopState.grab_timer;
+ miniPopState.holding_sword = sdlPopState.holding_sword;
+ miniPopState.united_with_shadow = sdlPopState.united_with_shadow;
+ miniPopState.have_sword = sdlPopState.have_sword;
+ miniPopState.kid_sword_strike = sdlPopState.kid_sword_strike;
+ miniPopState.pickup_obj_type = sdlPopState.pickup_obj_type;
+ miniPopState.offguard = sdlPopState.offguard;
+ memcpy(&miniPopState.Guard, &sdlPopState.Guard, sizeof(miniPopState.Guard));
+ memcpy(&miniPopState.Char, &sdlPopState.Char, sizeof(miniPopState.Char));
+ memcpy(&miniPopState.Opp, &sdlPopState.Opp, sizeof(miniPopState.Opp));
+ miniPopState.guardhp_curr = sdlPopState.guardhp_curr;
+ miniPopState.guardhp_max = sdlPopState.guardhp_max;
+ miniPopState.demo_index = sdlPopState.demo_index;
+ miniPopState.demo_time = sdlPopState.demo_time;
+ miniPopState.curr_guard_color = sdlPopState.curr_guard_color;
+ miniPopState.guard_notice_timer = sdlPopState.guard_notice_timer;
+ miniPopState.guard_skill = sdlPopState.guard_skill;
+ miniPopState.shadow_initialized = sdlPopState.shadow_initialized;
+ miniPopState.guard_refrac = sdlPopState.guard_refrac;
+ miniPopState.justblocked = sdlPopState.justblocked;
+ miniPopState.droppedout = sdlPopState.droppedout;
+ memcpy(&miniPopState.curr_row_coll_room, &sdlPopState.curr_row_coll_room, sizeof(miniPopState.curr_row_coll_room));
+ memcpy(&miniPopState.curr_row_coll_flags, &sdlPopState.curr_row_coll_flags, sizeof(miniPopState.curr_row_coll_flags));
+ memcpy(&miniPopState.below_row_coll_room, &sdlPopState.below_row_coll_room, sizeof(miniPopState.below_row_coll_room));
+ memcpy(&miniPopState.below_row_coll_flags, &sdlPopState.below_row_coll_flags, sizeof(miniPopState.below_row_coll_flags));
+ memcpy(&miniPopState.above_row_coll_room, &sdlPopState.above_row_coll_room, sizeof(miniPopState.above_row_coll_room));
+ memcpy(&miniPopState.above_row_coll_flags, &sdlPopState.above_row_coll_flags, sizeof(miniPopState.above_row_coll_flags));
+ miniPopState.prev_collision_row = sdlPopState.prev_collision_row;
+ miniPopState.flash_color = sdlPopState.flash_color;
+ miniPopState.flash_time = sdlPopState.flash_time;
+ miniPopState.need_level1_music = sdlPopState.need_level1_music;
+ miniPopState.is_screaming = sdlPopState.is_screaming;
+ miniPopState.is_feather_fall = sdlPopState.is_feather_fall;
+ miniPopState.last_loose_sound = sdlPopState.last_loose_sound;
+ miniPopState.random_seed = sdlPopState.random_seed;
+ miniPopState.rem_min = sdlPopState.rem_min;
+ miniPopState.rem_tick = sdlPopState.rem_tick;
+ miniPopState.control_x = sdlPopState.control_x;
+ miniPopState.control_y = sdlPopState.control_y;
+ miniPopState.control_shift = sdlPopState.control_shift;
+ miniPopState.control_forward = sdlPopState.control_forward;
+ miniPopState.control_backward = sdlPopState.control_backward;
+ miniPopState.control_up = sdlPopState.control_up;
+ miniPopState.control_down = sdlPopState.control_down;
+ miniPopState.control_shift2 = sdlPopState.control_shift2;
+ miniPopState.ctrl1_forward = sdlPopState.ctrl1_forward;
+ miniPopState.ctrl1_backward = sdlPopState.ctrl1_backward;
+ miniPopState.ctrl1_up = sdlPopState.ctrl1_up;
+ miniPopState.ctrl1_down = sdlPopState.ctrl1_down;
+ miniPopState.ctrl1_shift2 = sdlPopState.ctrl1_shift2;
+ miniPopState.exit_room_timer = sdlPopState.exit_room_timer;
+ miniPopState.replay_curr_tick = sdlPopState.replay_curr_tick;
+ miniPopState.is_guard_notice = sdlPopState.is_guard_notice;
+ miniPopState.can_guard_see_kid = sdlPopState.can_guard_see_kid;
+
+ std::string stateData;
+ stateData.resize(sizeof(miniPopState_t));
+ memcpy(stateData.data(), &miniPopState, sizeof(miniPopState_t));
+ return stateData;
+}
+
+static std::string saveSdlPopState(const std::string& miniPopStateData)
+{
+ if (miniPopStateData.size() != sizeof(miniPopState_t)) EXIT_WITH_ERROR("Error reading minipop save state. Expected %lu bytes, read: %lu\n", miniPopStateData.size(), sizeof(miniPopStateData));
+
+ miniPopState_t miniPopState;
+ memcpy(&miniPopState, miniPopStateData.data(), sizeof(miniPopState_t));
+
+ sdlPopState_t sdlPopState;
+ memcpy(&sdlPopState.quick_control, ".........", sizeof(sdlPopState.quick_control));
+ memcpy(&sdlPopState.level, &miniPopState.level, sizeof(sdlPopState.level));
+ sdlPopState.checkpoint = miniPopState.checkpoint;
+ sdlPopState.upside_down = miniPopState.upside_down;
+ sdlPopState.drawn_room = miniPopState.drawn_room;
+ sdlPopState.current_level = miniPopState.current_level;
+ sdlPopState.next_level = miniPopState.next_level;
+ sdlPopState.mobs_count = miniPopState.mobs_count;
+ memcpy(sdlPopState.mobs, miniPopState.mobs, sizeof(miniPopState.mobs));
+ sdlPopState.trobs_count = miniPopState.trobs_count;
+ memcpy(sdlPopState.trobs, miniPopState.trobs, sizeof(sdlPopState.trobs));
+ sdlPopState.leveldoor_open = miniPopState.leveldoor_open;
+ memcpy(&sdlPopState.Kid, &miniPopState.Kid, sizeof(sdlPopState.Kid));
+ sdlPopState.hitp_curr = miniPopState.hitp_curr;
+ sdlPopState.hitp_max = miniPopState.hitp_max;
+ sdlPopState.hitp_beg_lev = miniPopState.hitp_beg_lev;
+ sdlPopState.grab_timer = miniPopState.grab_timer;
+ sdlPopState.holding_sword = miniPopState.holding_sword;
+ sdlPopState.united_with_shadow = miniPopState.united_with_shadow;
+ sdlPopState.have_sword = miniPopState.have_sword;
+ sdlPopState.kid_sword_strike = miniPopState.kid_sword_strike;
+ sdlPopState.pickup_obj_type = miniPopState.pickup_obj_type;
+ sdlPopState.offguard = miniPopState.offguard;
+ memcpy(&sdlPopState.Guard, &miniPopState.Guard, sizeof(sdlPopState.Guard));
+ memcpy(&sdlPopState.Char, &miniPopState.Char, sizeof(sdlPopState.Char));
+ memcpy(&sdlPopState.Opp, &miniPopState.Opp, sizeof(sdlPopState.Opp));
+ sdlPopState.guardhp_curr = miniPopState.guardhp_curr;
+ sdlPopState.guardhp_max = miniPopState.guardhp_max;
+ sdlPopState.demo_index = miniPopState.demo_index;
+ sdlPopState.demo_time = miniPopState.demo_time;
+ sdlPopState.curr_guard_color = miniPopState.curr_guard_color;
+ sdlPopState.guard_notice_timer = miniPopState.guard_notice_timer;
+ sdlPopState.guard_skill = miniPopState.guard_skill;
+ sdlPopState.shadow_initialized = miniPopState.shadow_initialized;
+ sdlPopState.guard_refrac = miniPopState.guard_refrac;
+ sdlPopState.justblocked = miniPopState.justblocked;
+ sdlPopState.droppedout = miniPopState.droppedout;
+ memcpy(&sdlPopState.curr_row_coll_room, &miniPopState.curr_row_coll_room, sizeof(sdlPopState.curr_row_coll_room));
+ memcpy(&sdlPopState.curr_row_coll_flags, &miniPopState.curr_row_coll_flags, sizeof(sdlPopState.curr_row_coll_flags));
+ memcpy(&sdlPopState.below_row_coll_room, &miniPopState.below_row_coll_room, sizeof(sdlPopState.below_row_coll_room));
+ memcpy(&sdlPopState.below_row_coll_flags, &miniPopState.below_row_coll_flags, sizeof(sdlPopState.below_row_coll_flags));
+ memcpy(&sdlPopState.above_row_coll_room, &miniPopState.above_row_coll_room, sizeof(sdlPopState.above_row_coll_room));
+ memcpy(&sdlPopState.above_row_coll_flags, &miniPopState.above_row_coll_flags, sizeof(sdlPopState.above_row_coll_flags));
+ sdlPopState.prev_collision_row = miniPopState.prev_collision_row;
+ sdlPopState.flash_color = miniPopState.flash_color;
+ sdlPopState.flash_time = miniPopState.flash_time;
+ sdlPopState.need_level1_music = miniPopState.need_level1_music;
+ sdlPopState.is_screaming = miniPopState.is_screaming;
+ sdlPopState.is_feather_fall = miniPopState.is_feather_fall;
+ sdlPopState.last_loose_sound = miniPopState.last_loose_sound;
+ sdlPopState.random_seed = miniPopState.random_seed;
+ sdlPopState.rem_min = miniPopState.rem_min;
+ sdlPopState.rem_tick = miniPopState.rem_tick;
+ sdlPopState.control_x = miniPopState.control_x;
+ sdlPopState.control_y = miniPopState.control_y;
+ sdlPopState.control_shift = miniPopState.control_shift;
+ sdlPopState.control_forward = miniPopState.control_forward;
+ sdlPopState.control_backward = miniPopState.control_backward;
+ sdlPopState.control_up = miniPopState.control_up;
+ sdlPopState.control_down = miniPopState.control_down;
+ sdlPopState.control_shift2 = miniPopState.control_shift2;
+ sdlPopState.ctrl1_forward = miniPopState.ctrl1_forward;
+ sdlPopState.ctrl1_backward = miniPopState.ctrl1_backward;
+ sdlPopState.ctrl1_up = miniPopState.ctrl1_up;
+ sdlPopState.ctrl1_down = miniPopState.ctrl1_down;
+ sdlPopState.ctrl1_shift2 = miniPopState.ctrl1_shift2;
+ sdlPopState.exit_room_timer = miniPopState.exit_room_timer;
+ sdlPopState.replay_curr_tick = miniPopState.replay_curr_tick;
+ sdlPopState.is_guard_notice = miniPopState.is_guard_notice;
+ sdlPopState.can_guard_see_kid = miniPopState.can_guard_see_kid;
+
+ std::string stateData;
+ stateData.resize(sizeof(sdlPopState_t));
+ memcpy(stateData.data(), &sdlPopState, sizeof(sdlPopState_t));
+ return stateData;
+}
+
 };

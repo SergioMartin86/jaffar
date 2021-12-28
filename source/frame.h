@@ -13,7 +13,7 @@
 #endif
 
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
-#define _FRAME_DIFFERENTIAL_SIZE 2502
+#define _FRAME_DIFFERENTIAL_SIZE 2493
 #define _FRAME_FIXED_SIZE 212
 #define _FRAME_DATA_SIZE (_FRAME_DIFFERENTIAL_SIZE + _FRAME_FIXED_SIZE)
 
@@ -113,4 +113,3 @@ class Frame
   // Positions of the difference with respect to a base frame
   uint16_t frameDiffCount;
 };
-
