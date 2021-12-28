@@ -417,7 +417,6 @@ static std::string loadSdlPopState(const std::string& sdlPopStateData)
  miniPopState_t miniPopState;
  memcpy(&miniPopState.level, &sdlPopState.level, sizeof(miniPopState.level));
  miniPopState.checkpoint = sdlPopState.checkpoint;
- miniPopState.upside_down = sdlPopState.upside_down;
  miniPopState.drawn_room = sdlPopState.drawn_room;
  miniPopState.current_level = sdlPopState.current_level;
  miniPopState.next_level = sdlPopState.next_level;
@@ -455,8 +454,6 @@ static std::string loadSdlPopState(const std::string& sdlPopStateData)
  memcpy(&miniPopState.above_row_coll_room, &sdlPopState.above_row_coll_room, sizeof(miniPopState.above_row_coll_room));
  memcpy(&miniPopState.above_row_coll_flags, &sdlPopState.above_row_coll_flags, sizeof(miniPopState.above_row_coll_flags));
  miniPopState.prev_collision_row = sdlPopState.prev_collision_row;
- miniPopState.flash_color = sdlPopState.flash_color;
- miniPopState.flash_time = sdlPopState.flash_time;
  miniPopState.need_level1_music = sdlPopState.need_level1_music;
  miniPopState.is_screaming = sdlPopState.is_screaming;
  miniPopState.is_feather_fall = sdlPopState.is_feather_fall;
@@ -488,7 +485,7 @@ static std::string saveSdlPopState(const std::string& miniPopStateData)
  memcpy(&sdlPopState.quick_control, ".........", sizeof(sdlPopState.quick_control));
  memcpy(&sdlPopState.level, &miniPopState.level, sizeof(sdlPopState.level));
  sdlPopState.checkpoint = miniPopState.checkpoint;
- sdlPopState.upside_down = miniPopState.upside_down;
+ sdlPopState.upside_down = 0;
  sdlPopState.drawn_room = miniPopState.drawn_room;
  sdlPopState.current_level = miniPopState.current_level;
  sdlPopState.next_level = miniPopState.next_level;
@@ -529,8 +526,8 @@ static std::string saveSdlPopState(const std::string& miniPopStateData)
  memcpy(&sdlPopState.above_row_coll_room, &miniPopState.above_row_coll_room, sizeof(sdlPopState.above_row_coll_room));
  memcpy(&sdlPopState.above_row_coll_flags, &miniPopState.above_row_coll_flags, sizeof(sdlPopState.above_row_coll_flags));
  sdlPopState.prev_collision_row = miniPopState.prev_collision_row;
- sdlPopState.flash_color = miniPopState.flash_color;
- sdlPopState.flash_time = miniPopState.flash_time;
+ sdlPopState.flash_color = 0;
+ sdlPopState.flash_time = 0;
  sdlPopState.need_level1_music = miniPopState.need_level1_music;
  sdlPopState.is_screaming = miniPopState.is_screaming;
  sdlPopState.is_feather_fall = miniPopState.is_feather_fall;

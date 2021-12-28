@@ -99,7 +99,6 @@ void miniPoPInstance::initialize()
   text_time_total = 0;
   is_show_time = 1;
   gameState.checkpoint = 0;
-  gameState.upside_down = 0; // N.B. gameState.upside_down is also reset in set_start_pos()
   resurrect_time = 0;
   gameState.hitp_beg_lev = custom->start_hitp;    // 3
   gameState.current_level = 0;
@@ -127,7 +126,6 @@ void miniPoPInstance::startLevel(const word level)
   gameState.grab_timer = 0;
   gameState.can_guard_see_kid = 0;
   gameState.united_with_shadow = 0;
-  gameState.flash_time = 0;
   gameState.leveldoor_open = 0;
   gameState.demo_index = 0;
   gameState.demo_time = 0;

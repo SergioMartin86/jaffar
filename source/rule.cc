@@ -266,7 +266,6 @@ datatype_t Rule::getPropertyType(const std::string &property)
   if (property == "Next Level") return dt_word;
   if (property == "Drawn Room") return dt_word;
   if (property == "Checkpoint Reached") return dt_word;
-  if (property == "Is Upside Down") return dt_word;
   if (property == "Needs Level 1 Music") return dt_word;
   if (property == "United With Shadow") return dt_short;
   if (property == "Exit Door Timer") return dt_word;
@@ -325,7 +324,6 @@ void *Rule::getPropertyPointer(const std::string &property, miniPoPInstance *sdl
   if (property == "Next Level") return &gameState.next_level;
   if (property == "Drawn Room") return &gameState.drawn_room;
   if (property == "Checkpoint Reached") return &gameState.checkpoint;
-  if (property == "Is Upside Down") return &gameState.upside_down;
   if (property == "Is Feather Fall") return &gameState.is_feather_fall;
   if (property == "Needs Level 1 Music") return &gameState.need_level1_music;
   if (property == "United With Shadow") return &gameState.united_with_shadow;

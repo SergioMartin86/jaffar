@@ -45,6 +45,9 @@ __thread sbyte control_shift2;
 __thread char_type Char;
 __thread char_type Opp;
 __thread word curr_guard_color;
+__thread word flash_color;
+__thread word flash_time;
+__thread word upside_down;
 
 __thread struct miniPopState_t gameState;
 __thread custom_options_type *custom = &custom_defaults;
@@ -1120,9 +1123,9 @@ int  play_kid_frame()
   load_fram_det_col();
   check_killed_shadow();
   play_kid();
-  if (gameState.upside_down && Char.alive >= 0)
+  if (upside_down && Char.alive >= 0)
   {
-    gameState.upside_down = 0;
+    upside_down = 0;
     need_redraw_because_flipped = 1;
   }
   if (is_restart_level)
@@ -1348,7 +1351,7 @@ void  read_keyb_control()
 // seg000:15E9
 void  toggle_upside()
 {
-  gameState.upside_down = ~gameState.upside_down;
+  upside_down = ~upside_down;
   need_redraw_because_flipped = 1;
 }
 
@@ -1356,8 +1359,8 @@ void  toggle_upside()
 void  feather_fall()
 {
   gameState.is_feather_fall = 1;
-  gameState.flash_color = 2; // green
-  gameState.flash_time = 3;
+  flash_color = 2; // green
+  flash_time = 3;
 }
 
 // seg000:172C
@@ -2739,8 +2742,8 @@ void  autocontrol_shadow_level12()
   if (char_opp_dist() < 10)
   {
     // unite with the shadow
-    gameState.flash_color = color_15_brightwhite; // white
-    gameState.flash_time = 18;
+    flash_color = color_15_brightwhite; // white
+    flash_time = 18;
     // get an extra HP for uniting the shadow
     add_life();
     // time of gameState.Kid-shadow flash
@@ -2773,7 +2776,7 @@ void  init_game(int level)
   text_time_remaining = 0;
   text_time_total = 0;
   gameState.checkpoint = 0;
-  gameState.upside_down = 0; // N.B. gameState.upside_down is also reset in set_start_pos()
+  upside_down = 0; // N.B. upside_down is also reset in set_start_pos()
   resurrect_time = 0;
   if (!dont_reset_time)
   {
@@ -2818,7 +2821,7 @@ void  play_level(int level_number)
     gameState.grab_timer = 0;
     gameState.can_guard_see_kid = 0;
     gameState.united_with_shadow = 0;
-    gameState.flash_time = 0;
+    flash_time = 0;
     gameState.leveldoor_open = 0;
     gameState.demo_index = 0;
     gameState.demo_time = 0;
@@ -2911,7 +2914,7 @@ void  set_start_pos()
   Char.charid = charid_0_kid;
   gameState.is_screaming = 0;
   knock = 0;
-  gameState.upside_down = custom->start_upside_down; // 0
+  upside_down = custom->start_upside_down; // 0
   gameState.is_feather_fall = 0;
   Char.fall_y = 0;
   Char.fall_x = 0;
@@ -4564,8 +4567,8 @@ void  proc_get_object()
   if (gameState.pickup_obj_type == -1)
   {
     gameState.have_sword = -1;
-    gameState.flash_color = color_14_brightyellow;
-    gameState.flash_time = 8;
+    flash_color = color_14_brightyellow;
+    flash_time = 8;
   }
   else
   {
@@ -4575,13 +4578,13 @@ void  proc_get_object()
       if (gameState.hitp_curr != gameState.hitp_max)
       {
         hitp_delta = 1;
-        gameState.flash_color = color_4_red;
-        gameState.flash_time = 2;
+        flash_color = color_4_red;
+        flash_time = 2;
       }
       break;
     case 1: // life
-      gameState.flash_color = color_4_red;
-      gameState.flash_time = 4;
+      flash_color = color_4_red;
+      flash_time = 4;
       add_life();
       break;
     case 2: // feather
@@ -4630,8 +4633,8 @@ void  on_guard_killed()
   else if (gameState.current_level == /*13*/ custom->jaffar_victory_level)
   {
     // Jaffar's level: flash
-    gameState.flash_color = color_15_brightwhite; // white
-    gameState.flash_time = /*18*/ custom->jaffar_victory_flash_time;
+    flash_color = color_15_brightwhite; // white
+    flash_time = /*18*/ custom->jaffar_victory_flash_time;
     is_show_time = 1;
     gameState.leveldoor_open = 2;
   }
@@ -4728,8 +4731,8 @@ void  check_killed_shadow()
     if ((Char.charid | Opp.charid) == charid_1_shadow &&
         Char.alive < 0 && Opp.alive >= 0)
     {
-      gameState.flash_color = color_15_brightwhite; // white
-      gameState.flash_time = 5;
+      flash_color = color_15_brightwhite; // white
+      flash_time = 5;
       take_hp(100);
     }
   }

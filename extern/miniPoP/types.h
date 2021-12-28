@@ -1427,25 +1427,30 @@ typedef struct directory_listing_type directory_listing_type;
 
 #pragma pack(push,1)
 struct miniPopState_t {
+
+ // Differential Frame Info
  level_type level;
+ mob_type mobs[14];
+ trob_type trobs[30];
  word checkpoint;
- word upside_down;
- word drawn_room;
  word current_level;
  word next_level;
+ word hitp_beg_lev;
+ word hitp_max;
+ word have_sword;
+ word is_feather_fall;
+ word need_level1_music;
+ short united_with_shadow;
+
+ // Fixed Frame Info
+ word drawn_room;
  short mobs_count;
- mob_type mobs[14];
  short trobs_count;
- trob_type trobs[30];
  word leveldoor_open;
  char_type Kid;
  word hitp_curr;
- word hitp_max;
- word hitp_beg_lev;
  word grab_timer;
  word holding_sword;
- short united_with_shadow;
- word have_sword;
  word kid_sword_strike;
  short pickup_obj_type;
  word offguard; // name from Apple II source
@@ -1467,11 +1472,7 @@ struct miniPopState_t {
  sbyte above_row_coll_room[10];
  byte above_row_coll_flags[10];
  sbyte prev_collision_row;
- word flash_color;
- word flash_time;
- word need_level1_music;
  word is_screaming;
- word is_feather_fall;
  word last_loose_sound;
  dword random_seed;
  sbyte ctrl1_forward;
