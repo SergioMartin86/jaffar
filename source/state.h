@@ -471,7 +471,6 @@ static std::string loadSdlPopState(const std::string& sdlPopStateData)
  miniPopState.ctrl1_down = sdlPopState.ctrl1_down;
  miniPopState.ctrl1_shift2 = sdlPopState.ctrl1_shift2;
  miniPopState.exit_room_timer = sdlPopState.exit_room_timer;
- miniPopState.replay_curr_tick = sdlPopState.replay_curr_tick;
  miniPopState.is_guard_notice = sdlPopState.is_guard_notice;
  miniPopState.can_guard_see_kid = sdlPopState.can_guard_see_kid;
 
@@ -556,7 +555,7 @@ static std::string saveSdlPopState(const std::string& miniPopStateData)
  sdlPopState.ctrl1_down = miniPopState.ctrl1_down;
  sdlPopState.ctrl1_shift2 = miniPopState.ctrl1_shift2;
  sdlPopState.exit_room_timer = miniPopState.exit_room_timer;
- sdlPopState.replay_curr_tick = miniPopState.replay_curr_tick;
+ sdlPopState.replay_curr_tick = 0;
  sdlPopState.is_guard_notice = miniPopState.is_guard_notice;
  sdlPopState.can_guard_see_kid = miniPopState.can_guard_see_kid;
 

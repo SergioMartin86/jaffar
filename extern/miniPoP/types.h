@@ -1483,7 +1483,6 @@ struct miniPopState_t {
  sbyte ctrl1_down;
  sbyte ctrl1_shift2;
  word exit_room_timer;
- float replay_curr_tick;
  word is_guard_notice;
  short can_guard_see_kid;
 };
