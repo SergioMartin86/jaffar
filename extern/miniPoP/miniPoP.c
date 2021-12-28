@@ -902,7 +902,7 @@ int  process_key()
   int key = 0;
 
   // If the gameState.Kid died, Enter or Shift will restart the gameState.level.
-  if (gameState.rem_min != 0 && gameState.Kid.alive > 6 && (gameState.control_shift || key == SDL_SCANCODE_RETURN))
+  if (gameState.Kid.alive > 6 && (gameState.control_shift || key == SDL_SCANCODE_RETURN))
   {
     key = SDL_SCANCODE_A | WITH_CTRL; // Ctrl+A
   }
@@ -2764,8 +2764,6 @@ void  init_game(int level)
   resurrect_time = 0;
   if (!dont_reset_time)
   {
-    gameState.rem_min = custom->start_minutes_left; // 60
-    gameState.rem_tick = custom->start_ticks_left;  // 719
     gameState.hitp_beg_lev = custom->start_hitp;    // 3
   }
 

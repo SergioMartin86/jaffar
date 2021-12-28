@@ -1477,8 +1477,6 @@ struct miniPopState_t {
  word is_feather_fall;
  word last_loose_sound;
  dword random_seed;
- short rem_min;
- word rem_tick;
  sbyte control_x;
  sbyte control_y;
  sbyte control_shift;

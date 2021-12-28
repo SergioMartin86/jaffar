@@ -465,8 +465,6 @@ static std::string loadSdlPopState(const std::string& sdlPopStateData)
  miniPopState.is_feather_fall = sdlPopState.is_feather_fall;
  miniPopState.last_loose_sound = sdlPopState.last_loose_sound;
  miniPopState.random_seed = sdlPopState.random_seed;
- miniPopState.rem_min = sdlPopState.rem_min;
- miniPopState.rem_tick = sdlPopState.rem_tick;
  miniPopState.control_x = sdlPopState.control_x;
  miniPopState.control_y = sdlPopState.control_y;
  miniPopState.control_shift = sdlPopState.control_shift;
@@ -550,8 +548,8 @@ static std::string saveSdlPopState(const std::string& miniPopStateData)
  sdlPopState.is_feather_fall = miniPopState.is_feather_fall;
  sdlPopState.last_loose_sound = miniPopState.last_loose_sound;
  sdlPopState.random_seed = miniPopState.random_seed;
- sdlPopState.rem_min = miniPopState.rem_min;
- sdlPopState.rem_tick = miniPopState.rem_tick;
+ sdlPopState.rem_min = 60;
+ sdlPopState.rem_tick = 719;
  sdlPopState.control_x = miniPopState.control_x;
  sdlPopState.control_y = miniPopState.control_y;
  sdlPopState.control_shift = miniPopState.control_shift;

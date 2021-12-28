@@ -38,11 +38,6 @@ class miniPoPInstance
   unsigned int advanceRNGState(const unsigned int randomSeed);
   unsigned int reverseRNGState(const unsigned int randomSeed);
 
-  // IGT Timing functions
-  size_t getElapsedMins();
-  size_t getElapsedSecs();
-  size_t getElapsedMilisecs();
-
   int getKidSequenceId();
   int getGuardSequenceId();
 };

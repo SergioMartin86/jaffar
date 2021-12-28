@@ -101,8 +101,6 @@ void miniPoPInstance::initialize()
   gameState.checkpoint = 0;
   gameState.upside_down = 0; // N.B. gameState.upside_down is also reset in set_start_pos()
   resurrect_time = 0;
-  gameState.rem_min = custom->start_minutes_left; // 60
-  gameState.rem_tick = custom->start_ticks_left;  // 719
   gameState.hitp_beg_lev = custom->start_hitp;    // 3
   gameState.current_level = 0;
   startLevel(1);
@@ -151,21 +149,6 @@ void miniPoPInstance::startLevel(const word level)
 void miniPoPInstance::setSeed(const dword randomSeed)
 {
   gameState.random_seed = randomSeed;
-}
-
-size_t miniPoPInstance::getElapsedMins()
-{
- return 60 - gameState.rem_min;
-}
-
-size_t miniPoPInstance::getElapsedSecs()
-{
- return (720 - gameState.rem_tick) / 12;
-}
-
-size_t miniPoPInstance::getElapsedMilisecs()
-{
- return ceil( ((double)((720 - gameState.rem_tick) % 12) * (60.0 / 720.0)) * 1000.0 );
 }
 
 void miniPoPInstance::draw(ssize_t mins, ssize_t secs, ssize_t ms)
