@@ -1441,6 +1441,8 @@ struct miniPopState_t {
  word is_feather_fall;
  word need_level1_music;
  short united_with_shadow;
+ word demo_index;
+ short demo_time;
 
  // Fixed Frame Info
  word drawn_room;
@@ -1457,8 +1459,6 @@ struct miniPopState_t {
  char_type Guard;
  word guardhp_curr;
  word guardhp_max;
- word demo_index;
- short demo_time;
  short guard_notice_timer;
  word guard_skill;
  word shadow_initialized;

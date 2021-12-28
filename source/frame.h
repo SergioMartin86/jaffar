@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef _MAX_FRAME_DIFF
- #define _MAX_FRAME_DIFF 70
+ #define _MAX_FRAME_DIFF 55
 #endif
 
 #ifndef _MAX_RULE_COUNT
@@ -13,8 +13,8 @@
 #endif
 
 #define _MAX_MOVELIST_STORAGE ((_MAX_MOVELIST_SIZE/2) + 1)
-#define _FRAME_DIFFERENTIAL_SIZE 2497
-#define _FRAME_FIXED_SIZE 152
+#define _FRAME_DIFFERENTIAL_SIZE 2501
+#define _FRAME_FIXED_SIZE 148
 #define _FRAME_DATA_SIZE (_FRAME_DIFFERENTIAL_SIZE + _FRAME_FIXED_SIZE)
 
 #include "nlohmann/json.hpp"

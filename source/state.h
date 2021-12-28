@@ -73,6 +73,10 @@ class State
     // Manual hashing
     hash.Update(gameState.level.guards_x);
     hash.Update(gameState.level.guards_dir);
+    hash.Update(gameState.level.guards_seq_lo);
+    hash.Update(gameState.level.guards_seq_hi);
+    hash.Update(gameState.level.guards_tile);
+
     if (_hashKidCurrentHp == true) hash.Update(gameState.hitp_curr);
     if (_hashGuardCurrentHp == true) hash.Update(gameState.guardhp_curr);
     if (_hashTrobCount == true) hash.Update(gameState.trobs_count);
