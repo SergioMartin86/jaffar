@@ -1477,14 +1477,6 @@ struct miniPopState_t {
  word is_feather_fall;
  word last_loose_sound;
  dword random_seed;
- sbyte control_x;
- sbyte control_y;
- sbyte control_shift;
- sbyte control_forward;
- sbyte control_backward;
- sbyte control_up;
- sbyte control_down;
- sbyte control_shift2;
  sbyte ctrl1_forward;
  sbyte ctrl1_backward;
  sbyte ctrl1_up;

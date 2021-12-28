@@ -33,6 +33,16 @@ The authors of this program may be contacted at https://forum.princed.org
 
 #define get_frame(frame_table, frame) get_frame_internal(frame_table, frame, #frame_table, COUNT(frame_table))
 
+// Extracted values
+__thread sbyte control_x;
+__thread sbyte control_y;
+__thread sbyte control_shift;
+__thread sbyte control_forward;
+__thread sbyte control_backward;
+__thread sbyte control_up;
+__thread sbyte control_down;
+__thread sbyte control_shift2;
+
 __thread struct miniPopState_t gameState;
 __thread custom_options_type *custom = &custom_defaults;
 __thread byte is_validate_mode;
@@ -902,7 +912,7 @@ int  process_key()
   int key = 0;
 
   // If the gameState.Kid died, Enter or Shift will restart the gameState.level.
-  if (gameState.Kid.alive > 6 && (gameState.control_shift || key == SDL_SCANCODE_RETURN))
+  if (gameState.Kid.alive > 6 && (control_shift || key == SDL_SCANCODE_RETURN))
   {
     key = SDL_SCANCODE_A | WITH_CTRL; // Ctrl+A
   }
@@ -1302,12 +1312,12 @@ int  do_paused()
   word key;
   key = 0;
   next_room = 0;
-  gameState.control_shift = 0;
-  gameState.control_y = 0;
-  gameState.control_x = 0;
+  control_shift = 0;
+  control_y = 0;
+  control_x = 0;
   read_keyb_control();
   key = process_key();
-  return key || gameState.control_shift;
+  return key || control_shift;
 }
 
 // seg000:1500
@@ -1315,21 +1325,21 @@ void  read_keyb_control()
 {
   if (key_states[SDL_SCANCODE_UP] || key_states[SDL_SCANCODE_HOME] || key_states[SDL_SCANCODE_PAGEUP] || key_states[SDL_SCANCODE_KP_8] || key_states[SDL_SCANCODE_KP_7] || key_states[SDL_SCANCODE_KP_9])
   {
-    gameState.control_y = -1;
+    control_y = -1;
   }
   else if (key_states[SDL_SCANCODE_CLEAR] || key_states[SDL_SCANCODE_DOWN] || key_states[SDL_SCANCODE_KP_5] || key_states[SDL_SCANCODE_KP_2])
   {
-    gameState.control_y = 1;
+    control_y = 1;
   }
   if (key_states[SDL_SCANCODE_LEFT] || key_states[SDL_SCANCODE_HOME] || key_states[SDL_SCANCODE_KP_4] || key_states[SDL_SCANCODE_KP_7])
   {
-    gameState.control_x = -1;
+    control_x = -1;
   }
   else if (key_states[SDL_SCANCODE_RIGHT] || key_states[SDL_SCANCODE_PAGEUP] || key_states[SDL_SCANCODE_KP_6] || key_states[SDL_SCANCODE_KP_9])
   {
-    gameState.control_x = 1;
+    control_x = 1;
   }
-  gameState.control_shift = -(key_states[SDL_SCANCODE_LSHIFT] || key_states[SDL_SCANCODE_RSHIFT]);
+  control_shift = -(key_states[SDL_SCANCODE_LSHIFT] || key_states[SDL_SCANCODE_RSHIFT]);
 }
 
 // seg000:15E9
@@ -1905,76 +1915,76 @@ void  play_mirr_mus()
 // seg002:0706
 void  move_0_nothing()
 {
-  gameState.control_shift = 0;
-  gameState.control_y = 0;
-  gameState.control_x = 0;
-  gameState.control_shift2 = 0;
-  gameState.control_down = 0;
-  gameState.control_up = 0;
-  gameState.control_backward = 0;
-  gameState.control_forward = 0;
+  control_shift = 0;
+  control_y = 0;
+  control_x = 0;
+  control_shift2 = 0;
+  control_down = 0;
+  control_up = 0;
+  control_backward = 0;
+  control_forward = 0;
 }
 
 // seg002:0721
 void  move_1_forward()
 {
-  gameState.control_x = -1;
-  gameState.control_forward = -1;
+  control_x = -1;
+  control_forward = -1;
 }
 
 // seg002:072A
 void  move_2_backward()
 {
-  gameState.control_backward = -1;
-  gameState.control_x = 1;
+  control_backward = -1;
+  control_x = 1;
 }
 
 // seg002:0735
 void  move_3_up()
 {
-  gameState.control_y = -1;
-  gameState.control_up = -1;
+  control_y = -1;
+  control_up = -1;
 }
 
 // seg002:073E
 void  move_4_down()
 {
-  gameState.control_down = -1;
-  gameState.control_y = 1;
+  control_down = -1;
+  control_y = 1;
 }
 
 // seg002:0749
 void  move_up_back()
 {
-  gameState.control_up = -1;
+  control_up = -1;
   move_2_backward();
 }
 
 // seg002:0753
 void  move_down_back()
 {
-  gameState.control_down = -1;
+  control_down = -1;
   move_2_backward();
 }
 
 // seg002:075D
 void  move_down_forw()
 {
-  gameState.control_down = -1;
+  control_down = -1;
   move_1_forward();
 }
 
 // seg002:0767
 void  move_6_shift()
 {
-  gameState.control_shift = -1;
-  gameState.control_shift2 = -1;
+  control_shift = -1;
+  control_shift2 = -1;
 }
 
 // seg002:0770
 void  move_7()
 {
-  gameState.control_shift = 0;
+  control_shift = 0;
 }
 
 // seg002:0776
@@ -3942,7 +3952,7 @@ void  check_grab()
 
   #define MAX_GRAB_FALLING_SPEED 32
 
-  if (gameState.control_shift < 0 &&                    // press Shift to grab
+  if (control_shift < 0 &&                    // press Shift to grab
       gameState.Char.fall_y < MAX_GRAB_FALLING_SPEED && // you can't grab if you're falling too fast ...
       gameState.Char.alive < 0 &&                       // ... or dead
       (word)y_land[gameState.Char.curr_row + 1] <= (word)(gameState.Char.y + 25))
@@ -4089,8 +4099,8 @@ void  do_demo()
 {
   if (gameState.checkpoint)
   {
-    gameState.control_shift2 = release_arrows();
-    gameState.control_forward = gameState.control_x = -1;
+    control_shift2 = release_arrows();
+    control_forward = control_x = -1;
   }
   else if (gameState.Char.sword)
   {
@@ -4154,37 +4164,37 @@ void  user_control()
 void  flip_control_x()
 {
   byte temp;
-  gameState.control_x = -gameState.control_x;
-  temp = gameState.control_forward;
-  gameState.control_forward = gameState.control_backward;
-  gameState.control_backward = temp;
+  control_x = -control_x;
+  temp = control_forward;
+  control_forward = control_backward;
+  control_backward = temp;
 }
 
 // seg006:0E00
 int  release_arrows()
 {
-  gameState.control_backward = gameState.control_forward = gameState.control_up = gameState.control_down = 0;
+  control_backward = control_forward = control_up = control_down = 0;
   return 1;
 }
 
 // seg006:0E12
 void  save_ctrl_1()
 {
-  gameState.ctrl1_forward = gameState.control_forward;
-  gameState.ctrl1_backward = gameState.control_backward;
-  gameState.ctrl1_up = gameState.control_up;
-  gameState.ctrl1_down = gameState.control_down;
-  gameState.ctrl1_shift2 = gameState.control_shift2;
+  gameState.ctrl1_forward = control_forward;
+  gameState.ctrl1_backward = control_backward;
+  gameState.ctrl1_up = control_up;
+  gameState.ctrl1_down = control_down;
+  gameState.ctrl1_shift2 = control_shift2;
 }
 
 // seg006:0E31
 void  rest_ctrl_1()
 {
-  gameState.control_forward = gameState.ctrl1_forward;
-  gameState.control_backward = gameState.ctrl1_backward;
-  gameState.control_up = gameState.ctrl1_up;
-  gameState.control_down = gameState.ctrl1_down;
-  gameState.control_shift2 = gameState.ctrl1_shift2;
+  control_forward = gameState.ctrl1_forward;
+  control_backward = gameState.ctrl1_backward;
+  control_up = gameState.ctrl1_up;
+  control_down = gameState.ctrl1_down;
+  control_shift2 = gameState.ctrl1_shift2;
 }
 
 // seg006:0E8E
@@ -4196,74 +4206,74 @@ void  clear_saved_ctrl()
 // seg006:0EAF
 void  read_user_control()
 {
-  if (gameState.control_forward >= 0)
+  if (control_forward >= 0)
   {
-    if (gameState.control_x < 0)
+    if (control_x < 0)
     {
-      if (gameState.control_forward == 0)
+      if (control_forward == 0)
       {
-        gameState.control_forward = -1;
+        control_forward = -1;
       }
     }
     else
     {
-      gameState.control_forward = 0;
+      control_forward = 0;
     }
   }
-  if (gameState.control_backward >= 0)
+  if (control_backward >= 0)
   {
-    if (gameState.control_x == 1)
+    if (control_x == 1)
     {
-      if (gameState.control_backward == 0)
+      if (control_backward == 0)
       {
-        gameState.control_backward = -1;
+        control_backward = -1;
       }
     }
     else
     {
-      gameState.control_backward = 0;
+      control_backward = 0;
     }
   }
-  if (gameState.control_up >= 0)
+  if (control_up >= 0)
   {
-    if (gameState.control_y < 0)
+    if (control_y < 0)
     {
-      if (gameState.control_up == 0)
+      if (control_up == 0)
       {
-        gameState.control_up = -1;
+        control_up = -1;
       }
     }
     else
     {
-      gameState.control_up = 0;
+      control_up = 0;
     }
   }
-  if (gameState.control_down >= 0)
+  if (control_down >= 0)
   {
-    if (gameState.control_y == 1)
+    if (control_y == 1)
     {
-      if (gameState.control_down == 0)
+      if (control_down == 0)
       {
-        gameState.control_down = -1;
+        control_down = -1;
       }
     }
     else
     {
-      gameState.control_down = 0;
+      control_down = 0;
     }
   }
-  if (gameState.control_shift2 >= 0)
+  if (control_shift2 >= 0)
   {
-    if (gameState.control_shift < 0)
+    if (control_shift < 0)
     {
-      if (gameState.control_shift2 == 0)
+      if (control_shift2 == 0)
       {
-        gameState.control_shift2 = -1;
+        control_shift2 = -1;
       }
     }
     else
     {
-      gameState.control_shift2 = 0;
+      control_shift2 = 0;
     }
   }
 }
@@ -4333,7 +4343,7 @@ int  back_delta_x(int delta_x)
 void  do_pickup(int obj_type)
 {
   gameState.pickup_obj_type = obj_type;
-  gameState.control_shift2 = 1;
+  control_shift2 = 1;
   // erase picked up item
   curr_room_tiles[curr_tilepos] = tiles_1_floor;
   curr_room_modif[curr_tilepos] = 0;
@@ -4725,15 +4735,15 @@ void  check_killed_shadow()
 // seg006:1827
 void  control_guard_inactive()
 {
-  if (gameState.Char.frame == frame_166_stand_inactive && gameState.control_down < 0)
+  if (gameState.Char.frame == frame_166_stand_inactive && control_down < 0)
   {
-    if (gameState.control_forward < 0)
+    if (control_forward < 0)
     {
       draw_sword();
     }
     else
     {
-      gameState.control_down = 1;
+      control_down = 1;
       seqtbl_offset_char(seq_80_stand_flipped); // stand flipped
     }
   }
@@ -6851,12 +6861,12 @@ void  control_crouched()
  }
  else {
   gameState.need_level1_music = 0;
-  if (gameState.control_shift2 < 0 && check_get_item()) return;
-  if (gameState.control_y != 1) {
+  if (control_shift2 < 0 && check_get_item()) return;
+  if (control_y != 1) {
    seqtbl_offset_char(seq_49_stand_up_from_crouch); // stand up from crouch
   } else {
-   if (gameState.control_forward < 0) {
-    gameState.control_forward = 1; // disable automatic repeat
+   if (control_forward < 0) {
+    control_forward = 1; // disable automatic repeat
     seqtbl_offset_char(seq_79_crouch_hop); // crouch-hop
    }
   }
@@ -6867,18 +6877,18 @@ void  control_crouched()
 void  control_standing()
 {
   short var_2;
-  if (gameState.control_shift2 < 0 && gameState.control_shift < 0 && check_get_item())
+  if (control_shift2 < 0 && control_shift < 0 && check_get_item())
   {
     return;
   }
-  if (gameState.Char.charid != charid_0_kid && gameState.control_down < 0 && gameState.control_forward < 0)
+  if (gameState.Char.charid != charid_0_kid && control_down < 0 && control_forward < 0)
   {
     draw_sword();
     return;
   } //else
   if (gameState.have_sword)
   {
-    if (gameState.offguard != 0 && gameState.control_shift >= 0)
+    if (gameState.offguard != 0 && control_shift >= 0)
       goto loc_6213;
     if (gameState.can_guard_see_kid >= 2)
     {
@@ -6911,30 +6921,30 @@ void  control_standing()
       gameState.offguard = 0;
     }
   }
-  if (gameState.control_shift < 0)
+  if (control_shift < 0)
   {
-    if (gameState.control_backward < 0)
+    if (control_backward < 0)
     {
       back_pressed();
     }
-    else if (gameState.control_up < 0)
+    else if (control_up < 0)
     {
       up_pressed();
     }
-    else if (gameState.control_down < 0)
+    else if (control_down < 0)
     {
       down_pressed();
     }
-    else if (gameState.control_x < 0 && gameState.control_forward < 0)
+    else if (control_x < 0 && control_forward < 0)
     {
       safe_step();
     }
   }
   else
   loc_6213:
-    if (gameState.control_forward < 0)
+    if (control_forward < 0)
     {
-      if (gameState.control_up < 0)
+      if (control_up < 0)
       {
         standing_jump();
       }
@@ -6943,13 +6953,13 @@ void  control_standing()
         forward_pressed();
       }
     }
-    else if (gameState.control_backward < 0)
+    else if (control_backward < 0)
     {
       back_pressed();
     }
-    else if (gameState.control_up < 0)
+    else if (control_up < 0)
     {
-      if (gameState.control_forward < 0)
+      if (control_forward < 0)
       {
         standing_jump();
       }
@@ -6958,11 +6968,11 @@ void  control_standing()
         up_pressed();
       }
     }
-    else if (gameState.control_down < 0)
+    else if (control_down < 0)
     {
       down_pressed();
     }
-    else if (gameState.control_x < 0)
+    else if (control_x < 0)
     {
       forward_pressed();
     }
@@ -6984,7 +6994,7 @@ void  up_pressed()
   }
   else
   {
-    if (gameState.control_x < 0)
+    if (control_x < 0)
     {
       standing_jump();
     }
@@ -6998,7 +7008,7 @@ void  up_pressed()
 // seg005:04C7
 void  down_pressed()
 {
-  gameState.control_down = 1; // disable automatic repeat
+  control_down = 1; // disable automatic repeat
   if (!tile_is_floor(get_tile_infrontof_char()) &&
       distance_to_edge_weight() < 3)
   {
@@ -7043,7 +7053,7 @@ void  go_up_leveldoor()
 // seg005:058F
 void  control_turning()
 {
-  if (gameState.control_shift >= 0 && gameState.control_x < 0 && gameState.control_y >= 0)
+  if (control_shift >= 0 && control_x < 0 && control_y >= 0)
   {
     seqtbl_offset_char(seq_43_start_run_after_turn); // start run and run (after turning)
   }
@@ -7053,14 +7063,14 @@ void  control_turning()
 void  crouch()
 {
   seqtbl_offset_char(seq_50_crouch); // crouch
-  gameState.control_down = release_arrows();
+  control_down = release_arrows();
 }
 
 // seg005:05BE
 void  back_pressed()
 {
   word seq_id;
-  gameState.control_backward = release_arrows();
+  control_backward = release_arrows();
   // After turn, gameState.Kid will draw sword if ...
   if (gameState.have_sword == 0 ||       // if gameState.Kid has sword
       gameState.can_guard_see_kid < 2 || // and can see Guard
@@ -7087,7 +7097,7 @@ void  forward_pressed()
   if (edge_type == 1 && curr_tile2 != tiles_18_chomper && distance < 8)
   {
     // If char is near a wall, step instead of run.
-    if (gameState.control_forward < 0)
+    if (control_forward < 0)
     {
       safe_step();
     }
@@ -7101,23 +7111,23 @@ void  forward_pressed()
 // seg005:0649
 void  control_running()
 {
-  if (gameState.control_x == 0 && (gameState.Char.frame == frame_7_run || gameState.Char.frame == frame_11_run))
+  if (control_x == 0 && (gameState.Char.frame == frame_7_run || gameState.Char.frame == frame_11_run))
   {
-    gameState.control_forward = release_arrows();
+    control_forward = release_arrows();
     seqtbl_offset_char(seq_13_stop_run); // stop run
   }
-  else if (gameState.control_x > 0)
+  else if (control_x > 0)
   {
-    gameState.control_backward = release_arrows();
+    control_backward = release_arrows();
     seqtbl_offset_char(seq_6_run_turn); // run-turn
   }
-  else if (gameState.control_y < 0 && gameState.control_up < 0)
+  else if (control_y < 0 && control_up < 0)
   {
     run_jump();
   }
-  else if (gameState.control_down < 0)
+  else if (control_down < 0)
   {
-    gameState.control_down = 1;                                // disable automatic repeat
+    control_down = 1;                                // disable automatic repeat
     seqtbl_offset_char(seq_26_crouch_while_running); // crouch while running
   }
 }
@@ -7126,8 +7136,8 @@ void  control_running()
 void  safe_step()
 {
   short distance;
-  gameState.control_shift2 = 1;  // disable automatic repeat
-  gameState.control_forward = 1; // disable automatic repeat
+  control_shift2 = 1;  // disable automatic repeat
+  control_forward = 1; // disable automatic repeat
   distance = get_edge_distance();
   if (distance)
   {
@@ -7213,7 +7223,7 @@ void  get_item()
 // seg005:07FF
 void  control_startrun()
 {
-  if (gameState.control_y < 0 && gameState.control_x < 0)
+  if (control_y < 0 && control_x < 0)
   {
     standing_jump();
   }
@@ -7222,7 +7232,7 @@ void  control_startrun()
 // seg005:0812
 void  control_jumpup()
 {
-  if (gameState.control_x < 0 || gameState.control_forward < 0)
+  if (control_x < 0 || control_forward < 0)
   {
     standing_jump();
   }
@@ -7231,14 +7241,14 @@ void  control_jumpup()
 // seg005:0825
 void  standing_jump()
 {
-  gameState.control_up = gameState.control_forward = 1;        // disable automatic repeat
+  control_up = control_forward = 1;        // disable automatic repeat
   seqtbl_offset_char(seq_3_standing_jump); // standing jump
 }
 
 // seg005:0836
 void  check_jump_up()
 {
-  gameState.control_up = release_arrows();
+  control_up = release_arrows();
   through_tile = get_tile_above_char();
   get_tile_front_above_char();
   if (can_grab())
@@ -7295,7 +7305,7 @@ void  grab_up_no_floor_behind()
 void  jump_up()
 {
   short distance;
-  gameState.control_up = release_arrows();
+  control_up = release_arrows();
   distance = get_edge_distance();
   if (distance < 4 && edge_type == 1)
   {
@@ -7317,11 +7327,11 @@ void  control_hanging()
 {
   if (gameState.Char.alive < 0)
   {
-    if (gameState.grab_timer == 0 && gameState.control_y < 0)
+    if (gameState.grab_timer == 0 && control_y < 0)
     {
       can_climb_up();
     }
-    else if (gameState.control_shift < 0)
+    else if (control_shift < 0)
     {
       // hanging against a wall or a doortop
       if (gameState.Char.action != actions_6_hang_straight &&
@@ -7359,7 +7369,7 @@ void  can_climb_up()
 {
   short seq_id;
   seq_id = seq_10_climb_up; // climb up
-  gameState.control_up = gameState.control_shift2 = release_arrows();
+  control_up = control_shift2 = release_arrows();
   get_tile_above_char();
   if (((curr_tile2 == tiles_13_mirror || curr_tile2 == tiles_18_chomper) &&
        gameState.Char.direction == dir_0_right) ||
@@ -7374,7 +7384,7 @@ void  can_climb_up()
 // seg005:0A46
 void  hang_fall()
 {
-  gameState.control_down = release_arrows();
+  control_down = release_arrows();
   if (!tile_is_floor(get_tile_behind_char()) &&
       !tile_is_floor(get_tile_at_char()))
   {
@@ -7446,7 +7456,7 @@ void  run_jump()
         break;
       }
     }
-    gameState.control_up = release_arrows();      // disable automatic repeat
+    control_up = release_arrows();      // disable automatic repeat
     seqtbl_offset_char(seq_4_run_jump); // run-jump
   }
 }
@@ -7458,7 +7468,7 @@ void  back_with_sword()
   frame = gameState.Char.frame;
   if (frame == frame_158_stand_with_sword || frame == frame_170_stand_with_sword || frame == frame_171_stand_with_sword)
   {
-    gameState.control_backward = 1;                       // disable automatic repeat
+    control_backward = 1;                       // disable automatic repeat
     seqtbl_offset_char(seq_57_back_with_sword); // back with sword
   }
 }
@@ -7470,7 +7480,7 @@ void  forward_with_sword()
   frame = gameState.Char.frame;
   if (frame == frame_158_stand_with_sword || frame == frame_170_stand_with_sword || frame == frame_171_stand_with_sword)
   {
-    gameState.control_forward = 1; // disable automatic repeat
+    control_forward = 1; // disable automatic repeat
     if (gameState.Char.charid != charid_0_kid)
     {
       seqtbl_offset_char(seq_56_guard_forward_with_sword); // forward with sword (Guard)
@@ -7487,7 +7497,7 @@ void  draw_sword()
 {
   word seq_id;
   seq_id = seq_55_draw_sword; // draw sword
-  gameState.control_forward = gameState.control_shift2 = release_arrows();
+  control_forward = control_shift2 = release_arrows();
   if (gameState.Char.charid == charid_0_kid)
   {
     gameState.offguard = 0;
@@ -7559,26 +7569,26 @@ void  swordfight()
   frame = gameState.Char.frame;
   charid = gameState.Char.charid;
   // frame 161: parry
-  if (frame == frame_161_parry && gameState.control_shift2 >= 0)
+  if (frame == frame_161_parry && control_shift2 >= 0)
   {
     seqtbl_offset_char(seq_57_back_with_sword); // back with sword (when parrying)
     return;
   }
-  else if (gameState.control_shift2 < 0)
+  else if (control_shift2 < 0)
   {
     if (charid == charid_0_kid)
     {
       gameState.kid_sword_strike = 15;
     }
     sword_strike();
-    if (gameState.control_shift2 == 1)
+    if (control_shift2 == 1)
       return;
   }
-  if (gameState.control_down < 0)
+  if (control_down < 0)
   {
     if (frame == frame_158_stand_with_sword || frame == frame_170_stand_with_sword || frame == frame_171_stand_with_sword)
     {
-      gameState.control_down = 1; // disable automatic repeat
+      control_down = 1; // disable automatic repeat
       gameState.Char.sword = sword_0_sheathed;
       if (charid == charid_0_kid)
       {
@@ -7598,15 +7608,15 @@ void  swordfight()
       seqtbl_offset_char(seq_id);
     }
   }
-  else if (gameState.control_up < 0)
+  else if (control_up < 0)
   {
     parry();
   }
-  else if (gameState.control_forward < 0)
+  else if (control_forward < 0)
   {
     forward_with_sword();
   }
-  else if (gameState.control_backward < 0)
+  else if (control_backward < 0)
   {
     back_with_sword();
   }
@@ -7642,7 +7652,7 @@ void  sword_strike()
   {
     return;
   }
-  gameState.control_shift2 = 1; // disable automatic repeat
+  control_shift2 = 1; // disable automatic repeat
   seqtbl_offset_char(seq_id);
 }
 
@@ -7703,7 +7713,7 @@ void  parry()
       return;
     seq_id = seq_61_parry_after_strike; // parry after striking with sword
   }
-  gameState.control_up = 1; // disable automatic repeat
+  control_up = 1; // disable automatic repeat
   seqtbl_offset_char(seq_id);
   if (var_6)
   {
