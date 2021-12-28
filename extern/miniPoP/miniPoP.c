@@ -44,6 +44,7 @@ __thread sbyte control_down;
 __thread sbyte control_shift2;
 __thread char_type Char;
 __thread char_type Opp;
+__thread word curr_guard_color;
 
 __thread struct miniPopState_t gameState;
 __thread custom_options_type *custom = &custom_defaults;
@@ -869,10 +870,10 @@ void  start_game()
 
 void restore_room_after_quick_load()
 {
-  int temp1 = gameState.curr_guard_color;
+  int temp1 = curr_guard_color;
   int temp2 = gameState.next_level;
   reset_level_unused_fields(false);
-  gameState.curr_guard_color = temp1;
+  curr_guard_color = temp1;
   gameState.next_level = temp2;
 
   //need_full_redraw = 1;
@@ -1060,7 +1061,7 @@ void  load_lev_spr(int level)
       close_dat(dathandle);
     }
   }
-  gameState.curr_guard_color = 0;
+  curr_guard_color = 0;
   load_chtab_from_file(id_chtab_7_environmentwall, 360, filename, 1 << 6);
 }
 
@@ -1505,12 +1506,12 @@ void  enter_guard()
   Char.curr_col = get_tile_div_mod_m7(Char.x);
   Char.direction = gameState.level.guards_dir[room_minus_1];
   // only regular guards have different colors (and only on VGA)
-   gameState.curr_guard_color = 0;
+   curr_guard_color = 0;
 
 #ifdef REMEMBER_GUARD_HP
   int remembered_hp = (gameState.level.guards_color[room_minus_1] & 0xF0) >> 4;
 #endif
-  gameState.curr_guard_color &= 0x0F; // added; only least significant 4 bits are used for guard color
+  curr_guard_color &= 0x0F; // added; only least significant 4 bits are used for guard color
 
   // level 3 has skeletons with infinite lives
   //if (gameState.current_level == 3) {
@@ -1614,7 +1615,7 @@ void  leave_guard()
   room_minus_1 = gameState.Guard.room - 1;
   gameState.level.guards_tile[room_minus_1] = get_tilepos(0, gameState.Guard.curr_row);
 
-  gameState.level.guards_color[room_minus_1] = gameState.curr_guard_color & 0x0F; // restriction to 4 bits added
+  gameState.level.guards_color[room_minus_1] = curr_guard_color & 0x0F; // restriction to 4 bits added
 
   gameState.level.guards_x[room_minus_1] = gameState.Guard.x;
   gameState.level.guards_dir[room_minus_1] = gameState.Guard.direction;

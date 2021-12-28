@@ -1454,7 +1454,6 @@ struct miniPopState_t {
  word guardhp_max;
  word demo_index;
  short demo_time;
- word curr_guard_color;
  short guard_notice_timer;
  word guard_skill;
  word shadow_initialized;

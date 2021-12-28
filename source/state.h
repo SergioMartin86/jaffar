@@ -442,7 +442,6 @@ static std::string loadSdlPopState(const std::string& sdlPopStateData)
  miniPopState.guardhp_max = sdlPopState.guardhp_max;
  miniPopState.demo_index = sdlPopState.demo_index;
  miniPopState.demo_time = sdlPopState.demo_time;
- miniPopState.curr_guard_color = sdlPopState.curr_guard_color;
  miniPopState.guard_notice_timer = sdlPopState.guard_notice_timer;
  miniPopState.guard_skill = sdlPopState.guard_skill;
  miniPopState.shadow_initialized = sdlPopState.shadow_initialized;
@@ -516,7 +515,7 @@ static std::string saveSdlPopState(const std::string& miniPopStateData)
  sdlPopState.guardhp_max = miniPopState.guardhp_max;
  sdlPopState.demo_index = miniPopState.demo_index;
  sdlPopState.demo_time = miniPopState.demo_time;
- sdlPopState.curr_guard_color = miniPopState.curr_guard_color;
+ sdlPopState.curr_guard_color = 0;
  sdlPopState.guard_notice_timer = miniPopState.guard_notice_timer;
  sdlPopState.guard_skill = miniPopState.guard_skill;
  sdlPopState.shadow_initialized = miniPopState.shadow_initialized;
