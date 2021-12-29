@@ -146,9 +146,6 @@ void Train::computeFrames()
   _stepFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
 
-  // Creating shared database for new hashes
-  absl::flat_hash_map<uint64_t, uint16_t> newHashes;
-
   // Creating shared database for new frames
   std::vector<std::unique_ptr<Frame>> newFrames;
 
@@ -156,7 +153,6 @@ void Train::computeFrames()
   _stepHashCalculationTime = 0.0;
   _stepHashCheckingTime = 0.0;
   _stepFrameAdvanceTime = 0.0;
-  _stepFrameSerializationTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
 
   // Processing frame database in parallel
@@ -175,7 +171,6 @@ void Train::computeFrames()
     double threadHashCalculationTime = 0.0;
     double threadHashCheckingTime = 0.0;
     double threadFrameAdvanceTime = 0.0;
-    double threadFrameSerializationTime = 0.0;
     double threadFrameDeserializationTime = 0.0;
     double threadFrameDecodingTime = 0.0;
     double threadFrameEncodingTime = 0.0;
@@ -196,6 +191,9 @@ void Train::computeFrames()
       tf = std::chrono::steady_clock::now();
       threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
+      // Getting base frame current level
+      auto curLevel = gameState.current_level;
+
       // Running possible moves
       for (size_t idx = 0; idx < possibleMoveIds.size(); idx++)
       {
@@ -215,9 +213,6 @@ void Train::computeFrames()
          threadFrameDeserializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
 
-        // Getting current level
-        auto curLevel = gameState.current_level;
-
         // Perform the selected move
         t0 = std::chrono::steady_clock::now(); // Profiling
         _state[threadId]->_miniPop->advanceFrame(moveId);
@@ -226,9 +221,7 @@ void Train::computeFrames()
 
         // Compute hash value
         t0 = std::chrono::steady_clock::now(); // Profiling
-
         auto hash = _state[threadId]->computeHash();
-
         tf = std::chrono::steady_clock::now();
         threadHashCalculationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -240,12 +233,8 @@ void Train::computeFrames()
 
         // Then check the shared, read-only database
         if (collisionDetected == false)
-         collisionDetected |= _pastHashDB.contains(hash);
-
-        // Finally, check the common read-write databases
-        if (collisionDetected == false)
          #pragma omp critical
-         collisionDetected |= !newHashes.insert({hash, _currentStep}).second;
+         collisionDetected |= !_pastHashDB.insert({hash, _currentStep}).second;
 
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
@@ -259,11 +248,9 @@ void Train::computeFrames()
         // Copying rule status from the base frame
         memcpy(newFrame->rulesStatus, baseFrame->rulesStatus, sizeof(Frame::rulesStatus));
 
-        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
-
         // Copying move list
+        #ifndef JAFFAR_DISABLE_MOVE_HISTORY
         memcpy(newFrame->moveHistory, baseFrame->moveHistory, sizeof(Frame::moveHistory));
-
         #endif
 
         // Storage for frame type
@@ -293,13 +280,7 @@ void Train::computeFrames()
         if (curLevel == gameState.current_level)
         {
          t0 = std::chrono::steady_clock::now(); // Profiling
-         char newFrameData[_FRAME_DATA_SIZE];
-         _state[threadId]->popState(newFrameData);
-         tf = std::chrono::steady_clock::now(); // Profiling
-         threadFrameSerializationTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
-         t0 = std::chrono::steady_clock::now(); // Profiling
-         newFrame->computeFrameDifference(_sourceFrameData, newFrameData);
+         newFrame->computeFrameDifference(_sourceFrameData, (char*)&gameState);
          tf = std::chrono::steady_clock::now(); // Profiling
          threadFrameEncodingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
         }
@@ -322,7 +303,6 @@ void Train::computeFrames()
      _stepHashCalculationTime += threadHashCalculationTime;
      _stepHashCheckingTime += threadHashCheckingTime;
      _stepFrameAdvanceTime += threadFrameAdvanceTime;
-     _stepFrameSerializationTime += threadFrameSerializationTime;
      _stepFrameDeserializationTime += threadFrameDeserializationTime;
      _stepFrameEncodingTime += threadFrameEncodingTime;
      _stepFrameDecodingTime += threadFrameDecodingTime;
@@ -333,7 +313,6 @@ void Train::computeFrames()
   _stepHashCalculationTime /= _threadCount;
   _stepHashCheckingTime /= _threadCount;
   _stepFrameAdvanceTime /= _threadCount;
-  _stepFrameSerializationTime /= _threadCount;
   _stepFrameDeserializationTime /= _threadCount;
   _stepFrameEncodingTime /= _threadCount;
   _stepFrameDecodingTime /= _threadCount;
@@ -381,12 +360,6 @@ void Train::computeFrames()
   }
   auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
-
-  // Consolidating past hash databases into one, read-only
-  auto hashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  _pastHashDB.merge(newHashes);
-  auto hashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _stepHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashConsolidationTimeEnd - hashConsolidationTimeBegin).count(); // Profiling
 }
 
 
@@ -414,9 +387,7 @@ void Train::printTrainStatus()
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
   printf("[Jaffar]   + Hash Checking:           %3.3fs\n", _stepHashCheckingTime / 1.0e+9);
   printf("[Jaffar]   + Hash Filtering:          %3.3fs\n", _stepHashFilteringTime / 1.0e+9);
-  printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepHashConsolidationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
-  printf("[Jaffar]   + Frame Serialization:     %3.3fs\n", _stepFrameSerializationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
@@ -608,9 +579,7 @@ Train::Train(int argc, char *argv[])
   const auto hash = _state[0]->computeHash();
 
   auto initialFrame = std::make_unique<Frame>();
-  char initialFrameData[_FRAME_DATA_SIZE];
-  _state[0]->popState(initialFrameData);
-  initialFrame->computeFrameDifference(_sourceFrameData, initialFrameData);
+  initialFrame->computeFrameDifference(_sourceFrameData, (char*)&gameState);
   for (size_t i = 0; i < _ruleCount; i++) initialFrame->rulesStatus[i] = false;
 
   // Evaluating Rules on initial frame

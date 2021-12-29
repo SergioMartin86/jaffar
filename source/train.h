@@ -108,7 +108,6 @@ class Train
   double _stepHashConsolidationTime;
   double _stepHashFilteringTime;
   double _stepFrameAdvanceTime;
-  double _stepFrameSerializationTime;
   double _stepFrameDeserializationTime;
   double _stepFrameEncodingTime;
   double _stepFrameDecodingTime;
