@@ -149,9 +149,21 @@ void Train::computeFrames()
   // Creating shared database for new frames
   std::vector<std::unique_ptr<Frame>> newFrames;
 
+  // Creating NUMA-shared database for new hashes
+  std::vector<absl::flat_hash_map<uint64_t, uint16_t>> newNUMAHashes(_numaDomainCount);
+
+  // Creating NUMA-specific locks
+  std::vector<std::unique_ptr<Lock>> NUMALocks(_numaDomainCount);
+
+  // Creating common database for new hashes
+  absl::flat_hash_map<uint64_t, uint16_t> newHashes;
+
   // Initializing step timers
   _stepHashCalculationTime = 0.0;
-  _stepHashCheckingTime = 0.0;
+  _stepHashCheckingTime1 = 01.0;
+  _stepHashCheckingTime2 = 0.0;
+  _stepHashCheckingTime3 = 0.0;
+  _stepHashCheckingTime4 = 0.0;
   _stepFrameAdvanceTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
 
@@ -161,6 +173,24 @@ void Train::computeFrames()
     // Getting thread id
     int threadId = omp_get_thread_num();
 
+    // Getting thread's NUMA domain
+    int threadNumaDomain = _numaDomainThreadMapping[threadId];
+
+    // Getting thread's ID within the NUMA domain
+    int threadNumaId = _numaDomainThreadId[threadId];
+
+    //    if (threadId == 15)
+    //    {
+    //     printf("Thread %d, NUMA Domain: %d\n", threadId, _numaDomainThreadMapping[threadId]);
+    //     printAffinity(threadId);
+    //    }
+
+    // Initializing NUMA-specific locks
+    if (threadNumaId == 0) NUMALocks[threadNumaDomain] = std::make_unique<Lock>();
+
+    // Waiting for all threads to see the locks;
+    #pragma omp barrier
+
     // Thread-local storage for hash
     absl::flat_hash_set<uint64_t> threadLocalHashDB;
 
@@ -169,14 +199,17 @@ void Train::computeFrames()
 
     // Profiling timers
     double threadHashCalculationTime = 0.0;
-    double threadHashCheckingTime = 0.0;
+    double threadHashCheckingTime1 = 0.0;
+    double threadHashCheckingTime2 = 0.0;
+    double threadHashCheckingTime3 = 0.0;
+    double threadHashCheckingTime4 = 0.0;
     double threadFrameAdvanceTime = 0.0;
     double threadFrameDeserializationTime = 0.0;
     double threadFrameDecodingTime = 0.0;
     double threadFrameEncodingTime = 0.0;
 
     // Computing always the last frame while resizing the database to reduce memory footprint
-    #pragma omp for schedule(dynamic, 32)
+    #pragma omp for schedule(static)
     for (auto& baseFrame : _frameDB)
     {
       auto t0 = std::chrono::steady_clock::now(); // Profiling
@@ -227,17 +260,35 @@ void Train::computeFrames()
 
         // Checking for the existence of the hash in the hash databases (except the current one)
         t0 = std::chrono::steady_clock::now(); // Profiling
-
-        // First check locally for collisions
-        bool collisionDetected = !threadLocalHashDB.insert(hash).second;
+        bool collisionDetected = !threadLocalHashDB.insert(hash).second; // First check locally for collisions
+        tf = std::chrono::steady_clock::now();
+        threadHashCheckingTime1 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // Then check the shared, read-only database
+        t0 = std::chrono::steady_clock::now(); // Profiling
+        if (collisionDetected == false)
+         collisionDetected |= _pastHashDB.contains(hash);
+        tf = std::chrono::steady_clock::now();
+        threadHashCheckingTime2 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+        // Now check the NUMA-shared read-write databases
+        t0 = std::chrono::steady_clock::now(); // Profiling
+        if (collisionDetected == false)
+        {
+         NUMALocks[threadNumaDomain]->lock();
+         collisionDetected |= !newNUMAHashes[threadNumaDomain].insert({hash, _currentStep}).second;
+         NUMALocks[threadNumaDomain]->unlock();
+        }
+        tf = std::chrono::steady_clock::now();
+        threadHashCheckingTime3 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+
+        // Finally, check the common read-write databases
+        t0 = std::chrono::steady_clock::now(); // Profiling
         if (collisionDetected == false)
          #pragma omp critical
-         collisionDetected |= !_pastHashDB.insert({hash, _currentStep}).second;
-
+         collisionDetected |= !newHashes.insert({hash, _currentStep}).second;
         tf = std::chrono::steady_clock::now();
-        threadHashCheckingTime += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+        threadHashCheckingTime4 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // If collision detected, discard this frame
         if (collisionDetected) { _newCollisionCounter++; continue; }
@@ -301,7 +352,10 @@ void Train::computeFrames()
     #pragma omp critical
     {
      _stepHashCalculationTime += threadHashCalculationTime;
-     _stepHashCheckingTime += threadHashCheckingTime;
+     _stepHashCheckingTime1 += threadHashCheckingTime1;
+     _stepHashCheckingTime2 += threadHashCheckingTime2;
+     _stepHashCheckingTime3 += threadHashCheckingTime3;
+     _stepHashCheckingTime4 += threadHashCheckingTime4;
      _stepFrameAdvanceTime += threadFrameAdvanceTime;
      _stepFrameDeserializationTime += threadFrameDeserializationTime;
      _stepFrameEncodingTime += threadFrameEncodingTime;
@@ -311,7 +365,10 @@ void Train::computeFrames()
 
   // Updating timer averages
   _stepHashCalculationTime /= _threadCount;
-  _stepHashCheckingTime /= _threadCount;
+  _stepHashCheckingTime1 /= _threadCount;
+  _stepHashCheckingTime2 /= _threadCount;
+  _stepHashCheckingTime3 /= _threadCount;
+  _stepHashCheckingTime4 /= _threadCount;
   _stepFrameAdvanceTime /= _threadCount;
   _stepFrameDeserializationTime /= _threadCount;
   _stepFrameEncodingTime /= _threadCount;
@@ -360,6 +417,12 @@ void Train::computeFrames()
   }
   auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
+
+ // Consolidating past hash databases into one, read-only
+  auto hashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
+  _pastHashDB.merge(newHashes);
+  auto hashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
+  _stepHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashConsolidationTimeEnd - hashConsolidationTimeBegin).count(); // Profiling
 }
 
 
@@ -369,7 +432,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] ----------------------------------------------------------------\n");
   printf("[Jaffar] Current Step #: %u (Max: %u)\n", _currentStep, _MAX_MOVELIST_SIZE);
 
-  size_t timeStep = _currentStep-1;
+  size_t timeStep = _currentStep == 0 ? 0 : _currentStep-1;
   size_t curMins = timeStep / 720;
   size_t curSecs = (timeStep % 720) / 12;
   size_t curMilliSecs = floor((double)(timeStep % 12) / 0.012);
@@ -385,8 +448,9 @@ void Train::printTrainStatus()
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
-  printf("[Jaffar]   + Hash Checking:           %3.3fs\n", _stepHashCheckingTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Checking:           %3.3fs (%3.3fs, %3.3fs, %3.3fs, %3.3fs)\n",  (_stepHashCheckingTime1 + _stepHashCheckingTime2 + _stepHashCheckingTime3 + _stepHashCheckingTime4) / 1.0e+9, _stepHashCheckingTime1 / 1.0e+9, _stepHashCheckingTime2 / 1.0e+9, _stepHashCheckingTime3 / 1.0e+9, _stepHashCheckingTime4 / 1.0e+9);
   printf("[Jaffar]   + Hash Filtering:          %3.3fs\n", _stepHashFilteringTime / 1.0e+9);
+  printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepHashConsolidationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
   printf("[Jaffar]   + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
@@ -443,6 +507,15 @@ Train::Train(int argc, char *argv[])
   // Getting number of openMP threads
   _threadCount = omp_get_max_threads();
 
+  // Establishing numa domain <-> thread mapping
+  _numaDomainCount = 2;
+  if (_threadCount % _numaDomainCount > 0) EXIT_WITH_ERROR("[Jaffar] Specified NUMA domains (%d) does not divide the number of cores evenly (%d).\n", _numaDomainCount, _threadCount);
+  for (int i = 0; i < _numaDomainCount; i++)
+   for (int j = 0; j < _threadCount / _numaDomainCount; j++)
+   {
+    _numaDomainThreadMapping.push_back(i);
+    _numaDomainThreadId.push_back(j);
+   }
   // Setting SDL env variables to use the dummy renderer
   setenv("SDL_VIDEODRIVER", "dummy", 1);
   setenv("SDL_AUDIODRIVER", "dummy", 1);

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 std::vector<std::string> split(const std::string &s, char delim)
 {
@@ -80,4 +82,38 @@ std::string slurp(std::ifstream &in)
   std::ostringstream sstr;
   sstr << in.rdbuf();
   return sstr.str();
+}
+
+Lock::Lock()
+{
+ if(pthread_mutex_init(&_lock, 0))
+  printf("[Warning] Lock Initialization Error");
+}
+
+Lock::~Lock()
+{
+ pthread_mutex_destroy(&_lock);
+}
+
+void Lock::lock()
+{
+ pthread_mutex_lock(&_lock);
+}
+
+void Lock::unlock()
+{
+ pthread_mutex_unlock(&_lock);
+}
+
+bool Lock::trylock()
+{
+ return pthread_mutex_trylock(&_lock) == 0;
+}
+
+void printAffinity(int threadId)
+{
+  cpu_set_t cpuset;
+  if (pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) != 0)  printf("[WARNING] Problem obtaining affinity.\n");
+   for (int i = 0; i < CPU_SETSIZE; i++)
+   if (CPU_ISSET(i, &cpuset)) printf("Thread %d Affinity: %2d\n", threadId, i);
 }

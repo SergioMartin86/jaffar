@@ -42,6 +42,9 @@ class Train
 
   // Store the number of openMP threads in use
   int _threadCount;
+  int _numaDomainCount;
+  std::vector<int> _numaDomainThreadMapping;
+  std::vector<int> _numaDomainThreadId;
 
   // Craeting State class instance, one per openMP thread
   std::vector<State *> _state;
@@ -104,7 +107,10 @@ class Train
   double _searchTotalTime;
   double _currentStepTime;
   double _stepHashCalculationTime;
-  double _stepHashCheckingTime;
+  double _stepHashCheckingTime1;
+  double _stepHashCheckingTime2;
+  double _stepHashCheckingTime3;
+  double _stepHashCheckingTime4;
   double _stepHashConsolidationTime;
   double _stepHashFilteringTime;
   double _stepFrameAdvanceTime;
