@@ -7,8 +7,7 @@
 #include "rule.h"
 #include "state.h"
 #include "cbuffer.hpp"
-#include <absl/container/flat_hash_set.h>
-#include <absl/container/flat_hash_map.h>
+#include <parallel_hashmap/phmap.h>
 #include <algorithm>
 #include <chrono>
 #include <memory>
@@ -16,6 +15,13 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <mutex>
+
+// Configuration for parallel hash maps
+#define MAPNAME phmap::parallel_flat_hash_map
+#define MAPEXTRAARGS , phmap::priv::hash_default_hash<K>, phmap::priv::hash_default_eq<K>, std::allocator<std::pair<const K, V>>, 4, std::mutex
+template <class K, class V> using HashMapT = MAPNAME<K, V MAPEXTRAARGS>;
+using hashMap_t = HashMapT<uint64_t, uint16_t>;
 
 // This variable defines how often we filter the hash database
 #define HASH_FILTERING_FREQUENCY 5
@@ -42,9 +48,6 @@ class Train
 
   // Store the number of openMP threads in use
   int _threadCount;
-  int _numaDomainCount;
-  std::vector<int> _numaDomainThreadMapping;
-  std::vector<int> _numaDomainThreadId;
 
   // Craeting State class instance, one per openMP thread
   std::vector<State *> _state;
@@ -73,7 +76,7 @@ class Train
   float _worstFrameReward;
 
   // Hash information
-  absl::flat_hash_map<uint64_t, uint16_t> _pastHashDB;
+  hashMap_t _pastHashDB;
   size_t _hashAgeThreshold;
   size_t _hashCollisions;
 
@@ -110,7 +113,6 @@ class Train
   double _stepHashCheckingTime1;
   double _stepHashCheckingTime2;
   double _stepHashCheckingTime3;
-  double _stepHashCheckingTime4;
   double _stepHashConsolidationTime;
   double _stepHashFilteringTime;
   double _stepFrameAdvanceTime;

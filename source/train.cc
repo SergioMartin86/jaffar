@@ -4,7 +4,6 @@
 #include <omp.h>
 #include <unistd.h>
 #include <algorithm>
-#include <set>
 
 void Train::run()
 {
@@ -149,21 +148,14 @@ void Train::computeFrames()
   // Creating shared database for new frames
   std::vector<std::unique_ptr<Frame>> newFrames;
 
-  // Creating NUMA-shared database for new hashes
-  std::vector<absl::flat_hash_map<uint64_t, uint16_t>> newNUMAHashes(_numaDomainCount);
-
-  // Creating NUMA-specific locks
-  std::vector<std::unique_ptr<Lock>> NUMALocks(_numaDomainCount);
-
   // Creating common database for new hashes
-  absl::flat_hash_map<uint64_t, uint16_t> newHashes;
+  hashMap_t newHashes;
 
   // Initializing step timers
   _stepHashCalculationTime = 0.0;
   _stepHashCheckingTime1 = 01.0;
   _stepHashCheckingTime2 = 0.0;
   _stepHashCheckingTime3 = 0.0;
-  _stepHashCheckingTime4 = 0.0;
   _stepFrameAdvanceTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
 
@@ -173,26 +165,11 @@ void Train::computeFrames()
     // Getting thread id
     int threadId = omp_get_thread_num();
 
-    // Getting thread's NUMA domain
-    int threadNumaDomain = _numaDomainThreadMapping[threadId];
-
-    // Getting thread's ID within the NUMA domain
-    int threadNumaId = _numaDomainThreadId[threadId];
-
-    //    if (threadId == 15)
-    //    {
-    //     printf("Thread %d, NUMA Domain: %d\n", threadId, _numaDomainThreadMapping[threadId]);
-    //     printAffinity(threadId);
-    //    }
-
-    // Initializing NUMA-specific locks
-    if (threadNumaId == 0) NUMALocks[threadNumaDomain] = std::make_unique<Lock>();
-
     // Waiting for all threads to see the locks;
     #pragma omp barrier
 
     // Thread-local storage for hash
-    absl::flat_hash_set<uint64_t> threadLocalHashDB;
+    phmap::flat_hash_set<uint64_t> threadLocalHashDB;
 
     // Storage for base frames
     char baseFrameData[_FRAME_DATA_SIZE];
@@ -202,7 +179,6 @@ void Train::computeFrames()
     double threadHashCheckingTime1 = 0.0;
     double threadHashCheckingTime2 = 0.0;
     double threadHashCheckingTime3 = 0.0;
-    double threadHashCheckingTime4 = 0.0;
     double threadFrameAdvanceTime = 0.0;
     double threadFrameDeserializationTime = 0.0;
     double threadFrameDecodingTime = 0.0;
@@ -266,29 +242,15 @@ void Train::computeFrames()
 
         // Then check the shared, read-only database
         t0 = std::chrono::steady_clock::now(); // Profiling
-        if (collisionDetected == false)
-         collisionDetected |= _pastHashDB.contains(hash);
+        if (collisionDetected == false) collisionDetected |= _pastHashDB.contains(hash);
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime2 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
-        // Now check the NUMA-shared read-write databases
-        t0 = std::chrono::steady_clock::now(); // Profiling
-        if (collisionDetected == false)
-        {
-         NUMALocks[threadNumaDomain]->lock();
-         collisionDetected |= !newNUMAHashes[threadNumaDomain].insert({hash, _currentStep}).second;
-         NUMALocks[threadNumaDomain]->unlock();
-        }
-        tf = std::chrono::steady_clock::now();
-        threadHashCheckingTime3 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
         // Finally, check the common read-write databases
         t0 = std::chrono::steady_clock::now(); // Profiling
-        if (collisionDetected == false)
-         #pragma omp critical
-         collisionDetected |= !newHashes.insert({hash, _currentStep}).second;
+        if (collisionDetected == false) collisionDetected |= !newHashes.insert({hash, _currentStep}).second;
         tf = std::chrono::steady_clock::now();
-        threadHashCheckingTime4 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
+        threadHashCheckingTime3 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // If collision detected, discard this frame
         if (collisionDetected) { _newCollisionCounter++; continue; }
@@ -355,7 +317,6 @@ void Train::computeFrames()
      _stepHashCheckingTime1 += threadHashCheckingTime1;
      _stepHashCheckingTime2 += threadHashCheckingTime2;
      _stepHashCheckingTime3 += threadHashCheckingTime3;
-     _stepHashCheckingTime4 += threadHashCheckingTime4;
      _stepFrameAdvanceTime += threadFrameAdvanceTime;
      _stepFrameDeserializationTime += threadFrameDeserializationTime;
      _stepFrameEncodingTime += threadFrameEncodingTime;
@@ -368,7 +329,6 @@ void Train::computeFrames()
   _stepHashCheckingTime1 /= _threadCount;
   _stepHashCheckingTime2 /= _threadCount;
   _stepHashCheckingTime3 /= _threadCount;
-  _stepHashCheckingTime4 /= _threadCount;
   _stepFrameAdvanceTime /= _threadCount;
   _stepFrameDeserializationTime /= _threadCount;
   _stepFrameEncodingTime /= _threadCount;
@@ -413,7 +373,16 @@ void Train::computeFrames()
   if (_currentStep > _hashAgeThreshold)
   {
    uint16_t currentAgeThreshold = _currentStep - _hashAgeThreshold;
-   if (_currentStep % HASH_FILTERING_FREQUENCY == 0) erase_if(_pastHashDB, [currentAgeThreshold](const auto &a) { return a.second < currentAgeThreshold; });
+   if (_currentStep % HASH_FILTERING_FREQUENCY == 0)
+   {
+      for (auto it = _pastHashDB.begin(); it != _pastHashDB.end();) {
+          if (it->first < currentAgeThreshold) {
+              it = _pastHashDB.erase(it);
+          } else {
+              ++it;
+          }
+      }
+   }
   }
   auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
@@ -448,7 +417,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
-  printf("[Jaffar]   + Hash Checking:           %3.3fs (%3.3fs, %3.3fs, %3.3fs, %3.3fs)\n",  (_stepHashCheckingTime1 + _stepHashCheckingTime2 + _stepHashCheckingTime3 + _stepHashCheckingTime4) / 1.0e+9, _stepHashCheckingTime1 / 1.0e+9, _stepHashCheckingTime2 / 1.0e+9, _stepHashCheckingTime3 / 1.0e+9, _stepHashCheckingTime4 / 1.0e+9);
+  printf("[Jaffar]   + Hash Checking:           %3.3fs (%3.3fs, %3.3fs, %3.3fs)\n",  (_stepHashCheckingTime1 + _stepHashCheckingTime2 + _stepHashCheckingTime3) / 1.0e+9, _stepHashCheckingTime1 / 1.0e+9, _stepHashCheckingTime2 / 1.0e+9, _stepHashCheckingTime3 / 1.0e+9);
   printf("[Jaffar]   + Hash Filtering:          %3.3fs\n", _stepHashFilteringTime / 1.0e+9);
   printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepHashConsolidationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
@@ -507,15 +476,6 @@ Train::Train(int argc, char *argv[])
   // Getting number of openMP threads
   _threadCount = omp_get_max_threads();
 
-  // Establishing numa domain <-> thread mapping
-  _numaDomainCount = 2;
-  if (_threadCount % _numaDomainCount > 0) EXIT_WITH_ERROR("[Jaffar] Specified NUMA domains (%d) does not divide the number of cores evenly (%d).\n", _numaDomainCount, _threadCount);
-  for (int i = 0; i < _numaDomainCount; i++)
-   for (int j = 0; j < _threadCount / _numaDomainCount; j++)
-   {
-    _numaDomainThreadMapping.push_back(i);
-    _numaDomainThreadId.push_back(j);
-   }
   // Setting SDL env variables to use the dummy renderer
   setenv("SDL_VIDEODRIVER", "dummy", 1);
   setenv("SDL_AUDIODRIVER", "dummy", 1);

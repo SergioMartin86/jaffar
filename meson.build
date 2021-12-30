@@ -26,7 +26,8 @@ inc = include_directories([
  'extern/argparse',
  'extern/json/single_include',
  'extern/cbuffer',
- 'extern/miniPoP'
+ 'extern/miniPoP',
+ 'extern/phmap'
  ])
 
 
