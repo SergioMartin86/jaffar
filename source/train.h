@@ -24,7 +24,7 @@ template <class K, class V> using HashMapT = MAPNAME<K, V MAPEXTRAARGS>;
 using hashMap_t = HashMapT<uint64_t, uint16_t>;
 
 // This variable defines how often we filter the hash database
-#define HASH_FILTERING_FREQUENCY 5
+#define HASH_FILTERING_FREQUENCY 10
 
 class Train
 {

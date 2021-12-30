@@ -354,20 +354,9 @@ void Train::computeFrames()
 
   // Filtering old hashes
   auto hashFilteringTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  if (_currentStep > _hashAgeThreshold)
-  {
-   uint16_t currentAgeThreshold = _currentStep - _hashAgeThreshold;
-   if (_currentStep % HASH_FILTERING_FREQUENCY == 0)
-   {
-      for (auto it = _pastHashDB.begin(); it != _pastHashDB.end();) {
-          if (it->first < currentAgeThreshold) {
-              it = _pastHashDB.erase(it);
-          } else {
-              ++it;
-          }
-      }
-   }
-  }
+  uint16_t currentAgeThreshold = _currentStep - _hashAgeThreshold;
+  if (_currentStep % HASH_FILTERING_FREQUENCY == 0 && _currentStep > _hashAgeThreshold)
+   for (auto& hashEntry : _pastHashDB) _pastHashDB.erase_if(hashEntry.first, [currentAgeThreshold](const auto& age){return age < currentAgeThreshold;});
   auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
 }
