@@ -148,9 +148,6 @@ void Train::computeFrames()
   // Creating shared database for new frames
   std::vector<std::unique_ptr<Frame>> newFrames;
 
-  // Creating common database for new hashes
-  hashMap_t newHashes;
-
   // Initializing step timers
   _stepHashCalculationTime = 0.0;
   _stepHashCheckingTime1 = 01.0;
@@ -242,15 +239,9 @@ void Train::computeFrames()
 
         // Then check the shared, read-only database
         t0 = std::chrono::steady_clock::now(); // Profiling
-        if (collisionDetected == false) collisionDetected |= _pastHashDB.contains(hash);
+        if (collisionDetected == false) collisionDetected |= !_pastHashDB.insert({hash, _currentStep}).second;
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime2 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
-
-        // Finally, check the common read-write databases
-        t0 = std::chrono::steady_clock::now(); // Profiling
-        if (collisionDetected == false) collisionDetected |= !newHashes.insert({hash, _currentStep}).second;
-        tf = std::chrono::steady_clock::now();
-        threadHashCheckingTime3 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
         // If collision detected, discard this frame
         if (collisionDetected) { _newCollisionCounter++; continue; }
@@ -386,12 +377,6 @@ void Train::computeFrames()
   }
   auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
-
- // Consolidating past hash databases into one, read-only
-  auto hashConsolidationTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  _pastHashDB.merge(newHashes);
-  auto hashConsolidationTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
-  _stepHashConsolidationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashConsolidationTimeEnd - hashConsolidationTimeBegin).count(); // Profiling
 }
 
 
@@ -419,7 +404,6 @@ void Train::printTrainStatus()
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
   printf("[Jaffar]   + Hash Checking:           %3.3fs (%3.3fs, %3.3fs, %3.3fs)\n",  (_stepHashCheckingTime1 + _stepHashCheckingTime2 + _stepHashCheckingTime3) / 1.0e+9, _stepHashCheckingTime1 / 1.0e+9, _stepHashCheckingTime2 / 1.0e+9, _stepHashCheckingTime3 / 1.0e+9);
   printf("[Jaffar]   + Hash Filtering:          %3.3fs\n", _stepHashFilteringTime / 1.0e+9);
-  printf("[Jaffar]   + Hash Consolidation:      %3.3fs\n", _stepHashConsolidationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
   printf("[Jaffar]   + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);
   printf("[Jaffar]   + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
