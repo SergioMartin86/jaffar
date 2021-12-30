@@ -152,7 +152,6 @@ void Train::computeFrames()
   _stepHashCalculationTime = 0.0;
   _stepHashCheckingTime1 = 01.0;
   _stepHashCheckingTime2 = 0.0;
-  _stepHashCheckingTime3 = 0.0;
   _stepFrameAdvanceTime = 0.0;
   _stepFrameDeserializationTime = 0.0;
 
@@ -161,9 +160,6 @@ void Train::computeFrames()
   {
     // Getting thread id
     int threadId = omp_get_thread_num();
-
-    // Waiting for all threads to see the locks;
-    #pragma omp barrier
 
     // Thread-local storage for hash
     phmap::flat_hash_set<uint64_t> threadLocalHashDB;
@@ -175,7 +171,6 @@ void Train::computeFrames()
     double threadHashCalculationTime = 0.0;
     double threadHashCheckingTime1 = 0.0;
     double threadHashCheckingTime2 = 0.0;
-    double threadHashCheckingTime3 = 0.0;
     double threadFrameAdvanceTime = 0.0;
     double threadFrameDeserializationTime = 0.0;
     double threadFrameDecodingTime = 0.0;
@@ -307,7 +302,6 @@ void Train::computeFrames()
      _stepHashCalculationTime += threadHashCalculationTime;
      _stepHashCheckingTime1 += threadHashCheckingTime1;
      _stepHashCheckingTime2 += threadHashCheckingTime2;
-     _stepHashCheckingTime3 += threadHashCheckingTime3;
      _stepFrameAdvanceTime += threadFrameAdvanceTime;
      _stepFrameDeserializationTime += threadFrameDeserializationTime;
      _stepFrameEncodingTime += threadFrameEncodingTime;
@@ -319,7 +313,6 @@ void Train::computeFrames()
   _stepHashCalculationTime /= _threadCount;
   _stepHashCheckingTime1 /= _threadCount;
   _stepHashCheckingTime2 /= _threadCount;
-  _stepHashCheckingTime3 /= _threadCount;
   _stepFrameAdvanceTime /= _threadCount;
   _stepFrameDeserializationTime /= _threadCount;
   _stepFrameEncodingTime /= _threadCount;
@@ -402,7 +395,7 @@ void Train::printTrainStatus()
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
-  printf("[Jaffar]   + Hash Checking:           %3.3fs (%3.3fs, %3.3fs, %3.3fs)\n",  (_stepHashCheckingTime1 + _stepHashCheckingTime2 + _stepHashCheckingTime3) / 1.0e+9, _stepHashCheckingTime1 / 1.0e+9, _stepHashCheckingTime2 / 1.0e+9, _stepHashCheckingTime3 / 1.0e+9);
+  printf("[Jaffar]   + Hash Checking:           %3.3fs (Local %3.3fs, Shared %3.3fs)\n",  (_stepHashCheckingTime1 + _stepHashCheckingTime2) / 1.0e+9, _stepHashCheckingTime1 / 1.0e+9, _stepHashCheckingTime2 / 1.0e+9);
   printf("[Jaffar]   + Hash Filtering:          %3.3fs\n", _stepHashFilteringTime / 1.0e+9);
   printf("[Jaffar]   + Frame Advance:           %3.3fs\n", _stepFrameAdvanceTime / 1.0e+9);
   printf("[Jaffar]   + Frame Deserialization:   %3.3fs\n", _stepFrameDeserializationTime / 1.0e+9);

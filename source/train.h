@@ -112,7 +112,6 @@ class Train
   double _stepHashCalculationTime;
   double _stepHashCheckingTime1;
   double _stepHashCheckingTime2;
-  double _stepHashCheckingTime3;
   double _stepHashFilteringTime;
   double _stepFrameAdvanceTime;
   double _stepFrameDeserializationTime;
