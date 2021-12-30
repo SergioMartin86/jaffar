@@ -42,8 +42,6 @@ jaffarFiles = [
 ]
 
 default_library='static'
-abs_base = subproject('abseil').get_variable('absl_base_dep')
-abs_cont = subproject('abseil').get_variable('absl_container_dep')
 default_library='shared'
 sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('SDL2_image')
@@ -51,9 +49,7 @@ sdl2_image_dep = dependency('SDL2_image')
 deps = [
   sdl2_dep,
   sdl2_image_dep,
-  dependency('openmp', required: true),
-  abs_base,
-  abs_cont
+  dependency('openmp', required: true)
 ]
 
 executable('jaffar-train',
