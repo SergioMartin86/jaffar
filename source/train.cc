@@ -144,6 +144,7 @@ void Train::computeFrames()
   // Initializing counters
   _stepFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
+  size_t startHashEntryCount = _hashDB.size();
 
   // Creating shared database for new frames
   std::vector<std::unique_ptr<Frame>> newFrames;
@@ -234,7 +235,7 @@ void Train::computeFrames()
 
         // Then check the shared, read-only database
         t0 = std::chrono::steady_clock::now(); // Profiling
-        if (collisionDetected == false) collisionDetected |= !_pastHashDB.insert({hash, _currentStep}).second;
+        if (collisionDetected == false) collisionDetected |= !_hashDB.insert({hash, _currentStep}).second;
         tf = std::chrono::steady_clock::now();
         threadHashCheckingTime2 += std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
 
@@ -349,16 +350,34 @@ void Train::computeFrames()
   // Summing frame processing counters
   _totalFramesProcessedCounter += _stepFramesProcessedCounter;
 
-  // Re-calculating global collision counter
-  _hashCollisions += _newCollisionCounter;
+  // Calculating and storing new entries created in this step and calculating size in mb to evaluate filtering
+  _hashStepNewEntries.push_back(_hashDB.size() - startHashEntryCount);
+  _hashSizeCurrent = ((double)sizeof(std::pair<const uint16_t, uint64_t>)*(double)_hashDB.size()) / (1024.0 * 1024.0);
 
-  // Filtering old hashes
+  // Filtering old hashes if we reach the upper bound
   auto hashFilteringTimeBegin = std::chrono::steady_clock::now(); // Profiling
-  uint16_t currentAgeThreshold = _currentStep - _hashAgeThreshold;
-  if (_currentStep % HASH_FILTERING_FREQUENCY == 0 && _currentStep > _hashAgeThreshold)
-   for (auto& hashEntry : _pastHashDB) _pastHashDB.erase_if(hashEntry.first, [currentAgeThreshold](const auto& age){return age < currentAgeThreshold;});
+  if (_hashSizeCurrent > _hashSizeUpperBound)
+  {
+   // Calculating how many old hash entries we need to delete to reach the lower bound
+   size_t targetDeletedHashEntries = (_hashSizeLowerBound * (1024.0 * 1024.0)) /  (double)sizeof(std::pair<const uint16_t, uint64_t>);
+
+   // Calculate how many old steps we need to forget to reach the number of entries calculated before
+   size_t curDeletedHashEntries = 0;
+   while(curDeletedHashEntries < targetDeletedHashEntries && _hashStepThreshold < _currentStep-1) curDeletedHashEntries += _hashStepNewEntries[_hashStepThreshold++];
+
+   // Erasing older hashes according to the new threshold
+   for (auto& hashEntry : _hashDB) _hashDB.erase_if(hashEntry.first, [this](const auto& age){return age < _hashStepThreshold;});
+  }
+
   auto hashFilteringTimeEnd = std::chrono::steady_clock::now();                                                                           // Profiling
   _stepHashFilteringTime = std::chrono::duration_cast<std::chrono::nanoseconds>(hashFilteringTimeEnd - hashFilteringTimeBegin).count(); // Profiling
+
+  // Hash Statistics
+  _hashCollisions += _newCollisionCounter;
+  _hashEntriesStep = _hashDB.size() - startHashEntryCount;
+  _hashSizeStep = ((double)sizeof(std::pair<const uint16_t, uint64_t>)*(double)_hashEntriesStep) / (1024.0 * 1024.0);
+  _hashSizeCurrent = ((double)sizeof(std::pair<const uint16_t, uint64_t>)*(double)_hashDB.size()) / (1024.0 * 1024.0);
+  _hashEntriesTotal = _hashDB.size();
 }
 
 
@@ -380,7 +399,7 @@ void Train::printTrainStatus()
 
   printf("[Jaffar] Current IGT:  %2lu:%02lu.%03lu / %2lu:%02lu.%03lu\n", curMins, curSecs, curMilliSecs, maxMins, maxSecs, maxMilliSecs);
   printf("[Jaffar] Worst Reward / Best Reward: %f / %f\n", _worstFrameReward, _bestFrameReward);
-  printf("[Jaffar] Database Size: %lu / %lu\n", _databaseSize, _maxDatabaseSize);
+  printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Frames Processed: (Step/Total): %lu / %lu\n", _stepFramesProcessedCounter, _totalFramesProcessedCounter);
   printf("[Jaffar] Elapsed Time (Step/Total):   %3.3fs / %3.3fs\n", _currentStepTime / 1.0e+9, _searchTotalTime / 1.0e+9);
   printf("[Jaffar]   + Hash Calculation:        %3.3fs\n", _stepHashCalculationTime / 1.0e+9);
@@ -391,15 +410,13 @@ void Train::printTrainStatus()
   printf("[Jaffar]   + Frame Encoding:          %3.3fs\n", _stepFrameEncodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Decoding:          %3.3fs\n", _stepFrameDecodingTime / 1.0e+9);
   printf("[Jaffar]   + Frame Sorting            %3.3fs\n", _stepFrameDBSortingTime / 1.0e+9);
-
-  printf("[Jaffar] Performance: %.3f Frames/s\n", (double)_stepFramesProcessedCounter / (_currentStepTime / 1.0e+9));
   printf("[Jaffar] Max Frame State Difference: %lu / %d\n", _maxFrameDiff, _MAX_FRAME_DIFF);
-  printf("[Jaffar] Hash DB Collisions: %lu\n", _hashCollisions);
-  printf("[Jaffar] Hash DB Entries: %lu\n", _pastHashDB.size());
-  printf("[Jaffar] Frame DB Size: %.3fmb\n", (double)(_databaseSize * sizeof(Frame)) / (1024.0 * 1024.0));
-
-  double hashDBSize = (9.0*(double)_pastHashDB.bucket_count() + ((double)sizeof(std::pair<const uint16_t, uint64_t>)*(double)_pastHashDB.size())) / (1024.0 * 1024.0);
-  printf("[Jaffar] Hash DB Size: %.3fmb\n", hashDBSize);
+  printf("[Jaffar] Frame DB Entries (Total / Max): %lu / %lu\n", _databaseSize, _maxDatabaseSize);
+  printf("[Jaffar] Frame DB Size (Total / Max): %.3fmb / %.3fmb\n", (double)(_databaseSize * sizeof(Frame)) / (1024.0 * 1024.0), (double)(_maxDatabaseSize * sizeof(Frame)) / (1024.0 * 1024.0));
+  printf("[Jaffar] Hash DB Collisions (Step/Total): %lu / %lu\n", _newCollisionCounter, _hashCollisions);
+  printf("[Jaffar] Hash DB Entries (Step/Total): %lu / %lu\n", _currentStep == 0 ? 0 : _hashStepNewEntries[_currentStep-1], _hashEntriesTotal);
+  printf("[Jaffar] Hash DB Size (Step/Total/Max): %.3fmb, %.3fmb, <%.0f,%.0f>mb\n", _hashSizeStep, _hashSizeCurrent, _hashSizeLowerBound, _hashSizeUpperBound);
+  printf("[Jaffar] Hash DB Step Threshold: %u\n", _hashStepThreshold);
   printf("[Jaffar] Best Frame Information:\n");
 
   char bestFrameData[_FRAME_DATA_SIZE];
@@ -454,6 +471,9 @@ Train::Train(int argc, char *argv[])
   _stepFramesProcessedCounter = 0;
   _totalFramesProcessedCounter = 0;
   _newCollisionCounter = 0;
+  _hashEntriesTotal = 0;
+  _hashStepThreshold = 0;
+  _hashEntriesStep = 0;
 
   // Setting starting step
   _currentStep = 0;
@@ -462,8 +482,11 @@ Train::Train(int argc, char *argv[])
   _winFrameFound = false;
 
   // Parsing max hash DB entries
-  if (const char *hashAgeThresholdString = std::getenv("JAFFAR_HASH_AGE_THRESHOLD")) _hashAgeThreshold = std::stol(hashAgeThresholdString);
-  else EXIT_WITH_ERROR("[Jaffar] JAFFAR_HASH_AGE_THRESHOLD environment variable not defined.\n");
+  if (const char *hashSizeLowerBoundString = std::getenv("JAFFAR_MAX_HASH_DATABASE_SIZE_LOWER_BOUND_MB")) _hashSizeLowerBound = std::stol(hashSizeLowerBoundString);
+  else EXIT_WITH_ERROR("[Jaffar] JAFFAR_MAX_HASH_DATABASE_SIZE_LOWER_BOUND_MB environment variable not defined.\n");
+
+  if (const char *hashSizeUpperBoundString = std::getenv("JAFFAR_MAX_HASH_DATABASE_SIZE_UPPER_BOUND_MB")) _hashSizeUpperBound = std::stol(hashSizeUpperBoundString);
+  else EXIT_WITH_ERROR("[Jaffar] JAFFAR_MAX_HASH_DATABASE_SIZE_UPPER_BOUND_MB environment variable not defined.\n");
 
   // Parsing max frame DB entries
   size_t maxDBSizeMb = 0;
@@ -588,7 +611,7 @@ Train::Train(int argc, char *argv[])
   initialFrame->reward = _state[0]->getFrameReward(initialFrame->rulesStatus);
 
   // Registering hash for initial frame
-  _pastHashDB[0] = hash;
+  _hashDB[0] = hash;
 
   // Copying initial frame into the best frame
   _bestFrame = *initialFrame;

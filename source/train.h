@@ -23,9 +23,6 @@
 template <class K, class V> using HashMapT = MAPNAME<K, V MAPEXTRAARGS>;
 using hashMap_t = HashMapT<uint64_t, uint16_t>;
 
-// This variable defines how often we filter the hash database
-#define HASH_FILTERING_FREQUENCY 10
-
 class Train
 {
   public:
@@ -76,9 +73,17 @@ class Train
   float _worstFrameReward;
 
   // Hash information
-  hashMap_t _pastHashDB;
-  size_t _hashAgeThreshold;
+  hashMap_t _hashDB;
+  size_t _hashEntriesTotal;
+  ssize_t _hashEntriesStep;
+  double _hashSizeStep;
+  double _hashSizeCurrent;
+  double _hashSizeLowerBound;
+  double _hashSizeUpperBound;
+  std::vector<size_t> _hashStepNewEntries;
+  uint16_t _hashStepThreshold;
   size_t _hashCollisions;
+  size_t _hashAgeThreshold;
 
   // Per-step local hash collision counter
   size_t _newCollisionCounter;
