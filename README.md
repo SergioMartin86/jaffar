@@ -1,3 +1,6 @@
+This project has been deprecated by a new, multi-platform bot: [JaffarPlus](https://github.com/SergioMartin86/jaffarPlus)
+---------------------------------------------------------------------------------------------------------------------------
+
 # Jaffar 
 
 ![](jaffar.png)
